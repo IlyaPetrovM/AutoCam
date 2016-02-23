@@ -2,6 +2,9 @@
 #include "opencv2/highgui.hpp"
 #include "opencv2/imgproc.hpp"
 #include <iostream>
+#include <string>
+#include <sstream>
+#include <cstdlib>
 
 using namespace std;
 using namespace cv;
@@ -28,8 +31,86 @@ void detectAndDraw( Mat& img, CascadeClassifier& cascade,
                     double scale, bool tryflip );
 
 string cascadeName = "../../data/haarcascades/haarcascade_frontalface_alt.xml";
+string cascade2Name = "../../data/haarcascades/haarcascade_profileface.xml";
 string nestedCascadeName = "../../data/haarcascades/haarcascade_eye_tree_eyeglasses.xml";
-
+    void updateRoiCoords(vector<Rect> faces,vector<Rect> &rois, int maxCols, int maxRows){
+    	static int roiHeight=240,roiWidth=roiHeight*16.0/9.0;
+    	static Point tRuleOffsetLeftUp(roiWidth/3.0,roiHeight/3.0);
+    	static Point tRuleOffsetLeftDown(roiWidth/3.0, 2.0*roiHeight/3.0);
+    	static Point tRuleOffsetRightUp(2.0*roiWidth/3.0,roiHeight/3.0);
+    	static Point tRuleOffsetRightDown(2.0*roiWidth/3.0,2.0*roiHeight/3.0);
+    	static double t = 0;
+    	static int sens=10; //sensivity
+    	static float maxSpd=10.0, minSpd=1.0;
+ 		static float distX=0.0; // distance
+ 		static float distY=0.0; // distance
+ 		static float dPrevX=0.0; // distance
+ 		static float dPrevY=0.0; // distance
+ 		static float DeltaX=0.0; // distance
+ 		static float DeltaY=0.0; // distance
+		static double Kp=0.1, Ki=0.0, Kd=0.0;
+		static double cntX=0.0,cntY=0.0;
+		static double uX,uY;	
+    	
+    	//todo автоматическое увеличение количества кадриков
+    	if(rois.empty()){
+    		for (int i = 0; i < faces.size(); ++i)
+    		{
+    			rois.push_back(Rect(faces[i].x-tRuleOffsetRightUp.x,
+    							faces[i].y-tRuleOffsetRightUp.y,
+    							roiWidth,roiHeight));
+    		}
+    	}
+    	t = (double)cvGetTickCount() - t;
+    	// cout << "dt=" << (t>2.7e+08) << endl;
+    	for (int i = 0; i < rois.size() && i < faces.size(); ++i)
+    	{
+    		int x=faces[i].x+faces[i].width/2.0-tRuleOffsetLeftUp.x;
+    		int y=faces[i].y+faces[i].height/3.0 - tRuleOffsetLeftUp.y;
+    		/// PID - регулятор для позиционирования камеры
+ 			dPrevX = distX;
+ 			distX = x-rois[i].x;
+ 			DeltaX = distX-dPrevX;
+ 			cntX += distX;
+ 			uX = distX*Kp + cntX*Ki + DeltaX*Kd;
+	 		rois[i].x += uX;
+ 			dPrevY = distY;
+	        distY = y-rois[i].y;
+	        DeltaY = distY-dPrevY;
+	        cntY += distY;
+	        uY = distY*Kp + cntY*Ki + DeltaY*Kd;
+        	rois[i].y += uY;
+	        cout << "x=" << rois[i].x << " y=" << rois[i].y << endl;
+	        if(rois[i].x<=0){
+    			rois[i].x = 0;
+    		}else if(maxCols < rois[i].x+rois[i].width){
+	            rois[i].x = maxCols-rois[i].width;
+	        }
+	        if(rois[i].y <= 0){
+	        	rois[i].y = 0;
+	        }else if(maxRows < rois[i].y+rois[i].height){
+	            rois[i].y=maxRows-rois[i].height;
+	        }
+    	}
+    	// t = (double)cvGetTickCount();
+    }
+    
+	bool detectMotion(Mat img){
+		static Mat img_last,diff;
+		static bool motionDetected=false;
+		if (!img_last.empty())
+		{
+			// todo Сделать нормализацию
+			normalize(img,img,0,255,NORM_MINMAX);
+			absdiff(img, img_last, diff);
+			threshold(diff, diff, 100, 255, cv::THRESH_BINARY);
+			// cout << (int)mean(diff)[0] << endl;
+			motionDetected=((int)mean(diff)[0] > 0); // Движение в кадрике обнаружено
+			imshow("Diff",diff);
+		}
+		img_last=img.clone();
+		return motionDetected;
+	}       
 int main( int argc, const char** argv )
 {
     VideoCapture capture;
@@ -47,7 +128,7 @@ int main( int argc, const char** argv )
 
     help();
 
-    CascadeClassifier cascade, nestedCascade;
+    CascadeClassifier cascade,cascade2, nestedCascade;
     double scale = 1;
 
     for( int i = 1; i < argc; i++ )
@@ -91,6 +172,13 @@ int main( int argc, const char** argv )
         return -1;
     }
 
+    if( !cascade2.load( cascade2Name ) )
+    {
+        cerr << "ERROR: Could not load classifier 2 cascade" << endl;
+        help();
+        return -1;
+    }
+
     if( inputName.empty() || (isdigit(inputName.c_str()[0]) && inputName.c_str()[1] == '\0') )
     {
         int c = inputName.empty() ? 0 : inputName.c_str()[0] - '0' ;
@@ -111,23 +199,62 @@ int main( int argc, const char** argv )
         image = imread( "../data/lena.jpg", 1 );
         if(image.empty()) cout << "Couldn't read ../data/lena.jpg" << endl;
     }
-
+    Scalar thresholdSum=Scalar(50,200,200);
     if( capture.isOpened() )
     {
         cout << "Video capturing has been started ..." << endl;
-
+		Mat frame_last, frame1;
+		Mat gray;
+		static Mat motion;
+		bool motionDetected=true;
+		string title;
+		std::string s;
+		std::stringstream out;
+		vector<Rect> rois;
+		rois.push_back(Rect(0,0,320,240));
+		vector<Rect> faces;
         for(;;)
         {
+			
+        /// Анализ движения в найденных кадрах    
+        
             capture >> frame;
-            if( frame.empty() )
-                break;
-
-            Mat frame1 = frame.clone();
-            detectAndDraw( frame1, cascade, nestedCascade, scale, tryflip );
-
-            int c = waitKey(10);
-            if( c == 27 || c == 'q' || c == 'Q' )
-                break;
+            if(frame.empty()) {
+            	break;
+            	cout << "Frame is empty" << endl;
+            }
+			frame1 = frame.clone();
+			cvtColor( frame1, gray, COLOR_BGR2GRAY );
+        	if(motionDetected){
+    			cout << "motionDetected"<<endl;
+				/// Поиск лиц в изображениии
+			    double fx = 1 / scale;
+			    Mat smallImg;
+			    resize( gray, smallImg, Size(), fx, fx, INTER_LINEAR );
+			    equalizeHist( smallImg, smallImg );
+			    
+			    cascade.detectMultiScale( smallImg, faces,
+			        1.1, 2, 0
+			        // |CASCADE_FIND_BIGGEST_OBJECT
+			        //|CASCADE_DO_ROUGH_SEARCH
+			        |CASCADE_SCALE_IMAGE,
+			        Size(30, 30) );
+    			if(!faces.empty())rectangle(frame1,faces[0],Scalar(255,0,0), 1, 8, 0);
+        	}
+    		updateRoiCoords(faces,rois,640,480);
+    		for(int i=0; i<rois.size(); i++){
+    			/// Поиск движения в кадрике
+    			motionDetected = detectMotion(gray(rois[i]));
+    			rectangle(frame1,rois[i],Scalar(0,0,255), 3, 8, 0);
+    		}           
+    		// resize( frame1, frame1, Size(), fx, fx, INTER_LINEAR );
+   
+    		/// todo 18.02.2016 Сделать отображение всех лиц
+			imshow("Basic window",frame1);    
+    		
+    		int c = waitKey(10);
+    		if( c == 27 || c == 'q' || c == 'Q' )break;
+    
         }
     }
     else
@@ -156,7 +283,7 @@ int main( int argc, const char** argv )
                     image = imread( buf, 1 );
                     if( !image.empty() )
                     {
-                        detectAndDraw( image, cascade, nestedCascade, scale, tryflip );
+                        detectAndDraw( image, cascade, nestedCascade, scale, tryflip);
                         c = waitKey(0);
                         if( c == 27 || c == 'q' || c == 'Q' )
                             break;
@@ -176,10 +303,13 @@ int main( int argc, const char** argv )
 
 void detectAndDraw( Mat& img, CascadeClassifier& cascade,
                     CascadeClassifier& nestedCascade,
-                    double scale, bool tryflip )
+                    double scale, bool tryflip)
 {
+	bool found_face=false;
     double t = 0;
     vector<Rect> faces, faces2;
+    Mat gray, smallImg;
+    static vector<Rect> facesBuf;
     const static Scalar colors[] =
     {
         Scalar(255, 0,      0),
@@ -191,17 +321,15 @@ void detectAndDraw( Mat& img, CascadeClassifier& cascade,
         Scalar(0,   0,      255),
         Scalar(255, 0,      255)
     };
-    Mat gray, smallImg;
 
     cvtColor( img, gray, COLOR_BGR2GRAY );
     double fx = 1 / scale;
     resize( gray, smallImg, Size(), fx, fx, INTER_LINEAR );
     equalizeHist( smallImg, smallImg );
-
     t = (double)cvGetTickCount();
     cascade.detectMultiScale( smallImg, faces,
         1.1, 2, 0
-        //|CASCADE_FIND_BIGGEST_OBJECT
+        // |CASCADE_FIND_BIGGEST_OBJECT
         //|CASCADE_DO_ROUGH_SEARCH
         |CASCADE_SCALE_IMAGE,
         Size(30, 30) );
@@ -210,7 +338,7 @@ void detectAndDraw( Mat& img, CascadeClassifier& cascade,
         flip(smallImg, smallImg, 1);
         cascade.detectMultiScale( smallImg, faces2,
                                  1.1, 2, 0
-                                 //|CASCADE_FIND_BIGGEST_OBJECT
+                                 // |CASCADE_FIND_BIGGEST_OBJECT
                                  //|CASCADE_DO_ROUGH_SEARCH
                                  |CASCADE_SCALE_IMAGE,
                                  Size(30, 30) );
@@ -219,10 +347,15 @@ void detectAndDraw( Mat& img, CascadeClassifier& cascade,
             faces.push_back(Rect(smallImg.cols - r->x - r->width, r->y, r->width, r->height));
         }
     }
+    if(faces.size()>0){
+    	found_face=true;
+    	// facesBuf=faces;
+    	// printf( "after flippping %d faces", faces.size() );
+    }
     t = (double)cvGetTickCount() - t;
     printf( "detection time = %g ms\n", t/((double)cvGetTickFrequency()*1000.) );
     Rect roiRect;
-    Rect closeUpROI(0,0,320,240);
+    static Rect closeUpROI(0,0,320,240);
     for ( size_t i = 0; i < faces.size(); i++ )
     {
         Mat smallImgROI;
@@ -264,17 +397,32 @@ void detectAndDraw( Mat& img, CascadeClassifier& cascade,
         }
     }
     imshow( "result", img );   
-    for ( size_t i = 0; i < faces.size(); i++ ){
-        if(faces[i].x+closeUpROI.width < img.cols) {
-            closeUpROI.x=faces[i].x;
+	/*static Mat frameCloseUpLast;
+	static Mat motionCloseUp;
+	frameCloseUpLast = closeUpROI.clone();*/
+	//Выводим крупный план в отдельное окно
+    for ( size_t i = 0; i < facesBuf.size(); i++ ){
+        if(facesBuf[i].x+closeUpROI.width < img.cols) {
+            closeUpROI.x=facesBuf[i].x;
         }else{
             closeUpROI.x=img.cols-closeUpROI.width;
         }
-        if(faces[i].y+closeUpROI.height < img.rows){
-            closeUpROI.y=faces[i].y;
+        if(facesBuf[i].y+closeUpROI.height < img.rows){
+            closeUpROI.y=facesBuf[i].y;
         }else{
             closeUpROI.y=img.rows-closeUpROI.height;
         }
-        imshow( "Face", img(closeUpROI) );  
+        string title = "Face";
+        std::string s;
+		std::stringstream out;
+		out << i;
+		title += out.str();
+
+        imshow( title, img(closeUpROI) );  
     }
+    // return facesBuf;
 }
+
+
+
+

@@ -1,0 +1,614 @@
+{
+	"auto_complete":
+	{
+		"selected_items":
+		[
+			[
+				"dis",
+				"distX"
+			],
+			[
+				"dist",
+				"distY"
+			],
+			[
+				"dp",
+				"dPrevX"
+			],
+			[
+				"dPr",
+				"dPrevX"
+			],
+			[
+				"sma",
+				"smallImg"
+			],
+			[
+				"max",
+				"maxCols"
+			],
+			[
+				"st",
+				"static"
+			],
+			[
+				"motio",
+				"motionDetected"
+			],
+			[
+				"clo",
+				"clone"
+			],
+			[
+				"str",
+				"struct	struct"
+			],
+			[
+				"ri",
+				"rois"
+			],
+			[
+				"faces",
+				"faces"
+			],
+			[
+				"frame",
+				"frame1"
+			],
+			[
+				"moti",
+				"motionDetected"
+			],
+			[
+				"pla",
+				"playFullscreen"
+			],
+			[
+				"h",
+				"h1	Tag"
+			],
+			[
+				"fr",
+				"frame_last"
+			],
+			[
+				"mou",
+				"mouth_center"
+			],
+			[
+				"w",
+				"width"
+			],
+			[
+				"mouth_",
+				"mouth_left"
+			],
+			[
+				"inc",
+				"include"
+			],
+			[
+				"face",
+				"faces"
+			],
+			[
+				"sm",
+				"smallImgROI"
+			],
+			[
+				"endi",
+				"endif"
+			],
+			[
+				"test",
+				"test_no"
+			],
+			[
+				"cur",
+				"curTest"
+			],
+			[
+				"co",
+				"co_x_"
+			],
+			[
+				"or",
+				"or_y"
+			],
+			[
+				"gy",
+				"gyro1"
+			],
+			[
+				"mag",
+				"magnetometer1"
+			],
+			[
+				"magne",
+				"magnetometer1_"
+			],
+			[
+				"ac",
+				"accelerometer1"
+			],
+			[
+				"acc",
+				"accelerometer1_"
+			],
+			[
+				"bam",
+				"bamper"
+			],
+			[
+				"b",
+				"bamper_"
+			]
+		]
+	},
+	"buffers":
+	[
+		{
+			"file": "facedetect.cpp",
+			"settings":
+			{
+				"buffer_size": 15829,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "/home/ilya/Documents/Частушки под драку",
+			"settings":
+			{
+				"buffer_size": 1742,
+				"line_ending": "Unix"
+			}
+		}
+	],
+	"build_system": "Packages/Makefile/Make.sublime-build",
+	"build_system_choices":
+	[
+		[
+			[
+				[
+					"Packages/Makefile/Make.sublime-build",
+					""
+				],
+				[
+					"Packages/Makefile/Make.sublime-build",
+					"Clean"
+				]
+			],
+			[
+				"Packages/Makefile/Make.sublime-build",
+				""
+			]
+		]
+	],
+	"build_varint": "",
+	"command_palette":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"console":
+	{
+		"height": 139.0,
+		"history":
+		[
+		]
+	},
+	"distraction_free":
+	{
+		"menu_visible": true,
+		"show_minimap": false,
+		"show_open_files": false,
+		"show_tabs": false,
+		"side_bar_visible": false,
+		"status_bar_visible": false
+	},
+	"expanded_folders":
+	[
+		"/home/ilya/Downloads/opencv-3.1.0/workspace/bookDetect/book"
+	],
+	"file_history":
+	[
+		"/home/ilya/Downloads/opencv-3.1.0/workspace/FaceDetect/facedetect.sublime-project",
+		"/etc/lightdm/lightdm.conf",
+		"/etc/guest-session/auto.sh",
+		"/home/ilya/Downloads/opencv-3.1.0/workspace/FaceDetect/facedetect",
+		"/home/ilya/Downloads/opencv-3.1.0/workspace/clandmark/examples/video_input.cpp",
+		"/home/ilya/Downloads/opencv-3.1.0/workspace/clandmark/examples/jointmv_detector.cpp",
+		"/home/ilya/Downloads/opencv-3.1.0/workspace/clandmark/examples/oldCMakeLists2.txt",
+		"/home/ilya/Downloads/opencv-3.1.0/workspace/clandmark/examples/CMakeLists.txt",
+		"/home/ilya/Downloads/opencv-3.1.0/workspace/clandmark/examples/helpers.h",
+		"/home/ilya/Downloads/opencv-3.1.0/workspace/clandmark/examples/jointmv.cpp",
+		"/home/ilya/Downloads/opencv-3.1.0/workspace/clandmark/examples/mv_detector.cpp",
+		"/home/ilya/youtubeList.html",
+		"/home/ilya/Downloads/opencv-3.1.0/workspace/clandmark/examples/CMakeLists_old.txt",
+		"/home/ilya/Downloads/opencv-3.1.0/workspace/FaceDetect/facedetect.cpp",
+		"/home/ilya/eclipse_workspace/TwoThreads/outputArrayA.txt",
+		"/home/ilya/shad-env/tasks/task_02.txt",
+		"/home/ilya/eclipse_workspace/TwoThreads/inputArrayA.txt",
+		"/home/ilya/eclipse_workspace/TwoThreads/inputArrayB.txt",
+		"/home/ilya/eclipse_workspace/TwoThreads/outputArrayB.txt",
+		"/home/ilya/shad/task_01_04.txt",
+		"/home/ilya/shad/task_01_06.txt",
+		"/home/ilya/shad/task_01_03.txt",
+		"/home/ilya/shad/task_01_02.txt",
+		"/home/ilya/shad/task_01_05.txt",
+		"/home/ilya/shad/task_01_01.txt",
+		"/home/ilya/Downloads/opencv-3.1.0/workspace/DisplayImage/display_image.cpp",
+		"/home/ilya/Downloads/opencv-3.1.0/workspace/openCV_start/main.cpp",
+		"/home/ilya/Downloads/opencv-3.1.0/workspace/testOpenCv/main.cpp",
+		"/home/ilya/Downloads/flandmark-master/examples/CMakeLists.txt",
+		"/home/ilya/Downloads/flandmark-master/INSTALL",
+		"/home/ilya/Downloads/flandmark-master/examples/external/run_example.bat",
+		"/home/ilya/Downloads/flandmark-master/examples/external/example1.cpp",
+		"/home/ilya/Downloads/flandmark-master/examples/example1.cpp",
+		"/home/ilya/Downloads/flandmark-master/examples/simple_example.cpp",
+		"/home/ilya/Downloads/flandmark-master/README",
+		"/home/ilya/Documents/english/task on 28.01.2016",
+		"/home/ilya/Downloads/opencv-3.1.0/workspace/clandmark/examples/examples/flandmark_model.xml",
+		"/home/ilya/Downloads/flandmark-master/CMakeLists.txt",
+		"/home/ilya/Videos/tutorial-dialogue-archive/Coffee Demo.Archive/data/G70601T0.gal",
+		"/home/ilya/Documents/not_answered",
+		"/home/ilya/Downloads/opencv-3.1.0/workspace/bookDetect/book.dat",
+		"/home/ilya/Downloads/opencv-3.1.0/workspace/foto1/CMakeLists.txt",
+		"/home/ilya/Downloads/opencv-3.1.0/workspace/foto1/main.cpp",
+		"/home/ilya/Downloads/opencv-3.1.0/modules/objdetect/src/hog.cpp",
+		"/home/ilya/Downloads/foto1/main.cpp",
+		"/home/ilya/Downloads/foto1/Visio.h",
+		"/home/ilya/Downloads/opencv-3.1.0/workspace/IlyaDetection/ilya_orange2.dat",
+		"/home/ilya/Pictures/Webcam/book.dat",
+		"/home/ilya/eclipse_workspace/arrayLab/inputArrayA.txt",
+		"/home/ilya/eclipse_workspace/arrayLab/fileToAppend.txt",
+		"/home/ilya/eclipse_workspace/arrayLab/inputArrayB.txt",
+		"/home/ilya/eclipse_workspace/arrayLab/array_A.dat",
+		"/home/ilya/Downloads/opencv-3.1.0/workspace/IlyaDetection/background.dat",
+		"/home/ilya/Documents/Идея программы для диплома",
+		"/home/ilya/Downloads/Bubobubo/README.md",
+		"/home/ilya/Downloads/opencv-3.1.0/workspace/owlDetector/Bad.dat",
+		"/home/ilya/Downloads/opencv-3.1.0/workspace/owlDetector/Good.dat",
+		"/home/ilya/Downloads/introlab-find-object-6dc66d5/README.md",
+		"/home/ilya/Videos/tutaev2015/cam_center/convert2mp4.sh",
+		"/home/ilya/Downloads/opencv-3.1.0/workspace/recFaces/recfaces.cpp",
+		"/home/ilya/Downloads/opencv-3.1.0/workspace/FaceRec/myfacerec.cpp",
+		"/home/ilya/Downloads/opencv-3.1.0/workspace/recFaces/recFaces.cpp",
+		"/home/ilya/Downloads/opencv-3.1.0/workspace/recFaces/CMakeLists.txt",
+		"/usr/include/opencv2/contrib/contrib.hpp",
+		"/usr/local/include/opencv2/imgproc/imgproc.hpp",
+		"/usr/local/include/opencv2/imgproc.hpp",
+		"/etc/hosts",
+		"/usr/local/include/opencv2/core.hpp",
+		"/home/ilya/opencv_ws/FaceRec/CMakeLists.txt",
+		"/usr/include/opencv2/contrib/contrib_3.1.0.hpp",
+		"/home/ilya/.bashrc",
+		"/home/ilya/opencv-2.4.11/workspace/FaceRec/CMakeLists.txt",
+		"/home/ilya/opencv-2.4.11/workspace/FaceDetect/CMakeLists.txt",
+		"/home/ilya/Downloads/opencv310/opencv_ws/FaceRec/myfacerec.cpp",
+		"/usr/include/opencv2/contrib.hpp",
+		"/home/ilya/OpenCV/opencv_contrib/modules/face/include/opencv2/face/facerec.hpp",
+		"/home/ilya/.openproj/run.conf",
+		"/home/ilya/Downloads/opencv310/opencv_ws/FaceRec/myfacerec",
+		"/home/ilya/Downloads/Prezentatsia_bak4_2m.ppt",
+		"/home/ilya/opencv_ws/FaceRec/myfacerec.cpp",
+		"/home/ilya/opencv_ws/FaceDetect/CMakeLists.txt",
+		"/run/user/1000/gvfs/sftp:host=toysharvester,user=user/home/user/robotcontrolsystem/src/rtabmap_ros/launch/rgbd_mapping_fast.launch",
+		"/home/ilya/sql/dbsensor_v1/views.sql",
+		"/home/ilya/sql/dbsensor_v1/grant.sql",
+		"/run/user/1000/gvfs/sftp:host=toysharvester,user=user/home/user/robotcontrolsystem/src/rtabmap_ros/launch/config/rgbd.rviz",
+		"/run/user/1000/gvfs/sftp:host=toysharvester,user=user/home/user/robotcontrolsystem/src/rtabmap_ros/launch/rgbd_mapping_kinect2.launch",
+		"/run/user/1000/gvfs/sftp:host=toysharvester,user=user/home/user/robotcontrolsystem/src/rtabmap_ros/launch/rgbd_localization.launch",
+		"/home/ilya/Downloads/wps-office_9.1.0.4953~a18_i386.deb",
+		"/run/user/1000/gvfs/sftp:host=toysharvester,user=user/home/user/robotcontrolsystem/scripts/sql/dbsensor_v1/views.sql",
+		"/run/user/1000/gvfs/sftp:host=toysharvester,user=user/home/user/robotcontrolsystem/src/sql_database/sensor_database/include/teststable.h",
+		"/run/user/1000/gvfs/sftp:host=toysharvester,user=user/home/user/robotcontrolsystem/src/sql_database/sensor_database/src/teststable.cpp",
+		"/run/user/1000/gvfs/sftp:host=toysharvester,user=user/home/user/robotcontrolsystem/src/sql_database/sensor_database/src/main.cpp",
+		"/home/ilya/Downloads/wps-office_9.1.0.4953~a18_amd64.deb",
+		"/run/user/1000/gvfs/sftp:host=toysharvester,user=user/home/user/robotcontrolsystem/src/sql_database/database_interface/include/database_interface/db_filters.h",
+		"/run/user/1000/gvfs/sftp:host=toysharvester,user=user/home/user/robotcontrolsystem/src/sql_database/database_interface/include/database_interface/db_class.h",
+		"/run/user/1000/gvfs/sftp:host=toysharvester,user=user/home/user/robotcontrolsystem/src/sql_database/sensor_database/src/rostableabstract.cpp",
+		"/run/user/1000/gvfs/sftp:host=toysharvester,user=user/home/user/robotcontrolsystem/src/sql_database/sensor_database/src/sensdata.cpp",
+		"/run/user/1000/gvfs/sftp:host=toysharvester,user=user/home/user/robotcontrolsystem/src/sql_database/database_interface/include/database_interface/postgresql_database.h",
+		"/run/user/1000/gvfs/sftp:host=toysharvester,user=user/home/user/robotcontrolsystem/src/sql_database/database_interface/include/database_interface/db_field.h",
+		"/run/user/1000/gvfs/sftp:host=toysharvester,user=user/home/user/robotcontrolsystem/src/sql_database/database_interface/src/postgresql_database.cpp",
+		"/run/user/1000/gvfs/sftp:host=toysharvester,user=user/home/user/robotcontrolsystem/src/sql_database/sensor_database/include/sensdata.h",
+		"/run/user/1000/gvfs/sftp:host=toysharvester,user=user/home/user/robotcontrolsystem/robot_4wd-master/ros_4wd_driver/src/robot_4wd_node.cpp",
+		"/run/user/1000/gvfs/sftp:host=toysharvester,user=user/home/user/robotcontrolsystem/robot_4wd-master/ros_4wd_driver/msg/sensors_telemetry_4wd.msg",
+		"/run/user/1000/gvfs/sftp:host=toysharvester,user=user/home/user/robotcontrolsystem/robot_4wd-master/ros_4wd_driver/srv/robot_drive_4wd.srv",
+		"/run/user/1000/gvfs/sftp:host=toysharvester,user=user/home/user/robotcontrolsystem/robot_4wd-master/ros_4wd_driver/srv/motor_write.srv",
+		"/run/user/1000/gvfs/sftp:host=toysharvester,user=user/home/user/robotcontrolsystem/robot_4wd-master/ros_4wd_driver/srv/motors_write.srv",
+		"/run/user/1000/gvfs/sftp:host=toysharvester,user=user/home/user/robotcontrolsystem/robot_4wd-master/ros_4wd_driver/srv/digital_write.srv",
+		"/run/user/1000/gvfs/sftp:host=toysharvester,user=user/home/user/robotcontrolsystem/src/sql_database/sensor_database/CMakeLists.txt",
+		"/run/user/1000/gvfs/sftp:host=toysharvester,user=user/home/user/robotcontrolsystem/src/sql_database/sensor_database/manifest.xml",
+		"/run/user/1000/gvfs/sftp:host=toysharvester,user=user/home/user/robotcontrolsystem/src/ros_4wd_driver/msg/imu_raw_data.msg",
+		"/home/ilya/create_tables.sql",
+		"/run/user/1000/gvfs/sftp:host=toysharvester,user=user/home/user/robotcontrolsystem/scripts/create_tables_sensor_data.sql",
+		"/home/ilya/.config/sublime-text-3/Packages/User/catkin_make.sublime-build"
+	],
+	"find":
+	{
+		"height": 38.0
+	},
+	"find_in_files":
+	{
+		"height": 0.0,
+		"where_history":
+		[
+		]
+	},
+	"find_state":
+	{
+		"case_sensitive": false,
+		"find_history":
+		[
+			"detectMo",
+			"cascade.detectMultiScale",
+			"gray",
+			"frame",
+			"rect",
+			"detectAnd",
+			"facesBuf",
+			"facesB",
+			"updateR",
+			"facesBuf",
+			"CASCADE_FIND_BIGGEST_OBJECT",
+			"detectAndDraw",
+			"closeUpROI",
+			"frameCloseUpLast",
+			"helpers",
+			"CImg",
+			"cimg",
+			"faces[i].width",
+			"();\n",
+			"faces",
+			"faces[i]",
+			"faces2",
+			"cascadeName",
+			"cascade",
+			"2*flandmark->getLandmarksCount()",
+			"detectAndDisplay",
+			"writer",
+			"if (${OpenCV_VERSION_MINOR} LESS 3)\n	if (UNIX)\n		set(CV_LIBS_1 highgui)\n		set(CV_LIBS_2 cxcore cv cvaux)\n	elseif (WIN32)\n		set(CV_LIBS_1 highgui${OpenCV_VERSION_MAJOR}${OpenCV_VERSION_MINOR}${OpenCV_VERSION_PATCH})\n		set(CV_LIBS_2 cxcore${OpenCV_VERSION_MAJOR}${OpenCV_VERSION_MINOR}${OpenCV_VERSION_PATCH} cv${OpenCV_VERSION_MAJOR}${OpenCV_VERSION_MINOR}${OpenCV_VERSION_PATCH} cvaux${OpenCV_VERSION_MAJOR}${OpenCV_VERSION_MINOR}${OpenCV_VERSION_PATCH})\n	elseif (APPLE)\n	endif (UNIX)",
+			"cvr",
+			"result",
+			"jpg",
+			"tryflip",
+			"faces",
+			"t",
+			"\\",
+			"jpg",
+			"bg",
+			"ilya",
+			"my",
+			"COLORMAP_",
+			"COLORMAP",
+			"COLORM",
+			"createFisherFaceRecognizer",
+			"CV_EXP",
+			"COLORMAP_HOT",
+			"COLORMAP",
+			"FaceRecognizer",
+			"myfacedetect",
+			"myfacerec",
+			"LDA",
+			"facerec",
+			"not found",
+			"       | real     |",
+			"           | real     |",
+			"| real     |",
+			"FilterClause",
+			"setSequenceName",
+			"RotationsTable",
+			"SensData",
+			"rot_table",
+			"<int> magnetometer",
+			"<int> accelerometer",
+			"<int> encoder",
+			"<short> encoder",
+			"\" ",
+			", tableName,",
+			",this,",
+			"stamp",
+			"time",
+			"bumper",
+			"tests_id",
+			"comment",
+			"test_id_",
+			"int32 "
+		],
+		"highlight": true,
+		"in_selection": false,
+		"preserve_case": false,
+		"regex": false,
+		"replace_history":
+		[
+			"facesBuf",
+			"facesBuf[i]",
+			"jpg 1 368 66 693 924",
+			"/",
+			"jpg 1  83 0 173 240",
+			"background/bg",
+			"ilya_orange2/ilya",
+			"cv::FaceRecognizer",
+			"facedetect",
+			"myfacedetect",
+			"myfacerec",
+			",",
+			"",
+			"SensData",
+			"table_sensdata",
+			"<short> magnetometer",
+			"<short> accelerometer",
+			"<short> encoder",
+			"\"",
+			"\", tableName,",
+			",this, \"",
+			"bamper",
+			"tests_no",
+			"issue",
+			"test_no_",
+			"msg."
+		],
+		"reverse": false,
+		"show_context": true,
+		"use_buffer2": true,
+		"whole_word": false,
+		"wrap": true
+	},
+	"groups":
+	[
+		{
+			"selected": 1,
+			"sheets":
+			[
+				{
+					"buffer": 0,
+					"file": "facedetect.cpp",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 15829,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								2525,
+								2525
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C++/C++.tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 576.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 1,
+					"type": "text"
+				},
+				{
+					"buffer": 1,
+					"file": "/home/ilya/Documents/Частушки под драку",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 1742,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								371,
+								371
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Text/Plain text.tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 0,
+					"type": "text"
+				}
+			]
+		}
+	],
+	"incremental_find":
+	{
+		"height": 30.0
+	},
+	"input":
+	{
+		"height": 0.0
+	},
+	"layout":
+	{
+		"cells":
+		[
+			[
+				0,
+				0,
+				1,
+				1
+			]
+		],
+		"cols":
+		[
+			0.0,
+			1.0
+		],
+		"rows":
+		[
+			0.0,
+			1.0
+		]
+	},
+	"menu_visible": true,
+	"output.exec":
+	{
+		"height": 112.0
+	},
+	"output.find_results":
+	{
+		"height": 0.0
+	},
+	"pinned_build_system": "Packages/Makefile/Make.sublime-build",
+	"project": "facedetect.sublime-project",
+	"replace":
+	{
+		"height": 56.0
+	},
+	"save_all_on_build": true,
+	"select_file":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"select_project":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"select_symbol":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"selected_group": 0,
+	"settings":
+	{
+	},
+	"show_minimap": true,
+	"show_open_files": false,
+	"show_tabs": true,
+	"side_bar_visible": false,
+	"side_bar_width": 50.0,
+	"status_bar_visible": true,
+	"template_settings":
+	{
+	}
+}

@@ -15,6 +15,12 @@ opencv2/imgproc.hpp
 /home/ilya/Downloads/opencv-3.1.0/workspace/FaceDetect/opencv2/imgproc.hpp
 iostream
 -
+string
+-
+sstream
+-
+cstdlib
+-
 
 /usr/local/include/opencv/cxcore.h
 opencv2/core/core_c.h
