@@ -2,8 +2,10 @@
 #include "opencv2/highgui.hpp"
 #include "opencv2/imgproc.hpp"
 #include <iostream>
+#include <iomanip>
 #include <string>
 #include <sstream>
+#include <fstream>
 #include <cstdlib>
 #include <opencv2/videoio/videoio.hpp>  // Video write
 
@@ -14,7 +16,7 @@ static void help()
 {
     cout << "\nThis program demonstrates the cascade recognizer. Now you can use Haar or LBP features.\n"
             "This classifier can recognize many kinds of rigid objects, once the appropriate classifier is trained.\n"
-            "It's most known use is for faces.\n"
+            "It's most koneIterEndn use is for faces.\n"
             "Usage:\n"
             "./facedetect [--cascade=<cascade_path> this is the primary trained classifier such as frontal face]\n"
                "   [--nested-cascade[=nested_cascade_path this an optional secondary classifier such as eyes]]\n"
@@ -36,7 +38,7 @@ string cascade2Name = "../../data/haarcascades/haarcascade_profileface.xml";
 string nestedCascadeName = "../../data/haarcascades/haarcascade_eye_tree_eyeglasses.xml";
     void updateRoiCoords(vector<Rect> faces,vector<Rect> &rois, int maxCols, int maxRows){
     	static int roiHeight=240,roiWidth=roiHeight*4.0/3.0; //TODO 25.02.2016 Сделать для нескольких ROI с настраиваемыми размерами
-    	static Point leftUp(rois[0].width/3.0,rois[0].height/3.0);
+    	static Point leftUp(rois[0].width/3.0, rois[0].height/3.0);
         // static Point leftUp(0,0);
     	static Point leftDown(rois[0].width/3.0, 2.0*rois[0].height/3.0);
     	static Point rightUp(2.0*rois[0].width/3.0,rois[0].height/3.0);
@@ -50,7 +52,7 @@ string nestedCascadeName = "../../data/haarcascades/haarcascade_eye_tree_eyeglas
  		static float dPrevY=0.0; 
  		static float DeltaX=0.0; 
  		static float DeltaY=0.0; 
-		static double Kp=0.1, Ki=0.001, Kd=0.05;//0.001 , 0.05
+		static double Kp=0.1, Ki=0.001, Kd=-0.09;//0.001 , 0.05
 		static double cntX=0.0,cntY=0.0;
 		static double uX,uY;	
     	
@@ -168,7 +170,7 @@ int main( int argc, const char** argv )
         }
         else if( argv[i][0] == '-' )
         {
-            cerr << "WARNING: Unknown option %s" << argv[i] << endl;
+            cerr << "WARNING: UnkoneIterEndn option %s" << argv[i] << endl;
         }
         else
             inputName.assign( argv[i] );
@@ -239,12 +241,32 @@ int main( int argc, const char** argv )
         rois.push_back(Rect((S.width/2 - roiSize.width/2),  (S.height/2-roiSize.height/2),
                             roiSize.width, roiSize.height));
         vector<Rect> faces;
-        static Point leftUp(roiSize.width/3.0,roiSize.height/3.0);
-        static Point leftDown(roiSize.width/3.0,      2.0*roiSize.height/3.0);
-        static Point rightUp(2.0*roiSize.width/3.0,       roiSize.height/3.0);
-        static Point rightDown(2.0*roiSize.width/3.0, 2.0*roiSize.height/3.0);
+        static Point leftUp;
+        static Point leftDown;
+        static Point rightUp;
+        static Point rightDown;
+        int64 oneIterEnd, oneIterStart, 
+            motDetStart,motDetEnd,
+            faceDetStart,faceDetEnd,
+            updateStart,updateEnd, timeStart; 
+        double oneIterTime, motDetTime, faceDetTime,updateTime,timeEnd;
+        const double ticksPerMsec=cvGetTickFrequency() * 1.0e6; 
+        fstream fs("test.txt", fstream::out);
+        if(!fs.is_open()){
+            cout << "Error with opening the file: test.txt"<< endl;
+        }else{
+           fs << "timestamp\t"
+                << "faceDetTime\t" 
+                << "motDetTime\t" 
+                << "updateTime\t"
+                << "oneIterTime\t" 
+                << "faces[0].x\tfaces[0].y\t"
+                << "rois[0].x\trois[0].y\t" << endl; 
+        }
+        timeStart = cvGetTickCount(); // generalTimer
         for(;;)
         {
+            oneIterStart = cvGetTickCount(); 
             capture >> frame;
             if(frame.empty()) {
                 break;
@@ -252,17 +274,19 @@ int main( int argc, const char** argv )
             }
             previewFrame = frame.clone();
             cvtColor( frame, gray, COLOR_BGR2GRAY );
+
+            faceDetStart = cvGetTickCount();
             if(motionDetected){
-			    resize( gray, smallImg, Size(), fx, fx, INTER_LINEAR );
-			    equalizeHist( smallImg, smallImg );
-			    
-			    cascade.detectMultiScale( smallImg, faces,
-			        1.1, 2, 0
-			        |CASCADE_FIND_BIGGEST_OBJECT
-			        |CASCADE_DO_ROUGH_SEARCH
-			        |CASCADE_SCALE_IMAGE,
-			        Size(30, 30) );
-    			for (int i = 0; i < faces.size(); ++i)
+                resize( gray, smallImg, Size(), fx, fx, INTER_LINEAR );
+                equalizeHist( smallImg, smallImg );
+                
+                cascade.detectMultiScale( smallImg, faces,
+                    1.1, 2, 0
+                    |CASCADE_FIND_BIGGEST_OBJECT
+                    |CASCADE_DO_ROUGH_SEARCH
+                    |CASCADE_SCALE_IMAGE,
+                    Size(30, 30) );
+                for (int i = 0; i < faces.size(); ++i)
                 {
                     faces[i].x *= scale;
                     faces[i].y *= scale;
@@ -270,11 +294,18 @@ int main( int argc, const char** argv )
                     faces[i].width *= scale;
                     rectangle(previewFrame,faces[0],Scalar(255,0,0), 3, 8, 0);
                 }
-        	}
-    		updateRoiCoords(faces,rois,S.width,S.height);             
-    		for (int i = 0; i < rois.size(); ++i)
+            }
+            faceDetEnd = cvGetTickCount();
+
+            updateStart = cvGetTickCount();
+            updateRoiCoords(faces,rois,S.width,S.height);   
+            updateEnd = cvGetTickCount();
+
+            motDetStart = cvGetTickCount();
+            for (int i = 0; i < rois.size(); ++i)
             {
                 motionDetected = detectMotion(frame(rois[i]));
+                
                 rectangle(previewFrame,rois[i],Scalar(0,0,255), 3, 8, 0);
                 leftUp.x=rois[i].x + rois[i].width/3.0;
                 leftUp.y=rois[i].y + rois[i].height/3.0;
@@ -292,15 +323,34 @@ int main( int argc, const char** argv )
                 circle( previewFrame, leftDown, 1, Scalar(0,255,0), 6, 8, 0 );
                 circle( previewFrame, rightDown, 1, Scalar(0,255,0), 6, 8, 0 );
             }
+            motDetEnd = cvGetTickCount();
             outputVideo << frame(rois[0]); /// TODO: 25.02.2016 сделать вывод для каждого лица
 
             resize( previewFrame, previewSmall, Size(320,240), 0, 0, INTER_NEAREST );
             imshow("Small preview",previewSmall);    
 
-    		int c = waitKey(10);
-    		if( c == 27 || c == 'q' || c == 'Q' )break;
+            int c = waitKey(10);
+            if( c == 27 || c == 'q' || c == 'Q' )break;
     
+            oneIterEnd = cvGetTickCount(); 
+            timeEnd = (cvGetTickCount() - timeStart)*ticksPerMsec;
+            faceDetTime = (faceDetEnd - faceDetStart)*ticksPerMsec;
+            updateTime =  (updateEnd - updateStart)*ticksPerMsec;
+            motDetTime  = (motDetEnd - motDetStart)*ticksPerMsec;
+            oneIterTime = (oneIterEnd - oneIterStart)*ticksPerMsec;
+            if(fs.is_open()) {
+                fs  << timeEnd << "\t"
+                    << faceDetTime << "\t" 
+                    << motDetTime << "\t" 
+                    << updateTime << "\t"
+                    << oneIterTime << "\t";
+                if(!faces.empty())fs << faces[0].x << "\t" << faces[0].y << "\t"; else fs << "\t\t";
+                if(!rois.empty())fs << rois[0].x << "\t" << rois[0].y << "\t";else fs << "\t\t";
+                fs  << endl;
+            }
+            oneIterEnd = faceDetEnd = motDetEnd = -1;
         }
+        fs.close();
     }
     else
     {
