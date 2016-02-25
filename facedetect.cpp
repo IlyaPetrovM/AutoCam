@@ -35,21 +35,22 @@ string cascadeName = "../../data/haarcascades/haarcascade_frontalface_alt.xml";
 string cascade2Name = "../../data/haarcascades/haarcascade_profileface.xml";
 string nestedCascadeName = "../../data/haarcascades/haarcascade_eye_tree_eyeglasses.xml";
     void updateRoiCoords(vector<Rect> faces,vector<Rect> &rois, int maxCols, int maxRows){
-    	static int roiHeight=240,roiWidth=roiHeight*16.0/9.0;
-    	static Point tRuleOffsetLeftUp(roiWidth/3.0,roiHeight/3.0);
-    	static Point tRuleOffsetLeftDown(roiWidth/3.0, 2.0*roiHeight/3.0);
-    	static Point tRuleOffsetRightUp(2.0*roiWidth/3.0,roiHeight/3.0);
-    	static Point tRuleOffsetRightDown(2.0*roiWidth/3.0,2.0*roiHeight/3.0);
+    	static int roiHeight=240,roiWidth=roiHeight*4.0/3.0; //TODO 25.02.2016 Сделать для нескольких ROI с настраиваемыми размерами
+    	static Point leftUp(rois[0].width/3.0,rois[0].height/3.0);
+        // static Point leftUp(0,0);
+    	static Point leftDown(rois[0].width/3.0, 2.0*rois[0].height/3.0);
+    	static Point rightUp(2.0*rois[0].width/3.0,rois[0].height/3.0);
+    	static Point rightDown(2.0*rois[0].width/3.0,2.0*rois[0].height/3.0);
     	static double t = 0;
     	static int sens=10; //sensivity
     	static float maxSpd=10.0, minSpd=1.0;
- 		static float distX=0.0; // distance
- 		static float distY=0.0; // distance
- 		static float dPrevX=0.0; // distance
- 		static float dPrevY=0.0; // distance
- 		static float DeltaX=0.0; // distance
- 		static float DeltaY=0.0; // distance
-		static double Kp=0.1, Ki=0.0, Kd=0.0;
+ 		static float distX=0.0; 
+ 		static float distY=0.0; 
+ 		static float dPrevX=0.0; 
+ 		static float dPrevY=0.0; 
+ 		static float DeltaX=0.0; 
+ 		static float DeltaY=0.0; 
+		static double Kp=0.1, Ki=0.001, Kd=0.05;//0.001 , 0.05
 		static double cntX=0.0,cntY=0.0;
 		static double uX,uY;	
     	
@@ -57,17 +58,21 @@ string nestedCascadeName = "../../data/haarcascades/haarcascade_eye_tree_eyeglas
     	if(rois.empty()){
     		for (int i = 0; i < faces.size(); ++i)
     		{
-    			rois.push_back(Rect((faces[i].x-tRuleOffsetRightUp.x),
-    							(faces[i].y-tRuleOffsetRightUp.y),
+    			rois.push_back(Rect((faces[i].x-rightUp.x),
+    							(faces[i].y-rightUp.y),
     							roiWidth,roiHeight));
     		}
     	}
-    	t = (double)cvGetTickCount() - t;
-    	// cout << "dt=" << (t>2.7e+08) << endl;
-    	for (int i = 0; i < rois.size() && i < faces.size(); ++i)
-    	{
-    		int x=(faces[i].x+faces[i].width/2.0-tRuleOffsetLeftUp.x);
-    		int y=(faces[i].y+faces[i].height/3.0 - tRuleOffsetLeftUp.y);
+        Point target;
+        for (int i = 0; i < rois.size() && i < faces.size(); ++i)
+        {
+            if(faces[i].x+faces[i].width/2.0 < maxCols/2.0)
+                target = leftUp;
+            else
+                target = rightUp;
+
+    		int x=(faces[i].x+faces[i].width/2.0-target.x);
+    		int y=(faces[i].y+faces[i].height/3.0 - target.y);
     		/// PID - регулятор для позиционирования камеры
  			dPrevX = distX;
  			distX  = x-rois[i].x;
@@ -83,7 +88,6 @@ string nestedCascadeName = "../../data/haarcascades/haarcascade_eye_tree_eyeglas
 	        uY     = distY*Kp + cntY*Ki + DeltaY*Kd;
         	rois[i].y += uY;
 
-	        cout << "x=" << rois[i].x << " y=" << rois[i].y << endl;
 	        if(rois[i].x<=0){
     			rois[i].x = 0;
     		}else if(maxCols < rois[i].x+rois[i].width){
@@ -95,7 +99,6 @@ string nestedCascadeName = "../../data/haarcascades/haarcascade_eye_tree_eyeglas
 	            rois[i].y=maxRows-rois[i].height;
 	        }
     	}
-    	// t = (double)cvGetTickCount();
     }
     
 	bool detectMotion(Mat img){
@@ -233,11 +236,13 @@ int main( int argc, const char** argv )
 		std::stringstream out;
 		vector<Rect> rois;
 		const double fx = 1 / scale;   
-        // rois.push_back(Rect(fx*(S.width/2 - roiSize.width/2),  fx*(S.height/2-roiSize.height/2),
-        //                     roiSize.width, roiSize.height));
-        rois.push_back(Rect(0,  0,
+        rois.push_back(Rect((S.width/2 - roiSize.width/2),  (S.height/2-roiSize.height/2),
                             roiSize.width, roiSize.height));
         vector<Rect> faces;
+        static Point leftUp(roiSize.width/3.0,roiSize.height/3.0);
+        static Point leftDown(roiSize.width/3.0,      2.0*roiSize.height/3.0);
+        static Point rightUp(2.0*roiSize.width/3.0,       roiSize.height/3.0);
+        static Point rightDown(2.0*roiSize.width/3.0, 2.0*roiSize.height/3.0);
         for(;;)
         {
             capture >> frame;
@@ -271,13 +276,27 @@ int main( int argc, const char** argv )
             {
                 motionDetected = detectMotion(frame(rois[i]));
                 rectangle(previewFrame,rois[i],Scalar(0,0,255), 3, 8, 0);
+                leftUp.x=rois[i].x + rois[i].width/3.0;
+                leftUp.y=rois[i].y + rois[i].height/3.0;
+
+                rightUp.x=rois[i].x + 2.0*rois[i].width/3.0;
+                rightUp.y=rois[i].y + rois[i].height/3.0;
+
+                leftDown.x=rois[i].x + rois[i].width/3.0;
+                leftDown.y=rois[i].y + 2.0*rois[i].height/3.0;
+
+                rightDown.x=rois[i].x + 2.0*rois[i].width/3.0;
+                rightDown.y=rois[i].y + 2.0*rois[i].height/3.0;
+                circle( previewFrame, leftUp, 1, Scalar(0,255,0), 6, 8, 0 );
+                circle( previewFrame, rightUp, 1, Scalar(0,255,0), 6, 8, 0 );
+                circle( previewFrame, leftDown, 1, Scalar(0,255,0), 6, 8, 0 );
+                circle( previewFrame, rightDown, 1, Scalar(0,255,0), 6, 8, 0 );
             }
+            outputVideo << frame(rois[0]); /// TODO: 25.02.2016 сделать вывод для каждого лица
 
             resize( previewFrame, previewSmall, Size(320,240), 0, 0, INTER_NEAREST );
             imshow("Small preview",previewSmall);    
-            
-            outputVideo << frame(rois[0]);
-    		
+
     		int c = waitKey(10);
     		if( c == 27 || c == 'q' || c == 'Q' )break;
     
