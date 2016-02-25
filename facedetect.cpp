@@ -5,6 +5,7 @@
 #include <string>
 #include <sstream>
 #include <cstdlib>
+#include <opencv2/videoio/videoio.hpp>  // Video write
 
 using namespace std;
 using namespace cv;
@@ -96,19 +97,22 @@ string nestedCascadeName = "../../data/haarcascades/haarcascade_eye_tree_eyeglas
     }
     
 	bool detectMotion(Mat img){
-		static Mat img_last,diff;
+		static Mat img_last,diff,gr, grLast,grDiff;
 		static bool motionDetected=false;
-		if (!img_last.empty())
-		{
-			// todo Сделать нормализацию
-			normalize(img,img,0,255,NORM_MINMAX);
-			absdiff(img, img_last, diff);
-			threshold(diff, diff, 100, 255, cv::THRESH_BINARY);
-			// cout << (int)mean(diff)[0] << endl;
-			motionDetected=((int)mean(diff)[0] > 0); // Движение в кадрике обнаружено
-			imshow("Diff",diff);
-		}
-		img_last=img.clone();
+        cvtColor( img, gr, COLOR_BGR2GRAY );
+        if (!grLast.empty())
+        {
+            equalizeHist( gr, gr );
+            GaussianBlur(gr, gr, Size(21,21), 0,0);
+            // imshow("hist",gr);
+            absdiff(gr, grLast, diff);
+            // imshow("Diff",diff);
+            threshold(diff, diff, 50, 255, cv::THRESH_BINARY);
+            cout << (int)mean(diff)[0] << endl;
+            motionDetected=((int)mean(diff)[0] > 0); // Движение в кадрике обнаружено
+            imshow("threshold",diff);
+        }
+		grLast=gr.clone();
 		return motionDetected;
 	}       
 int main( int argc, const char** argv )
@@ -203,21 +207,34 @@ int main( int argc, const char** argv )
     if( capture.isOpened() )
     {
         cout << "Video capturing has been started ..." << endl;
-		Mat frame_last, frame1;
+
+        const int fourcc = CV_FOURCC('M', 'P', '4', '2'); // codecs
+        const Size roiSize = Size((int) capture.get(CV_CAP_PROP_FRAME_WIDTH)/2,    // Acquire input size
+                  (int) capture.get(CV_CAP_PROP_FRAME_HEIGHT)/2);
+        const Size S = Size((int) capture.get(CV_CAP_PROP_FRAME_WIDTH),    // Acquire input size
+                  (int) capture.get(CV_CAP_PROP_FRAME_HEIGHT));
+        string outputName = "closeUp.avi";
+        VideoWriter outputVideo(outputName, fourcc, capture.get(CAP_PROP_FPS), roiSize, true);  
+        if (!outputVideo.isOpened())
+        {
+            cout  << "Could not open the output video for write: " << inputName  << endl;
+            return -1;
+        }
+
+		Mat frameSmall, frame1;
 		Mat gray;
-		static Mat motion;
+		Mat motion;
+        Mat smallImg;
 		bool motionDetected=true;
 		string title;
 		std::string s;
 		std::stringstream out;
 		vector<Rect> rois;
-		rois.push_back(Rect(0,0,320,240));
+		rois.push_back(Rect(S.width/2 - roiSize.width/2,  S.height/2-roiSize.height/2,
+                            roiSize.width, roiSize.height));
 		vector<Rect> faces;
         for(;;)
         {
-			
-        /// Анализ движения в найденных кадрах    
-        
             capture >> frame;
             if(frame.empty()) {
             	break;
@@ -225,32 +242,30 @@ int main( int argc, const char** argv )
             }
 			frame1 = frame.clone();
 			cvtColor( frame1, gray, COLOR_BGR2GRAY );
-        	if(motionDetected){
-    			cout << "motionDetected"<<endl;
-				/// Поиск лиц в изображениии
-			    double fx = 1 / scale;
-			    Mat smallImg;
+			static double fx = 1 / scale;   
+            if(motionDetected){
 			    resize( gray, smallImg, Size(), fx, fx, INTER_LINEAR );
 			    equalizeHist( smallImg, smallImg );
 			    
 			    cascade.detectMultiScale( smallImg, faces,
 			        1.1, 2, 0
-			        // |CASCADE_FIND_BIGGEST_OBJECT
-			        //|CASCADE_DO_ROUGH_SEARCH
+			        |CASCADE_FIND_BIGGEST_OBJECT
+			        |CASCADE_DO_ROUGH_SEARCH
 			        |CASCADE_SCALE_IMAGE,
 			        Size(30, 30) );
     			if(!faces.empty())rectangle(frame1,faces[0],Scalar(255,0,0), 1, 8, 0);
         	}
-    		updateRoiCoords(faces,rois,640,480);
+    		updateRoiCoords(faces,rois,capture.get(CV_CAP_PROP_FRAME_WIDTH),capture.get(CV_CAP_PROP_FRAME_HEIGHT));
     		for(int i=0; i<rois.size(); i++){
     			/// Поиск движения в кадрике
-    			motionDetected = detectMotion(gray(rois[i]));
+    			motionDetected = detectMotion(frame(rois[i]));
     			rectangle(frame1,rois[i],Scalar(0,0,255), 3, 8, 0);
-    		}           
-    		// resize( frame1, frame1, Size(), fx, fx, INTER_LINEAR );
-   
-    		/// todo 18.02.2016 Сделать отображение всех лиц
-			imshow("Basic window",frame1);    
+    		}             
+    		
+			// imshow("Basic window",frame1);    
+            resize( frame1, frameSmall, Size(320,240), 0, 0, INTER_NEAREST );
+            imshow("smallImg",frameSmall);    
+            outputVideo << frame(rois[0]);
     		
     		int c = waitKey(10);
     		if( c == 27 || c == 'q' || c == 'Q' )break;

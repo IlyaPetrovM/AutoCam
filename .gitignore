@@ -1,0 +1,8 @@
+CMakeFiles/*
+*.[oa]
+CMakeCache.txt
+Makefile
+*.cmake
+*sublime*
+results/*
+
