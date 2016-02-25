@@ -1,7 +1,7 @@
 CMakeFiles/*
 *.[oa]
 CMakeCache.txt
-Makefile
+"Makefile"
 *.cmake
 *sublime*
 results/*

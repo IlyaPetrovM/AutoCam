@@ -57,8 +57,8 @@ string nestedCascadeName = "../../data/haarcascades/haarcascade_eye_tree_eyeglas
     	if(rois.empty()){
     		for (int i = 0; i < faces.size(); ++i)
     		{
-    			rois.push_back(Rect(faces[i].x-tRuleOffsetRightUp.x,
-    							faces[i].y-tRuleOffsetRightUp.y,
+    			rois.push_back(Rect((faces[i].x-tRuleOffsetRightUp.x),
+    							(faces[i].y-tRuleOffsetRightUp.y),
     							roiWidth,roiHeight));
     		}
     	}
@@ -66,21 +66,23 @@ string nestedCascadeName = "../../data/haarcascades/haarcascade_eye_tree_eyeglas
     	// cout << "dt=" << (t>2.7e+08) << endl;
     	for (int i = 0; i < rois.size() && i < faces.size(); ++i)
     	{
-    		int x=faces[i].x+faces[i].width/2.0-tRuleOffsetLeftUp.x;
-    		int y=faces[i].y+faces[i].height/3.0 - tRuleOffsetLeftUp.y;
+    		int x=(faces[i].x+faces[i].width/2.0-tRuleOffsetLeftUp.x);
+    		int y=(faces[i].y+faces[i].height/3.0 - tRuleOffsetLeftUp.y);
     		/// PID - регулятор для позиционирования камеры
  			dPrevX = distX;
- 			distX = x-rois[i].x;
+ 			distX  = x-rois[i].x;
  			DeltaX = distX-dPrevX;
- 			cntX += distX;
- 			uX = distX*Kp + cntX*Ki + DeltaX*Kd;
+ 			cntX   += distX;
+ 			uX     = distX*Kp + cntX*Ki + DeltaX*Kd;
 	 		rois[i].x += uX;
+
  			dPrevY = distY;
-	        distY = y-rois[i].y;
+	        distY  = y-rois[i].y;
 	        DeltaY = distY-dPrevY;
-	        cntY += distY;
-	        uY = distY*Kp + cntY*Ki + DeltaY*Kd;
+	        cntY   += distY;
+	        uY     = distY*Kp + cntY*Ki + DeltaY*Kd;
         	rois[i].y += uY;
+
 	        cout << "x=" << rois[i].x << " y=" << rois[i].y << endl;
 	        if(rois[i].x<=0){
     			rois[i].x = 0;
@@ -213,7 +215,7 @@ int main( int argc, const char** argv )
                   (int) capture.get(CV_CAP_PROP_FRAME_HEIGHT)/2);
         const Size S = Size((int) capture.get(CV_CAP_PROP_FRAME_WIDTH),    // Acquire input size
                   (int) capture.get(CV_CAP_PROP_FRAME_HEIGHT));
-        string outputName = "closeUp.avi";
+        string outputName = "results/closeUp.avi";
         VideoWriter outputVideo(outputName, fourcc, capture.get(CAP_PROP_FPS), roiSize, true);  
         if (!outputVideo.isOpened())
         {
@@ -221,7 +223,7 @@ int main( int argc, const char** argv )
             return -1;
         }
 
-		Mat frameSmall, frame1;
+		Mat previewSmall, previewFrame;
 		Mat gray;
 		Mat motion;
         Mat smallImg;
@@ -230,19 +232,21 @@ int main( int argc, const char** argv )
 		std::string s;
 		std::stringstream out;
 		vector<Rect> rois;
-		rois.push_back(Rect(S.width/2 - roiSize.width/2,  S.height/2-roiSize.height/2,
+		const double fx = 1 / scale;   
+        // rois.push_back(Rect(fx*(S.width/2 - roiSize.width/2),  fx*(S.height/2-roiSize.height/2),
+        //                     roiSize.width, roiSize.height));
+        rois.push_back(Rect(0,  0,
                             roiSize.width, roiSize.height));
-		vector<Rect> faces;
+        vector<Rect> faces;
         for(;;)
         {
             capture >> frame;
             if(frame.empty()) {
-            	break;
-            	cout << "Frame is empty" << endl;
+                break;
+                cout << "Frame is empty" << endl;
             }
-			frame1 = frame.clone();
-			cvtColor( frame1, gray, COLOR_BGR2GRAY );
-			static double fx = 1 / scale;   
+            previewFrame = frame.clone();
+            cvtColor( frame, gray, COLOR_BGR2GRAY );
             if(motionDetected){
 			    resize( gray, smallImg, Size(), fx, fx, INTER_LINEAR );
 			    equalizeHist( smallImg, smallImg );
@@ -253,18 +257,25 @@ int main( int argc, const char** argv )
 			        |CASCADE_DO_ROUGH_SEARCH
 			        |CASCADE_SCALE_IMAGE,
 			        Size(30, 30) );
-    			if(!faces.empty())rectangle(frame1,faces[0],Scalar(255,0,0), 1, 8, 0);
+    			for (int i = 0; i < faces.size(); ++i)
+                {
+                    faces[i].x *= scale;
+                    faces[i].y *= scale;
+                    faces[i].height *= scale;
+                    faces[i].width *= scale;
+                    rectangle(previewFrame,faces[0],Scalar(255,0,0), 3, 8, 0);
+                }
         	}
-    		updateRoiCoords(faces,rois,capture.get(CV_CAP_PROP_FRAME_WIDTH),capture.get(CV_CAP_PROP_FRAME_HEIGHT));
-    		for(int i=0; i<rois.size(); i++){
-    			/// Поиск движения в кадрике
-    			motionDetected = detectMotion(frame(rois[i]));
-    			rectangle(frame1,rois[i],Scalar(0,0,255), 3, 8, 0);
-    		}             
-    		
-			// imshow("Basic window",frame1);    
-            resize( frame1, frameSmall, Size(320,240), 0, 0, INTER_NEAREST );
-            imshow("smallImg",frameSmall);    
+    		updateRoiCoords(faces,rois,S.width,S.height);             
+    		for (int i = 0; i < rois.size(); ++i)
+            {
+                motionDetected = detectMotion(frame(rois[i]));
+                rectangle(previewFrame,rois[i],Scalar(0,0,255), 3, 8, 0);
+            }
+
+            resize( previewFrame, previewSmall, Size(320,240), 0, 0, INTER_NEAREST );
+            imshow("Small preview",previewSmall);    
+            
             outputVideo << frame(rois[0]);
     		
     		int c = waitKey(10);
