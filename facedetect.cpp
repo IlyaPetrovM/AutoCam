@@ -117,7 +117,9 @@ string nestedCascadeName = "../../data/haarcascades/haarcascade_eye_tree_eyeglas
             threshold(diff, diff, 50, 255, cv::THRESH_BINARY);
             cout << (int)mean(diff)[0] << endl;
             motionDetected=((int)mean(diff)[0] > 0); // Движение в кадрике обнаружено
-            imshow("threshold",diff);
+
+            resize( diff, diff, Size(320,240), 0, 0, INTER_NEAREST );
+            imshow("diff",diff);
         }
 		grLast=gr.clone();
 		return motionDetected;
