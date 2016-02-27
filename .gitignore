@@ -5,4 +5,6 @@ CMakeCache.txt
 *.cmake
 *sublime*
 results/*
+*.user
+*.cbp
 
