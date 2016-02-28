@@ -8,7 +8,8 @@
 #include <fstream>
 #include <cstdlib>
 #include <opencv2/videoio/videoio.hpp>  // Video write
-
+#include <ctime>
+//#include <chrono>
 using namespace std;
 using namespace cv;
 
@@ -36,90 +37,88 @@ void detectAndDraw( Mat& img, CascadeClassifier& cascade,
 string cascadeName = "../../data/haarcascades/haarcascade_frontalface_alt.xml";
 string cascade2Name = "../../data/haarcascades/haarcascade_profileface.xml";
 string nestedCascadeName = "../../data/haarcascades/haarcascade_eye_tree_eyeglasses.xml";
-    void updateRoiCoords(vector<Rect> faces,vector<Rect> &rois, int maxCols, int maxRows){
-    	static int roiHeight=240,roiWidth=roiHeight*4.0/3.0; //TODO 25.02.2016 Сделать для нескольких ROI с настраиваемыми размерами
-    	static Point leftUp(rois[0].width/3.0, rois[0].height/3.0);
-        // static Point leftUp(0,0);
-    	static Point leftDown(rois[0].width/3.0, 2.0*rois[0].height/3.0);
-    	static Point rightUp(2.0*rois[0].width/3.0,rois[0].height/3.0);
-    	static Point rightDown(2.0*rois[0].width/3.0,2.0*rois[0].height/3.0);
-    	static double t = 0;
-    	static int sens=10; //sensivity
-    	static float maxSpd=10.0, minSpd=1.0;
- 		static float distX=0.0; 
- 		static float distY=0.0; 
- 		static float dPrevX=0.0; 
- 		static float dPrevY=0.0; 
- 		static float DeltaX=0.0; 
- 		static float DeltaY=0.0; 
-		static double Kp=0.1, Ki=0.001, Kd=-0.09;//0.001 , 0.05
-		static double cntX=0.0,cntY=0.0;
-		static double uX,uY;	
-    	
-    	//todo автоматическое увеличение количества кадриков
-    	if(rois.empty()){
-    		for (int i = 0; i < faces.size(); ++i)
-    		{
-    			rois.push_back(Rect((faces[i].x-rightUp.x),
-    							(faces[i].y-rightUp.y),
-    							roiWidth,roiHeight));
-    		}
-    	}
-        Point target;
-        for (int i = 0; i < rois.size() && i < faces.size(); ++i)
+void updateRoiCoords(vector<Rect> faces,vector<Rect> &rois, int maxCols, int maxRows){
+    static int roiHeight=240,roiWidth=roiHeight*4.0/3.0; //TODO 25.02.2016 Сделать для нескольких ROI с настраиваемыми размерами
+    static Point leftUp(rois[0].width/3.0, rois[0].height/3.0);
+    // static Point leftUp(0,0);
+    static Point leftDown(rois[0].width/3.0, 2.0*rois[0].height/3.0);
+    static Point rightUp(2.0*rois[0].width/3.0,rois[0].height/3.0);
+    static Point rightDown(2.0*rois[0].width/3.0,2.0*rois[0].height/3.0);
+    static double t = 0;
+    static float distX=0.0;
+    static float distY=0.0;
+    static float dPrevX=0.0;
+    static float dPrevY=0.0;
+    static float DeltaX=0.0;
+    static float DeltaY=0.0;
+    static double Kp=0.1, Ki=0.001, Kd=-0.09;//0.001 , 0.05
+    static double cntX=0.0,cntY=0.0;
+    static double uX,uY;
+
+    //todo автоматическое увеличение количества кадриков
+    if(rois.empty()){
+        for (int i = 0; i < faces.size(); ++i)
         {
-            if(faces[i].x+faces[i].width/2.0 < maxCols/2.0)
-                target = leftUp;
-            else
-                target = rightUp;
-
-    		int x=(faces[i].x+faces[i].width/2.0-target.x);
-    		int y=(faces[i].y+faces[i].height/3.0 - target.y);
-    		/// PID - регулятор для позиционирования камеры
- 			dPrevX = distX;
- 			distX  = x-rois[i].x;
- 			DeltaX = distX-dPrevX;
- 			cntX   += distX;
- 			uX     = distX*Kp + cntX*Ki + DeltaX*Kd;
-	 		rois[i].x += uX;
-
- 			dPrevY = distY;
-	        distY  = y-rois[i].y;
-	        DeltaY = distY-dPrevY;
-	        cntY   += distY;
-	        uY     = distY*Kp + cntY*Ki + DeltaY*Kd;
-        	rois[i].y += uY;
-
-	        if(rois[i].x<=0){
-    			rois[i].x = 0;
-    		}else if(maxCols < rois[i].x+rois[i].width){
-	            rois[i].x = maxCols-rois[i].width;
-	        }
-	        if(rois[i].y <= 0){
-	        	rois[i].y = 0;
-	        }else if(maxRows < rois[i].y+rois[i].height){
-	            rois[i].y=maxRows-rois[i].height;
-	        }
-    	}
+            rois.push_back(Rect((faces[i].x-rightUp.x),
+                                (faces[i].y-rightUp.y),
+                                roiWidth,roiHeight));
+        }
     }
+    Point target;
+    for (int i = 0; i < rois.size() && i < faces.size(); ++i)
+    {
+        if(faces[i].x+faces[i].width/2.0 < maxCols/2.0)
+            target = leftUp;
+        else
+            target = rightUp;
+
+        int x=(faces[i].x+faces[i].width/2.0-target.x);
+        int y=(faces[i].y+faces[i].height/3.0 - target.y);
+        /// PID - регулятор для позиционирования камеры
+        dPrevX = distX;
+        distX  = x-rois[i].x;
+        DeltaX = distX-dPrevX;
+        cntX   += distX;
+        uX     = distX*Kp + cntX*Ki + DeltaX*Kd;
+        rois[i].x += uX;
+
+        dPrevY = distY;
+        distY  = y-rois[i].y;
+        DeltaY = distY-dPrevY;
+        cntY   += distY;
+        uY     = distY*Kp + cntY*Ki + DeltaY*Kd;
+        rois[i].y += uY;
+
+        if(rois[i].x<=0){
+            rois[i].x = 0;
+        }else if(maxCols < rois[i].x+rois[i].width){
+            rois[i].x = maxCols-rois[i].width;
+        }
+        if(rois[i].y <= 0){
+            rois[i].y = 0;
+        }else if(maxRows < rois[i].y+rois[i].height){
+            rois[i].y=maxRows-rois[i].height;
+        }
+    }
+}
     
-	bool detectMotion(Mat img){
-		static Mat img_last,diff,gr, grLast,grDiff;
-		static bool motionDetected=false;
+    bool detectMotion(Mat img, int thresh=50, int blur=21, bool showPrev=false){
+        static Mat diff,gr, grLast;
+        bool motionDetected=false;
         cvtColor( img, gr, COLOR_BGR2GRAY );
         if (!grLast.empty())
         {
             equalizeHist( gr, gr );
-            GaussianBlur(gr, gr, Size(21,21), 0,0);
-            // imshow("hist",gr);
+            GaussianBlur(gr, gr, Size(blur,blur), 0,0);
             absdiff(gr, grLast, diff);
-            // imshow("Diff",diff);
-            threshold(diff, diff, 50, 255, cv::THRESH_BINARY);
-            cout << (int)mean(diff)[0] << endl;
+            threshold(diff, diff, thresh, 255, cv::THRESH_BINARY);
             motionDetected=((int)mean(diff)[0] > 0); // Движение в кадрике обнаружено
 
-            resize( diff, diff, Size(320,240), 0, 0, INTER_NEAREST );
-            imshow("diff",diff);
+            if(showPrev){
+                cout << (int)mean(diff)[0] << endl;
+                resize( diff, diff, Size(240*diff.cols/diff.rows,240), 0, 0, INTER_NEAREST );
+                imshow("diff",diff);
+            }
         }
 		grLast=gr.clone();
 		return motionDetected;
@@ -128,6 +127,7 @@ int main( int argc, const char** argv )
 {
     VideoCapture capture;
     Mat frame, image;
+
     const string scaleOpt = "--scale=";
     size_t scaleOptLen = scaleOpt.length();
     const string cascadeOpt = "--cascade=";
@@ -135,10 +135,13 @@ int main( int argc, const char** argv )
     const string nestedCascadeOpt = "--nested-cascade";
     size_t nestedCascadeOptLen = nestedCascadeOpt.length();
     const string tryFlipOpt = "--try-flip";
+    const string showPrevOpt =  "--show-preview";
+    const string recPrevOpt = "--record-preview";
     size_t tryFlipOptLen = tryFlipOpt.length();
     string inputName;
     bool tryflip = false;
-
+    bool showPreview = false;
+    bool recordPreview = false;
     help();
 
     CascadeClassifier cascade,cascade2, nestedCascade;
@@ -176,6 +179,14 @@ int main( int argc, const char** argv )
         }
         else
             inputName.assign( argv[i] );
+        if( string::npos!=showPrevOpt.find(argv[i]))
+        {
+            showPreview = true;
+        }
+        if( string::npos!=recPrevOpt.find(argv[i]))
+        {
+            recordPreview = true;
+        }
     }
 
     if( !cascade.load( cascadeName ) )
@@ -212,36 +223,69 @@ int main( int argc, const char** argv )
         image = imread( "../data/lena.jpg", 1 );
         if(image.empty()) cout << "Couldn't read ../data/lena.jpg" << endl;
     }
-    Scalar thresholdSum=Scalar(50,200,200);
     if( capture.isOpened() )
     {
         cout << "Video capturing has been started ..." << endl;
 
-        const int fourcc = CV_FOURCC('M', 'P', '4', '2'); // codecs
+        const int fourcc = CV_FOURCC('D', 'A', 'V', 'C'); // codecs
         const Size roiSize = Size((int) capture.get(CV_CAP_PROP_FRAME_WIDTH)/2,    // Acquire input size
                   (int) capture.get(CV_CAP_PROP_FRAME_HEIGHT)/2);
-        const Size S = Size((int) capture.get(CV_CAP_PROP_FRAME_WIDTH),    // Acquire input size
+        const Size fullFrameSize = Size((int) capture.get(CV_CAP_PROP_FRAME_WIDTH),    // Acquire input size
                   (int) capture.get(CV_CAP_PROP_FRAME_HEIGHT));
-        string outputName = "results/closeUp.avi";
-        VideoWriter outputVideo(outputName, fourcc, capture.get(CAP_PROP_FPS), roiSize, true);  
-        if (!outputVideo.isOpened())
-        {
-            cout  << "Could not open the output video for write: " << inputName  << endl;
+        const Size previewSmallSize = Size(480*fullFrameSize.width/fullFrameSize.height,480);
+
+        if(inputName.empty())inputName = "webcam";
+
+        time_t t = time(0);   // get time now
+        struct tm * now = localtime( & t );
+        stringstream outFileTitle;
+             outFileTitle << "results/" << inputName
+             << (now->tm_year + 1900) << '_'
+             << (now->tm_mon + 1) << '_'
+             <<  now->tm_mday << " "
+             << now->tm_hour <<"-"
+             << now->tm_min;
+        VideoWriter outputVideo(outFileTitle.str()+"_closeUp.mp4",fourcc,
+                                 capture.get(CAP_PROP_FPS), roiSize, true);
+        if(!outputVideo.isOpened()){
+            cout << "Could not open the output video ("
+                 << outFileTitle.str()+"_closeUp.avi" <<") for writing"<<endl;
             return -1;
         }
+        VideoWriter previewVideo;
+         if(recordPreview){
+             if(!previewVideo.open(outFileTitle.str()+"_test.mp4",fourcc,
+                                   capture.get(CAP_PROP_FPS), previewSmallSize, true))
+             {
+                 cout << "Could not open the output video ("
+                      << outFileTitle.str()+"_test.avi" <<") for writing"<<endl;
+                 return -1;
+             }
+         }
+        fstream fs((outFileTitle.str()+"test.avi").c_str(), fstream::out);
+        if(!fs.is_open()){
+            cout << "Error with opening the file: test.txt"<< endl;
+        }else{
+            fs << "timestamp\t"
+                << "faceDetTime\t"
+                << "motDetTime\t"
+                << "updateTime\t"
+                << "oneIterTime\t"
+                << "faces[0].x\tfaces[0].y\t"
+                << "rois[0].x\trois[0].y\t" << endl;
+        }
 
-		Mat previewSmall, previewFrame;
+
+        Mat previewSmall, previewFrame;
 		Mat gray;
-		Mat motion;
         Mat smallImg;
 		bool motionDetected=true;
-		string title;
-		std::string s;
-		std::stringstream out;
 		vector<Rect> rois;
 		const double fx = 1 / scale;   
-        rois.push_back(Rect((S.width/2 - roiSize.width/2),  (S.height/2-roiSize.height/2),
+        rois.push_back(Rect((fullFrameSize.width/2 - roiSize.width/2),
+                            (fullFrameSize.height/2-roiSize.height/2),
                             roiSize.width, roiSize.height));
+
         vector<Rect> faces;
         static Point leftUp;
         static Point leftDown;
@@ -253,18 +297,6 @@ int main( int argc, const char** argv )
             updateStart,updateEnd, timeStart; 
         double oneIterTime, motDetTime, faceDetTime,updateTime,timeEnd;
         const double ticksPerMsec=cvGetTickFrequency() * 1.0e6; 
-        fstream fs("test.txt", fstream::out);
-        if(!fs.is_open()){
-            cout << "Error with opening the file: test.txt"<< endl;
-        }else{
-           fs << "timestamp\t"
-                << "faceDetTime\t" 
-                << "motDetTime\t" 
-                << "updateTime\t"
-                << "oneIterTime\t" 
-                << "faces[0].x\tfaces[0].y\t"
-                << "rois[0].x\trois[0].y\t" << endl; 
-        }
         timeStart = cvGetTickCount(); // generalTimer
         for(;;)
         {
@@ -300,13 +332,13 @@ int main( int argc, const char** argv )
             faceDetEnd = cvGetTickCount();
 
             updateStart = cvGetTickCount();
-            updateRoiCoords(faces,rois,S.width,S.height);   
+            updateRoiCoords(faces,rois,fullFrameSize.width,fullFrameSize.height);
             updateEnd = cvGetTickCount();
 
             motDetStart = cvGetTickCount();
             for (int i = 0; i < rois.size(); ++i)
             {
-                motionDetected = detectMotion(frame(rois[i]));
+                motionDetected = detectMotion(frame(rois[i]),50,21,showPreview);
                 
                 rectangle(previewFrame,rois[i],Scalar(0,0,255), 3, 8, 0);
                 leftUp.x=rois[i].x + rois[i].width/3.0;
@@ -326,14 +358,20 @@ int main( int argc, const char** argv )
                 circle( previewFrame, rightDown, 1, Scalar(0,255,0), 6, 8, 0 );
             }
             motDetEnd = cvGetTickCount();
-            outputVideo << frame(rois[0]); /// TODO: 25.02.2016 сделать вывод для каждого лица
-
-            resize( previewFrame, previewSmall, Size(320,240), 0, 0, INTER_NEAREST );
-            imshow("Small preview",previewSmall);    
+            outputVideo << frame(rois[0]); /// \todo 25.02.2016 сделать вывод для каждого лица
+            if(recordPreview){
+                previewVideo << previewSmall;
+                resize( previewFrame, previewSmall, previewSmallSize, 0, 0, INTER_NEAREST );
+            }
+            if(showPreview){
+                resize( previewFrame, previewSmall, previewSmallSize, 0, 0, INTER_NEAREST );
+                imshow("Small preview "+outFileTitle.str(),previewSmall);
+            }
 
             int c = waitKey(10);
             if( c == 27 || c == 'q' || c == 'Q' )break;
     
+            /// Запись статистики
             oneIterEnd = cvGetTickCount(); 
             timeEnd = (cvGetTickCount() - timeStart)*ticksPerMsec;
             faceDetTime = (faceDetEnd - faceDetStart)*ticksPerMsec;
@@ -352,7 +390,8 @@ int main( int argc, const char** argv )
             }
             oneIterEnd = faceDetEnd = motDetEnd = -1;
         }
-        fs.close();
+        if(fs.is_open())fs.close();
+        cout << "The results have been written to " << "''"+outFileTitle.str()+"''" << endl;
     }
     else
     {
