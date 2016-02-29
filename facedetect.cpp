@@ -44,6 +44,7 @@ void updateRoiCoords(vector<Rect> faces,vector<Rect> &rois, int maxCols, int max
     static Point leftDown(rois[0].width/3.0, 2.0*rois[0].height/3.0);
     static Point rightUp(2.0*rois[0].width/3.0,rois[0].height/3.0);
     static Point rightDown(2.0*rois[0].width/3.0,2.0*rois[0].height/3.0);
+    static Point center(rois[0].width/2,rois[0].height/3);
     static double t = 0;
     static float distX=0.0;
     static float distY=0.0;
@@ -67,10 +68,16 @@ void updateRoiCoords(vector<Rect> faces,vector<Rect> &rois, int maxCols, int max
     Point target;
     for (int i = 0; i < rois.size() && i < faces.size(); ++i)
     {
-        if(faces[i].x+faces[i].width/2.0 < maxCols/2.0)
+
+        if(rois[i].width/3.0 - faces[i].width < 0 ) /// если лицо крупное, то держать его в центре кадра
+            target = center;
+        else if(faces[i].x+faces[i].width/2.0 < center.x
+                && faces[i].x < rois[i].x+leftUp.x)
             target = leftUp;
-        else
+        else if(faces[i].x+faces[i].width > rois[i].x+rightUp.x) // Камера посередине не будет реагировать
             target = rightUp;
+        else
+            target = center;
 
         int x=(faces[i].x+faces[i].width/2.0-target.x);
         int y=(faces[i].y+faces[i].height/3.0 - target.y);
@@ -226,45 +233,50 @@ int main( int argc, const char** argv )
     if( capture.isOpened() )
     {
         cout << "Video capturing has been started ..." << endl;
-
-        const int fourcc = CV_FOURCC('D', 'A', 'V', 'C'); // codecs
-        const Size roiSize = Size((int) capture.get(CV_CAP_PROP_FRAME_WIDTH)/2,    // Acquire input size
-                  (int) capture.get(CV_CAP_PROP_FRAME_HEIGHT)/2);
+        const int previewHeight = 480;
+        const int fourcc = CV_FOURCC('M', 'P', '4', '2'); // codecs
+        const Size roiSize = Size((int) capture.get(CV_CAP_PROP_FRAME_WIDTH)/3,    // Acquire input size
+                  (int) capture.get(CV_CAP_PROP_FRAME_HEIGHT)/3);
         const Size fullFrameSize = Size((int) capture.get(CV_CAP_PROP_FRAME_WIDTH),    // Acquire input size
                   (int) capture.get(CV_CAP_PROP_FRAME_HEIGHT));
-        const Size previewSmallSize = Size(480*fullFrameSize.width/fullFrameSize.height,480);
+        const Size previewSmallSize = Size(previewHeight*fullFrameSize.width/fullFrameSize.height,previewHeight);
 
         if(inputName.empty())inputName = "webcam";
 
         time_t t = time(0);   // get time now
         struct tm * now = localtime( & t );
         stringstream outFileTitle;
-             outFileTitle << "results/" << inputName
+             outFileTitle /*<< inputName*/
              << (now->tm_year + 1900) << '_'
              << (now->tm_mon + 1) << '_'
              <<  now->tm_mday << " "
              << now->tm_hour <<"-"
              << now->tm_min;
-        VideoWriter outputVideo(outFileTitle.str()+"_closeUp.mp4",fourcc,
-                                 capture.get(CAP_PROP_FPS), roiSize, true);
+             int fps;
+        if(inputName=="webcam")
+            fps = capture.get(CAP_PROP_FPS)/6;
+        else
+            fps = capture.get(CAP_PROP_FPS);
+        VideoWriter outputVideo("results/closeUp_"+outFileTitle.str()+".avi",fourcc,
+                                 fps, roiSize, true);
         if(!outputVideo.isOpened()){
             cout << "Could not open the output video ("
-                 << outFileTitle.str()+"_closeUp.avi" <<") for writing"<<endl;
+                 << "results/closeUp_"+outFileTitle.str()+".avi" <<") for writing"<<endl;
             return -1;
         }
         VideoWriter previewVideo;
          if(recordPreview){
-             if(!previewVideo.open(outFileTitle.str()+"_test.mp4",fourcc,
-                                   capture.get(CAP_PROP_FPS), previewSmallSize, true))
+             if(!previewVideo.open("results/test_"+outFileTitle.str()+".avi",fourcc,
+                                   fps, previewSmallSize, true))
              {
                  cout << "Could not open the output video ("
-                      << outFileTitle.str()+"_test.avi" <<") for writing"<<endl;
+                      << "results/test_"+outFileTitle.str()+".avi" <<") for writing"<<endl;
                  return -1;
              }
          }
-        fstream fs((outFileTitle.str()+"test.avi").c_str(), fstream::out);
+        fstream fs(("results/test_"+outFileTitle.str()+".csv").c_str(), fstream::out);
         if(!fs.is_open()){
-            cout << "Error with opening the file: test.txt"<< endl;
+            cout << "Error with opening the file:" << "results/test_"+outFileTitle.str()+".csv" << endl;
         }else{
             fs << "timestamp\t"
                 << "faceDetTime\t"
@@ -298,6 +310,7 @@ int main( int argc, const char** argv )
         double oneIterTime, motDetTime, faceDetTime,updateTime,timeEnd;
         const double ticksPerMsec=cvGetTickFrequency() * 1.0e6; 
         timeStart = cvGetTickCount(); // generalTimer
+        const float thickness = 3.0*(float)fullFrameSize.height/(float)previewSmallSize.height;
         for(;;)
         {
             oneIterStart = cvGetTickCount(); 
@@ -326,7 +339,10 @@ int main( int argc, const char** argv )
                     faces[i].y *= scale;
                     faces[i].height *= scale;
                     faces[i].width *= scale;
-                    rectangle(previewFrame,faces[0],Scalar(255,0,0), 3, 8, 0);
+                    stringstream title;
+                    title<<"face "<<i;
+                    putText(previewFrame, title.str(), Point(faces[i].x,faces[i].y-thickness*2), CV_FONT_NORMAL, thickness/5, Scalar(255, 0,0),thickness);
+                    rectangle(previewFrame,faces[0],Scalar(255,0,0), thickness, 8, 0);
                 }
             }
             faceDetEnd = cvGetTickCount();
@@ -340,7 +356,7 @@ int main( int argc, const char** argv )
             {
                 motionDetected = detectMotion(frame(rois[i]),50,21,showPreview);
                 
-                rectangle(previewFrame,rois[i],Scalar(0,0,255), 3, 8, 0);
+                rectangle(previewFrame,rois[i],Scalar(0,0,255), thickness, 8, 0);
                 leftUp.x=rois[i].x + rois[i].width/3.0;
                 leftUp.y=rois[i].y + rois[i].height/3.0;
 
@@ -352,10 +368,14 @@ int main( int argc, const char** argv )
 
                 rightDown.x=rois[i].x + 2.0*rois[i].width/3.0;
                 rightDown.y=rois[i].y + 2.0*rois[i].height/3.0;
-                circle( previewFrame, leftUp, 1, Scalar(0,255,0), 6, 8, 0 );
-                circle( previewFrame, rightUp, 1, Scalar(0,255,0), 6, 8, 0 );
-                circle( previewFrame, leftDown, 1, Scalar(0,255,0), 6, 8, 0 );
-                circle( previewFrame, rightDown, 1, Scalar(0,255,0), 6, 8, 0 );
+                circle( previewFrame, leftUp, 1, Scalar(0,255,0), thickness*2, 8, 0 );
+                circle( previewFrame, rightUp, 1, Scalar(0,255,0), thickness*2, 8, 0 );
+                circle( previewFrame, leftDown, 1, Scalar(0,255,0), thickness*2, 8, 0 );
+                circle( previewFrame, rightDown, 1, Scalar(0,255,0), thickness*2, 8, 0 );
+
+                stringstream title;
+                title<<"ROI "<<i;
+                putText(previewFrame, title.str(), Point(rois[i].x,rois[i].y-thickness*2), CV_FONT_NORMAL, thickness/5, Scalar(0, 0, 255),thickness);
             }
             motDetEnd = cvGetTickCount();
             outputVideo << frame(rois[0]); /// \todo 25.02.2016 сделать вывод для каждого лица
