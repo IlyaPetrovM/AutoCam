@@ -15,7 +15,8 @@ using namespace cv;
 
 static void help()
 {
-    cout << "\nThis program demonstrates the cascade recognizer. Now you can use Haar or LBP features.\n"
+    cout << "Build date:" << __DATE__ << " " << __TIME__
+    << "\nThis program demonstrates the cascade recognizer. Now you can use Haar or LBP features.\n"<<
             "This classifier can recognize many kinds of rigid objects, once the appropriate classifier is trained.\n"
             "It's most koneIterEndn use is for faces.\n"
             "Usage:\n"
@@ -209,15 +210,17 @@ int main( int argc, const char** argv )
         help();
         return -1;
     }
-
+    bool isWebcam=false;
     if( inputName.empty() || (isdigit(inputName.c_str()[0]) && inputName.c_str()[1] == '\0') )
     {
+        isWebcam=true;
         int c = inputName.empty() ? 0 : inputName.c_str()[0] - '0' ;
         if(!capture.open(c))
             cout << "Capture from camera #" <<  c << " didn't work" << endl;
     }
     else if( inputName.size() )
     {
+        isWebcam=false;
         image = imread( inputName, 1 );
         if( image.empty() )
         {
@@ -241,22 +244,28 @@ int main( int argc, const char** argv )
                   (int) capture.get(CV_CAP_PROP_FRAME_HEIGHT));
         const Size previewSmallSize = Size(previewHeight*fullFrameSize.width/fullFrameSize.height,previewHeight);
 
-        if(inputName.empty())inputName = "webcam";
-
-        time_t t = time(0);   // get time now
-        struct tm * now = localtime( & t );
         stringstream outFileTitle;
-             outFileTitle /*<< inputName*/
-             << (now->tm_year + 1900) << '_'
-             << (now->tm_mon + 1) << '_'
-             <<  now->tm_mday << " "
-             << now->tm_hour <<"-"
-             << now->tm_min;
+        if(inputName.empty()){
+            time_t t = time(0);   // get time now
+            struct tm * now = localtime( & t );
+             outFileTitle << "webcam"
+                          << (now->tm_year + 1900) << '_'
+                          << (now->tm_mon + 1) << '_'
+                          <<  now->tm_mday << " "
+                          << now->tm_hour <<"-"
+                          << now->tm_min << " "
+                          << __DATE__ << __TIME__;
+        }else{
+            outFileTitle << inputName.substr(inputName.find_last_of('/')+1)
+            << __DATE__ << __TIME__;
+        }
              int fps;
-        if(inputName=="webcam")
+
+        if(isWebcam)
             fps = capture.get(CAP_PROP_FPS)/6;
-        else
+        else{
             fps = capture.get(CAP_PROP_FPS);
+        }
         VideoWriter outputVideo("results/closeUp_"+outFileTitle.str()+".avi",fourcc,
                                  fps, roiSize, true);
         if(!outputVideo.isOpened()){
@@ -311,6 +320,7 @@ int main( int argc, const char** argv )
         const double ticksPerMsec=cvGetTickFrequency() * 1.0e6; 
         timeStart = cvGetTickCount(); // generalTimer
         const float thickness = 3.0*(float)fullFrameSize.height/(float)previewSmallSize.height;
+
         for(;;)
         {
             oneIterStart = cvGetTickCount(); 
@@ -536,10 +546,10 @@ void detectAndDraw( Mat& img, CascadeClassifier& cascade,
         if( nestedCascade.empty() )
             continue;
         smallImgROI = smallImg( r );
-        nestedCascade.detectMultiScale( smallImgROI, nestedObjects,
+        nestedCascade.detectMultiScale(smallImgROI, nestedObjects,
             1.1, 2, 0
-            //|CASCADE_FIND_BIGGEST_OBJECT
-            //|CASCADE_DO_ROUGH_SEARCH
+//            |CASCADE_FIND_BIGGEST_OBJECT
+            |CASCADE_DO_ROUGH_SEARCH
             //|CASCADE_DO_CANNY_PRUNING
             |CASCADE_SCALE_IMAGE,
             Size(30, 30) );
