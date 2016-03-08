@@ -1,30 +1,23 @@
 # cmake needs this line
 cmake_minimum_required(VERSION 2.8)
 
-# Define project name
-project(opencv_facedetect)
+project(facedetect)
+message(STATUS "\nBuilding project '${PROJECT_NAME}':")
 
-# Find OpenCV, you may need to set OpenCV_DIR variable
-# to the absolute path to the directory containing OpenCVConfig.cmake file
-# via the command line or GUI
-find_package(OpenCV REQUIRED)
+find_package(OpenCV REQUIRED) # поиск пакета
 
-# If the package has been found, several variables will
-# be set, you can find the full list with descriptions
-# in the OpenCVConfig.cmake file.
-# Print some message showing some of them
 message(STATUS "OpenCV library status:")
 message(STATUS "    version: ${OpenCV_VERSION}")
 message(STATUS "    libraries: ${OpenCV_LIBS}")
 message(STATUS "    include path: ${OpenCV_INCLUDE_DIRS}")
-
-if(CMAKE_VERSION VERSION_LESS "2.8.11")
-  # Add OpenCV headers location to your include paths
-  include_directories(${OpenCV_INCLUDE_DIRS})
+if(OpenCV_VERSION VERSION_GREATER "2.9.0")
+    if(CMAKE_VERSION VERSION_LESS "2.8.11")
+      include_directories(${OpenCV_INCLUDE_DIRS}) ## Добавление директорий
+    endif()
+    add_executable(${PROJECT_NAME} facedetect.cpp)
+    target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBS})
+else()
+    message(FATAL_ERROR
+          "OpenCV version is less than 3.0.0 (current is ${OpenCV_VERSION}) \n
+                the project will not be compiled")
 endif()
-
-# Declare the executable target built from your sources
-add_executable(facedetect facedetect.cpp)
-
-# Link your application with OpenCV libraries
-target_link_libraries(facedetect ${OpenCV_LIBS})

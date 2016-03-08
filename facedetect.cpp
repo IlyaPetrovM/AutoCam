@@ -16,17 +16,6 @@ using namespace cv;
 static void help()
 {
     cout << "Build date:" << __DATE__ << " " << __TIME__
-    << "\nThis program demonstrates the cascade recognizer. Now you can use Haar or LBP features.\n"<<
-            "This classifier can recognize many kinds of rigid objects, once the appropriate classifier is trained.\n"
-            "It's most koneIterEndn use is for faces.\n"
-            "Usage:\n"
-            "./facedetect [--cascade=<cascade_path> this is the primary trained classifier such as frontal face]\n"
-               "   [--nested-cascade[=nested_cascade_path this an optional secondary classifier such as eyes]]\n"
-               "   [--scale=<image scale greater or equal to 1, try 1.3 for example>]\n"
-               "   [--try-flip]\n"
-               "   [filename|camera_index]\n\n"
-            "see facedetect.cmd for one call:\n"
-            "./facedetect --cascade=\"../../data/haarcascades/haarcascade_frontalface_alt.xml\" --nested-cascade=\"../../data/haarcascades/haarcascade_eye_tree_eyeglasses.xml\" --scale=1.3\n\n"
             "During execution:\n\tHit any key to quit.\n"
             "\tUsing OpenCV version " << CV_VERSION << "\n" << endl;
 }
@@ -35,9 +24,10 @@ void detectAndDraw( Mat& img, CascadeClassifier& cascade,
                     CascadeClassifier& nestedCascade,
                     double scale, bool tryflip );
 
-string cascadeName = "../../data/haarcascades/haarcascade_frontalface_alt.xml";
-string cascade2Name = "../../data/haarcascades/haarcascade_profileface.xml";
-string nestedCascadeName = "../../data/haarcascades/haarcascade_eye_tree_eyeglasses.xml";
+string cascadeFullName = "../../data/haarcascades/haarcascade_frontalface_alt.xml";
+string cascadeProfName = "../../data/haarcascades/haarcascade_profileface.xml";
+string cascadeLEyeName = "../../data/haarcascades/haarcascade_lefteye_2splits.xml";
+string cascadeREyeName = "../../data/haarcascades/haarcascade_righteye_2splits.xml";
 void updateRoiCoords(vector<Rect> faces,vector<Rect> &rois, int maxCols, int maxRows){
     static int roiHeight=240,roiWidth=roiHeight*4.0/3.0; //TODO 25.02.2016 Сделать для нескольких ROI с настраиваемыми размерами
     static Point leftUp(rois[0].width/3.0, rois[0].height/3.0);
@@ -145,6 +135,7 @@ int main( int argc, const char** argv )
     const string tryFlipOpt = "--try-flip";
     const string showPrevOpt =  "--show-preview";
     const string recPrevOpt = "--record-preview";
+    const string roiSizeOpt = "--roiSize";
     size_t tryFlipOptLen = tryFlipOpt.length();
     string inputName;
     bool tryflip = false;
@@ -152,7 +143,7 @@ int main( int argc, const char** argv )
     bool recordPreview = false;
     help();
 
-    CascadeClassifier cascade,cascade2, nestedCascade;
+    CascadeClassifier cascadeFull,cascadeProf, cascadeEyeL,cascadeEyeR; // Cascades for Full face and Profile face
     double scale = 1;
 
     for( int i = 1; i < argc; i++ )
@@ -160,15 +151,15 @@ int main( int argc, const char** argv )
         cout << "Processing " << i << " " <<  argv[i] << endl;
         if( cascadeOpt.compare( 0, cascadeOptLen, argv[i], cascadeOptLen ) == 0 )
         {
-            cascadeName.assign( argv[i] + cascadeOptLen );
-            cout << "  from which we have cascadeName= " << cascadeName << endl;
+            cascadeFullName.assign( argv[i] + cascadeOptLen );
+            cout << "  from which we have cascadeName= " << cascadeFullName << endl;
         }
         else if( nestedCascadeOpt.compare( 0, nestedCascadeOptLen, argv[i], nestedCascadeOptLen ) == 0 )
         {
+            cout << "nc" <<endl;
             if( argv[i][nestedCascadeOpt.length()] == '=' )
-                nestedCascadeName.assign( argv[i] + nestedCascadeOpt.length() + 1 );
-            if( !nestedCascade.load( nestedCascadeName ) )
-                cerr << "WARNING: Could not load classifier cascade for nested objects" << endl;
+                cascadeLEyeName.assign( argv[i] + nestedCascadeOpt.length() + 1 );
+
         }
         else if( scaleOpt.compare( 0, scaleOptLen, argv[i], scaleOptLen ) == 0 )
         {
@@ -197,14 +188,18 @@ int main( int argc, const char** argv )
         }
     }
 
-    if( !cascade.load( cascadeName ) )
+    if( !cascadeEyeL.load( cascadeLEyeName ) )
+        cerr << "WARNING: Could not load classifier cascade for nested objects" << endl;
+    if( !cascadeEyeR.load( cascadeREyeName ) )
+        cerr << "WARNING: Could not load classifier cascade for nested objects" << endl;
+    if( !cascadeFull.load( cascadeFullName ) )
     {
         cerr << "ERROR: Could not load classifier cascade" << endl;
         help();
         return -1;
     }
 
-    if( !cascade2.load( cascade2Name ) )
+    if( !cascadeProf.load( cascadeProfName ) )
     {
         cerr << "ERROR: Could not load classifier 2 cascade" << endl;
         help();
@@ -238,14 +233,15 @@ int main( int argc, const char** argv )
         cout << "Video capturing has been started ..." << endl;
         const int previewHeight = 480;
         const int fourcc = CV_FOURCC('M', 'P', '4', '2'); // codecs
-        const Size roiSize = Size((int) capture.get(CV_CAP_PROP_FRAME_WIDTH)/3,    // Acquire input size
+        const Size roiSize = Size((int) capture.get(CV_CAP_PROP_FRAME_WIDTH)/3,
                   (int) capture.get(CV_CAP_PROP_FRAME_HEIGHT)/3);
-        const Size fullFrameSize = Size((int) capture.get(CV_CAP_PROP_FRAME_WIDTH),    // Acquire input size
+        const Size fullFrameSize = Size((int) capture.get(CV_CAP_PROP_FRAME_WIDTH),
                   (int) capture.get(CV_CAP_PROP_FRAME_HEIGHT));
-        const Size previewSmallSize = Size(previewHeight*fullFrameSize.width/fullFrameSize.height,previewHeight);
+        const Size previewSmallSize =
+                Size(previewHeight*fullFrameSize.width/fullFrameSize.height,previewHeight);
 
         stringstream outFileTitle;
-        if(inputName.empty()){
+        if(isWebcam){
             time_t t = time(0);   // get time now
             struct tm * now = localtime( & t );
              outFileTitle << "webcam"
@@ -262,7 +258,7 @@ int main( int argc, const char** argv )
              int fps;
 
         if(isWebcam)
-            fps = capture.get(CAP_PROP_FPS)/6;
+            fps = capture.get(CAP_PROP_FPS)/5;
         else{
             fps = capture.get(CAP_PROP_FPS);
         }
@@ -307,7 +303,7 @@ int main( int argc, const char** argv )
                             (fullFrameSize.height/2-roiSize.height/2),
                             roiSize.width, roiSize.height));
 
-        vector<Rect> faces;
+        vector<Rect> facesFull,facesProf,eyesL,eyesR;
         static Point leftUp;
         static Point leftDown;
         static Point rightUp;
@@ -321,6 +317,12 @@ int main( int argc, const char** argv )
         timeStart = cvGetTickCount(); // generalTimer
         const float thickness = 3.0*(float)fullFrameSize.height/(float)previewSmallSize.height;
 
+        const int textOffset = thickness*2,
+                textThickness = thickness/2;
+
+        const int dotsRadius = thickness*2;
+        const double fontScale = thickness/5.0;
+        short rotation = 0; // -255 is right, 255 is left
         for(;;)
         {
             oneIterStart = cvGetTickCount(); 
@@ -336,29 +338,98 @@ int main( int argc, const char** argv )
             if(motionDetected){
                 resize( gray, smallImg, Size(), fx, fx, INTER_LINEAR );
                 equalizeHist( smallImg, smallImg );
-                
-                cascade.detectMultiScale( smallImg, faces,
+
+                cascadeFull.detectMultiScale( smallImg, facesFull,
                     1.1, 2, 0
-                    |CASCADE_FIND_BIGGEST_OBJECT
-                    |CASCADE_DO_ROUGH_SEARCH
+//                    |CASCADE_FIND_BIGGEST_OBJECT
+//                    |CASCADE_DO_ROUGH_SEARCH
                     |CASCADE_SCALE_IMAGE,
                     Size(30, 30) );
-                for (int i = 0; i < faces.size(); ++i)
-                {
-                    faces[i].x *= scale;
-                    faces[i].y *= scale;
-                    faces[i].height *= scale;
-                    faces[i].width *= scale;
-                    stringstream title;
-                    title<<"face "<<i;
-                    putText(previewFrame, title.str(), Point(faces[i].x,faces[i].y-thickness*2), CV_FONT_NORMAL, thickness/5, Scalar(255, 0,0),thickness);
-                    rectangle(previewFrame,faces[0],Scalar(255,0,0), thickness, 8, 0);
+                /** @todo 01.03.2016 делать детектор для лиц в профиль и детектор ушей **/
+
+                cascadeProf.detectMultiScale( smallImg, facesProf,
+                    1.1, 2, 0
+//                    |CASCADE_FIND_BIGGEST_OBJECT
+//                    |CASCADE_DO_ROUGH_SEARCH
+                    |CASCADE_SCALE_IMAGE,
+                    Size(30, 30));
+                for(size_t i=0; i<facesFull.size();++i) {
+                    cascadeEyeL.detectMultiScale( smallImg(facesFull[i]), eyesL,
+                                                  1.1, 2, 0
+//                                                  |CASCADE_FIND_BIGGEST_OBJECT
+//                                                  |CASCADE_DO_ROUGH_SEARCH
+                                                  |CASCADE_SCALE_IMAGE,
+                                                  Size(10, 10));
+                    cascadeEyeR.detectMultiScale( smallImg(facesFull[i]), eyesR,
+                                                  1.1, 2, 0
+//                                                  |CASCADE_FIND_BIGGEST_OBJECT
+//                                                  |CASCADE_DO_ROUGH_SEARCH
+                                                  |CASCADE_SCALE_IMAGE,
+                                                  Size(10, 10));
+                    if(!eyesL.empty() && !eyesR.empty() &&
+                            (eyesL[0].x < eyesR[0].x+eyesR[0].width )) eyesL.clear();
+                    if(!eyesL.empty())
+                    {
+                        eyesL[0].x+=facesFull[i].x;
+                        eyesL[0].y+=facesFull[i].y;
+                        eyesL[0].x *= scale;
+                        eyesL[0].y *= scale;
+                        eyesL[0].height *= scale;
+                        eyesL[0].width *= scale;
+                        rectangle(previewFrame,eyesL[0],
+                                Scalar(0,127,255), thickness, 8, 0);
+                    }
+                    if(!eyesR.empty())
+                    {
+                        eyesR[0].x+=facesFull[i].x;
+                        eyesR[0].y+=facesFull[i].y;
+                        eyesR[0].x *= scale;
+                        eyesR[0].y *= scale;
+                        eyesR[0].height *= scale;
+                        eyesR[0].width *= scale;
+                        rectangle(previewFrame,eyesR[0],
+                                Scalar(255,127,0), thickness, 8, 0);
+                    }
                 }
+
+                for (int i = 0; i < facesFull.size(); ++i)
+                {
+                    facesFull[i].x *= scale;
+                    facesFull[i].y *= scale;
+                    facesFull[i].height *= scale;
+                    facesFull[i].width *= scale;
+                    stringstream title;
+                    title<<"Full face "<<i;
+                    putText(previewFrame, title.str(),
+                            Point(facesFull[i].x,facesFull[i].y-textOffset),
+                            CV_FONT_NORMAL, fontScale,
+                            Scalar(255, 0,0),textThickness);
+                    rectangle(previewFrame,facesFull[0],
+                            Scalar(255,0,0), thickness, 8, 0);
+                }
+                for (int i = 0; i < facesProf.size(); ++i)
+                {
+                    facesProf[i].x *= scale;
+                    facesProf[i].y *= scale;
+                    facesProf[i].height *= scale;
+                    facesProf[i].width *= scale;
+                    stringstream title;
+                    title<<"Profile face "<<i;
+                    putText(previewFrame, title.str(),
+                            Point(facesProf[i].x,facesProf[i].y-textOffset),
+                            CV_FONT_NORMAL, fontScale,
+                            Scalar(255,127,0),textThickness);
+                    rectangle(previewFrame,facesProf[0],
+                            Scalar(255,127,0), thickness, 8, 0);
+                }
+
             }
+
+
             faceDetEnd = cvGetTickCount();
 
             updateStart = cvGetTickCount();
-            updateRoiCoords(faces,rois,fullFrameSize.width,fullFrameSize.height);
+            updateRoiCoords(facesFull,rois,fullFrameSize.width,fullFrameSize.height);
             updateEnd = cvGetTickCount();
 
             motDetStart = cvGetTickCount();
@@ -378,20 +449,23 @@ int main( int argc, const char** argv )
 
                 rightDown.x=rois[i].x + 2.0*rois[i].width/3.0;
                 rightDown.y=rois[i].y + 2.0*rois[i].height/3.0;
-                circle( previewFrame, leftUp, 1, Scalar(0,255,0), thickness*2, 8, 0 );
-                circle( previewFrame, rightUp, 1, Scalar(0,255,0), thickness*2, 8, 0 );
-                circle( previewFrame, leftDown, 1, Scalar(0,255,0), thickness*2, 8, 0 );
-                circle( previewFrame, rightDown, 1, Scalar(0,255,0), thickness*2, 8, 0 );
+                circle(previewFrame,leftUp, 1,Scalar(0,255,0), dotsRadius, 8, 0 );
+                circle(previewFrame,rightUp,1,Scalar(0,255,0), dotsRadius, 8, 0 );
+                circle(previewFrame,leftDown,1,Scalar(0,255,0),dotsRadius, 8, 0 );
+                circle(previewFrame,rightDown,1,Scalar(0,255,0),dotsRadius, 8, 0 );
 
                 stringstream title;
                 title<<"ROI "<<i;
-                putText(previewFrame, title.str(), Point(rois[i].x,rois[i].y-thickness*2), CV_FONT_NORMAL, thickness/5, Scalar(0, 0, 255),thickness);
+                putText(previewFrame, title.str(),
+                        Point(rois[i].x,rois[i].y-textOffset),
+                        CV_FONT_NORMAL, fontScale, Scalar(0, 0, 255),textThickness);
             }
             motDetEnd = cvGetTickCount();
             outputVideo << frame(rois[0]); /// \todo 25.02.2016 сделать вывод для каждого лица
             if(recordPreview){
                 previewVideo << previewSmall;
-                resize( previewFrame, previewSmall, previewSmallSize, 0, 0, INTER_NEAREST );
+                resize( previewFrame, previewSmall,
+                        previewSmallSize, 0, 0, INTER_NEAREST );
             }
             if(showPreview){
                 resize( previewFrame, previewSmall, previewSmallSize, 0, 0, INTER_NEAREST );
@@ -414,8 +488,12 @@ int main( int argc, const char** argv )
                     << motDetTime << "\t" 
                     << updateTime << "\t"
                     << oneIterTime << "\t";
-                if(!faces.empty())fs << faces[0].x << "\t" << faces[0].y << "\t"; else fs << "\t\t";
-                if(!rois.empty())fs << rois[0].x << "\t" << rois[0].y << "\t";else fs << "\t\t";
+                if(!facesFull.empty())
+                    fs << facesFull[0].x << "\t"
+                                     << facesFull[0].y << "\t"; else fs << "\t\t";
+                if(!rois.empty())
+                    fs << rois[0].x << "\t"
+                                    << rois[0].y << "\t";else fs << "\t\t";
                 fs  << endl;
             }
             oneIterEnd = faceDetEnd = motDetEnd = -1;
@@ -428,7 +506,7 @@ int main( int argc, const char** argv )
         cout << "Detecting face(s) in " << inputName << endl;
         if( !image.empty() )
         {
-            detectAndDraw( image, cascade, nestedCascade, scale, tryflip );
+            detectAndDraw( image, cascadeFull, cascadeEyeL, scale, tryflip );
             waitKey(0);
         }
         else if( !inputName.empty() )
@@ -449,7 +527,7 @@ int main( int argc, const char** argv )
                     image = imread( buf, 1 );
                     if( !image.empty() )
                     {
-                        detectAndDraw( image, cascade, nestedCascade, scale, tryflip);
+                        detectAndDraw( image, cascadeFull, cascadeEyeL, scale, tryflip);
                         c = waitKey(0);
                         if( c == 27 || c == 'q' || c == 'Q' )
                             break;
@@ -545,6 +623,7 @@ void detectAndDraw( Mat& img, CascadeClassifier& cascade,
                        color, 3, 8, 0);
         if( nestedCascade.empty() )
             continue;
+
         smallImgROI = smallImg( r );
         nestedCascade.detectMultiScale(smallImgROI, nestedObjects,
             1.1, 2, 0
