@@ -9,7 +9,7 @@
 #include <cstdlib>
 #include <opencv2/videoio/videoio.hpp>  // Video write
 #include <ctime>
-//#include <chrono>
+
 using namespace std;
 using namespace cv;
 
@@ -113,8 +113,11 @@ void updateRoiCoords(vector<Rect> faces,vector<Rect> &rois, int maxCols, int max
             motionDetected=((int)mean(diff)[0] > 0); // Движение в кадрике обнаружено
 
             if(showPrev){
-                cout << (int)mean(diff)[0] << endl;
+                stringstream motion;
+                motion<<"Motion "<<(int)mean(diff)[0];
                 resize( diff, diff, Size(240*diff.cols/diff.rows,240), 0, 0, INTER_NEAREST );
+                putText(diff, motion.str(),
+                        Point(0,diff.rows),CV_FONT_NORMAL, 0.5, Scalar(255, 0,0));
                 imshow("diff",diff);
             }
         }
@@ -247,13 +250,13 @@ int main( int argc, const char** argv )
              outFileTitle << "webcam"
                           << (now->tm_year + 1900) << '_'
                           << (now->tm_mon + 1) << '_'
-                          <<  now->tm_mday << " "
+                          << now->tm_mday << " "
                           << now->tm_hour <<"-"
                           << now->tm_min << " "
-                          << __DATE__ << __TIME__;
+                          << __DATE__ <<" "<< __TIME__;
         }else{
             outFileTitle << inputName.substr(inputName.find_last_of('/')+1)
-            << __DATE__ << __TIME__;
+            << __DATE__ <<" "<< __TIME__;
         }
              int fps;
 
@@ -270,7 +273,7 @@ int main( int argc, const char** argv )
             return -1;
         }
         VideoWriter previewVideo;
-         if(recordPreview){
+        if(recordPreview){
              if(!previewVideo.open("results/test_"+outFileTitle.str()+".avi",fourcc,
                                    fps, previewSmallSize, true))
              {
@@ -278,12 +281,12 @@ int main( int argc, const char** argv )
                       << "results/test_"+outFileTitle.str()+".avi" <<") for writing"<<endl;
                  return -1;
              }
-         }
-        fstream fs(("results/test_"+outFileTitle.str()+".csv").c_str(), fstream::out);
-        if(!fs.is_open()){
+        }
+        fstream logFile(("results/test_"+outFileTitle.str()+".csv").c_str(), fstream::out);
+        if(!logFile.is_open()){
             cout << "Error with opening the file:" << "results/test_"+outFileTitle.str()+".csv" << endl;
         }else{
-            fs << "timestamp\t"
+            logFile << "timestamp\t"
                 << "faceDetTime\t"
                 << "motDetTime\t"
                 << "updateTime\t"
@@ -292,48 +295,81 @@ int main( int argc, const char** argv )
                 << "rois[0].x\trois[0].y\t" << endl;
         }
 
-
-        Mat previewSmall, previewFrame;
-		Mat gray;
-        Mat smallImg;
+        Mat previewSmall, previewFrame,gray,smallImg;
 		bool motionDetected=true;
-		vector<Rect> rois;
 		const double fx = 1 / scale;   
-        rois.push_back(Rect((fullFrameSize.width/2 - roiSize.width/2),
-                            (fullFrameSize.height/2-roiSize.height/2),
-                            roiSize.width, roiSize.height));
 
+        vector<Rect> rois;
         vector<Rect> facesFull,facesProf,eyesL,eyesR;
         static Point leftUp;
         static Point leftDown;
         static Point rightUp;
         static Point rightDown;
-        int64 oneIterEnd, oneIterStart, 
-            motDetStart,motDetEnd,
-            faceDetStart,faceDetEnd,
-            updateStart,updateEnd, timeStart; 
+        int64 oneIterEnd, oneIterStart,motDetStart,motDetEnd,faceDetStart,faceDetEnd,updateStart,updateEnd, timeStart;
         double oneIterTime, motDetTime, faceDetTime,updateTime,timeEnd;
         const double ticksPerMsec=cvGetTickFrequency() * 1.0e6; 
-        timeStart = cvGetTickCount(); // generalTimer
         const float thickness = 3.0*(float)fullFrameSize.height/(float)previewSmallSize.height;
 
-        const int textOffset = thickness*2,
-                textThickness = thickness/2;
+        const int textOffset = thickness*2;
+        const int textThickness = thickness/2;
 
         const int dotsRadius = thickness*2;
         const double fontScale = thickness/5.0;
+        vector<Rect> faceBuf;
+        int faceCnt=0;
+        /// Поиск первого лица
+        while(faceCnt<2){
+            capture >> frame;
+            if(frame.empty()) {clog << "Frame is empty" << endl; continue;}
+            previewFrame = frame.clone();
+            cvtColor(frame, gray, COLOR_BGR2GRAY );
+            resize( gray, smallImg, Size(), fx, fx, INTER_LINEAR );
+            equalizeHist( smallImg, smallImg );
+            cascadeFull.detectMultiScale( smallImg, facesFull,
+                                          1.1, 2, 0|CASCADE_SCALE_IMAGE,Size(30, 30) );
+            cascadeProf.detectMultiScale( smallImg, facesProf,
+                                          1.1, 2, 0|CASCADE_SCALE_IMAGE, Size(30, 30)); ///@todo вывести все параметры отдельно
+            if(!facesFull.empty()){
+                faceBuf.push_back(facesFull[0]);
+                faceCnt++;
+            }
+            if(!facesProf.empty()){
+                faceBuf.push_back(facesProf[0]);
+                faceCnt++;
+            }
+
+            outputVideo << frame; // Пока не обнаружили лица просто выводим весь кадр
+            if(recordPreview){
+                previewVideo << previewSmall;
+                resize( previewFrame, previewSmall,previewSmallSize, 0, 0, INTER_NEAREST );
+            }
+        }
+        int x,y, sumX=0,sumY=0;
+        for(size_t i; i<faceBuf.size();++i){
+            sumX+=faceBuf[i].x;
+            sumY+=faceBuf[i].y;
+        }
+        x=sumX/faceBuf.size();
+        y=sumY/faceBuf.size();
+
+        rois.push_back(Rect(scale*(x-rightUp.x),
+                            scale*(y-rightUp.y),
+                            roiSize.width,roiSize.height));
+        timeStart = cvGetTickCount(); // generalTimer
+
+        /// главный цикл.
         for(;;)
         {
             oneIterStart = cvGetTickCount(); 
             capture >> frame;
             if(frame.empty()) {
+                clog << "Frame is empty" << endl;
                 break;
-                cout << "Frame is empty" << endl;
             }
             previewFrame = frame.clone();
-            cvtColor( frame, gray, COLOR_BGR2GRAY );
 
             faceDetStart = cvGetTickCount();
+            cvtColor( frame, gray, COLOR_BGR2GRAY );
             if(motionDetected){
                 resize( gray, smallImg, Size(), fx, fx, INTER_LINEAR );
                 equalizeHist( smallImg, smallImg );
@@ -447,23 +483,23 @@ int main( int argc, const char** argv )
             updateTime =  (updateEnd - updateStart)*ticksPerMsec;
             motDetTime  = (motDetEnd - motDetStart)*ticksPerMsec;
             oneIterTime = (oneIterEnd - oneIterStart)*ticksPerMsec;
-            if(fs.is_open()) {
-                fs  << timeEnd << "\t"
+            if(logFile.is_open()) {
+                logFile  << timeEnd << "\t"
                     << faceDetTime << "\t" 
                     << motDetTime << "\t" 
                     << updateTime << "\t"
                     << oneIterTime << "\t";
                 if(!facesFull.empty())
-                    fs << facesFull[0].x << "\t"
-                                     << facesFull[0].y << "\t"; else fs << "\t\t";
+                    logFile << facesFull[0].x << "\t"
+                                     << facesFull[0].y << "\t"; else logFile << "\t\t";
                 if(!rois.empty())
-                    fs << rois[0].x << "\t"
-                                    << rois[0].y << "\t";else fs << "\t\t";
-                fs  << endl;
+                    logFile << rois[0].x << "\t"
+                                    << rois[0].y << "\t";else logFile << "\t\t";
+                logFile  << endl;
             }
             oneIterEnd = faceDetEnd = motDetEnd = -1;
         }
-        if(fs.is_open())fs.close();
+        if(logFile.is_open())logFile.close();
         cout << "The results have been written to " << "''"+outFileTitle.str()+"''" << endl;
     }
     else
