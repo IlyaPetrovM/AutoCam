@@ -354,37 +354,38 @@ int main( int argc, const char** argv )
                     Size(30, 30));
 
                 //Отрисовка распознаных объектов на превью
-                for (int i = 0; i < facesFull.size(); ++i)
-                {
-                    facesFull[i].x *= scale;
-                    facesFull[i].y *= scale;
-                    facesFull[i].height *= scale;
-                    facesFull[i].width *= scale;
-                    stringstream title;
-                    title<<"Full face "<<i;
-                    putText(previewFrame, title.str(),
-                            Point(facesFull[i].x,facesFull[i].y-textOffset),
-                            CV_FONT_NORMAL, fontScale,
-                            Scalar(255, 0,0),textThickness);
-                    rectangle(previewFrame,facesFull[0],
-                            Scalar(255,0,0), thickness, 8, 0);
+                if(showPreview || recordPreview){
+                    for (int i = 0; i < facesFull.size(); ++i)
+                    {
+                        facesFull[i].x *= scale;
+                        facesFull[i].y *= scale;
+                        facesFull[i].height *= scale;
+                        facesFull[i].width *= scale;
+                        stringstream title;
+                        title<<"Full face "<<i;
+                        putText(previewFrame, title.str(),
+                                Point(facesFull[i].x,facesFull[i].y-textOffset),
+                                CV_FONT_NORMAL, fontScale,
+                                Scalar(255, 0,0),textThickness);
+                        rectangle(previewFrame,facesFull[0],
+                                Scalar(255,0,0), thickness, 8, 0);
+                    }
+                    for (int i = 0; i < facesProf.size(); ++i)
+                    {
+                        facesProf[i].x *= scale;
+                        facesProf[i].y *= scale;
+                        facesProf[i].height *= scale;
+                        facesProf[i].width *= scale;
+                        stringstream title;
+                        title<<"Profile face "<<i;
+                        putText(previewFrame, title.str(),
+                                Point(facesProf[i].x,facesProf[i].y-textOffset),
+                                CV_FONT_NORMAL, fontScale,
+                                Scalar(255,127,0),textThickness);
+                        rectangle(previewFrame,facesProf[0],
+                                Scalar(255,127,0), thickness, 8, 0);
+                    }
                 }
-                for (int i = 0; i < facesProf.size(); ++i)
-                {
-                    facesProf[i].x *= scale;
-                    facesProf[i].y *= scale;
-                    facesProf[i].height *= scale;
-                    facesProf[i].width *= scale;
-                    stringstream title;
-                    title<<"Profile face "<<i;
-                    putText(previewFrame, title.str(),
-                            Point(facesProf[i].x,facesProf[i].y-textOffset),
-                            CV_FONT_NORMAL, fontScale,
-                            Scalar(255,127,0),textThickness);
-                    rectangle(previewFrame,facesProf[0],
-                            Scalar(255,127,0), thickness, 8, 0);
-                }
-
             }
 
 
@@ -399,31 +400,33 @@ int main( int argc, const char** argv )
             {
                 motionDetected = detectMotion(frame(rois[i]),50,21,showPreview);
                 
-                rectangle(previewFrame,rois[i],Scalar(0,0,255), thickness, 8, 0);
-                leftUp.x=rois[i].x + rois[i].width/3.0;
-                leftUp.y=rois[i].y + rois[i].height/3.0;
+                if(showPreview || recordPreview){ // Отрисовка области интереса
+                    rectangle(previewFrame,rois[i],Scalar(0,0,255), thickness, 8, 0);
+                    stringstream title;
+                    title<<"ROI "<<i;
+                    putText(previewFrame, title.str(),
+                            Point(rois[i].x,rois[i].y-textOffset),CV_FONT_NORMAL,
+                            fontScale, Scalar(0, 0, 255),textThickness);
 
-                rightUp.x=rois[i].x + 2.0*rois[i].width/3.0;
-                rightUp.y=rois[i].y + rois[i].height/3.0;
-
-                leftDown.x=rois[i].x + rois[i].width/3.0;
-                leftDown.y=rois[i].y + 2.0*rois[i].height/3.0;
-
-                rightDown.x=rois[i].x + 2.0*rois[i].width/3.0;
-                rightDown.y=rois[i].y + 2.0*rois[i].height/3.0;
-                circle(previewFrame,leftUp, 1,Scalar(0,255,0), dotsRadius, 8, 0 );
-                circle(previewFrame,rightUp,1,Scalar(0,255,0), dotsRadius, 8, 0 );
-                circle(previewFrame,leftDown,1,Scalar(0,255,0),dotsRadius, 8, 0 );
-                circle(previewFrame,rightDown,1,Scalar(0,255,0),dotsRadius, 8, 0 );
-
-                stringstream title;
-                title<<"ROI "<<i;
-                putText(previewFrame, title.str(),
-                        Point(rois[i].x,rois[i].y-textOffset),
-                        CV_FONT_NORMAL, fontScale, Scalar(0, 0, 255),textThickness);
+                    // Изменение точек золотого сечения
+                    leftUp.x=rois[i].x + rois[i].width/3.0;
+                    leftUp.y=rois[i].y + rois[i].height/3.0;
+                    rightUp.x=rois[i].x + 2.0*rois[i].width/3.0;
+                    rightUp.y=rois[i].y + rois[i].height/3.0;
+                    leftDown.x=rois[i].x + rois[i].width/3.0;
+                    leftDown.y=rois[i].y + 2.0*rois[i].height/3.0;
+                    rightDown.x=rois[i].x + 2.0*rois[i].width/3.0;
+                    rightDown.y=rois[i].y + 2.0*rois[i].height/3.0;
+                    //Отрисовка точек золотого сечения
+                    circle(previewFrame,leftUp, 1,Scalar(0,255,0), dotsRadius, 8, 0 );
+                    circle(previewFrame,rightUp,1,Scalar(0,255,0), dotsRadius, 8, 0 );
+                    circle(previewFrame,leftDown,1,Scalar(0,255,0),dotsRadius, 8, 0 );
+                    circle(previewFrame,rightDown,1,Scalar(0,255,0),dotsRadius, 8, 0 );
+                }
             }
             motDetEnd = cvGetTickCount();
             outputVideo << frame(rois[0]); /// \todo 25.02.2016 сделать вывод для каждого лица
+            /// Начать вывод изображений во время первой детекции лица
             if(recordPreview){
                 previewVideo << previewSmall;
                 resize( previewFrame, previewSmall,
