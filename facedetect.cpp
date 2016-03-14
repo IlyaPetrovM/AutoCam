@@ -322,7 +322,6 @@ int main( int argc, const char** argv )
 
         const int dotsRadius = thickness*2;
         const double fontScale = thickness/5.0;
-        short rotation = 0; // -255 is right, 255 is left
         for(;;)
         {
             oneIterStart = cvGetTickCount(); 
@@ -338,60 +337,23 @@ int main( int argc, const char** argv )
             if(motionDetected){
                 resize( gray, smallImg, Size(), fx, fx, INTER_LINEAR );
                 equalizeHist( smallImg, smallImg );
-
+                /* Поиск лиц в анфас */
                 cascadeFull.detectMultiScale( smallImg, facesFull,
                     1.1, 2, 0
 //                    |CASCADE_FIND_BIGGEST_OBJECT
 //                    |CASCADE_DO_ROUGH_SEARCH
                     |CASCADE_SCALE_IMAGE,
                     Size(30, 30) );
-                /** @todo 01.03.2016 делать детектор для лиц в профиль и детектор ушей **/
 
+                /// Поиск лиц в профиль
                 cascadeProf.detectMultiScale( smallImg, facesProf,
                     1.1, 2, 0
 //                    |CASCADE_FIND_BIGGEST_OBJECT
 //                    |CASCADE_DO_ROUGH_SEARCH
                     |CASCADE_SCALE_IMAGE,
                     Size(30, 30));
-                for(size_t i=0; i<facesFull.size();++i) {
-                    cascadeEyeL.detectMultiScale( smallImg(facesFull[i]), eyesL,
-                                                  1.1, 2, 0
-//                                                  |CASCADE_FIND_BIGGEST_OBJECT
-//                                                  |CASCADE_DO_ROUGH_SEARCH
-                                                  |CASCADE_SCALE_IMAGE,
-                                                  Size(10, 10));
-                    cascadeEyeR.detectMultiScale( smallImg(facesFull[i]), eyesR,
-                                                  1.1, 2, 0
-//                                                  |CASCADE_FIND_BIGGEST_OBJECT
-//                                                  |CASCADE_DO_ROUGH_SEARCH
-                                                  |CASCADE_SCALE_IMAGE,
-                                                  Size(10, 10));
-                    if(!eyesL.empty() && !eyesR.empty() &&
-                            (eyesL[0].x < eyesR[0].x+eyesR[0].width )) eyesL.clear();
-                    if(!eyesL.empty())
-                    {
-                        eyesL[0].x+=facesFull[i].x;
-                        eyesL[0].y+=facesFull[i].y;
-                        eyesL[0].x *= scale;
-                        eyesL[0].y *= scale;
-                        eyesL[0].height *= scale;
-                        eyesL[0].width *= scale;
-                        rectangle(previewFrame,eyesL[0],
-                                Scalar(0,127,255), thickness, 8, 0);
-                    }
-                    if(!eyesR.empty())
-                    {
-                        eyesR[0].x+=facesFull[i].x;
-                        eyesR[0].y+=facesFull[i].y;
-                        eyesR[0].x *= scale;
-                        eyesR[0].y *= scale;
-                        eyesR[0].height *= scale;
-                        eyesR[0].width *= scale;
-                        rectangle(previewFrame,eyesR[0],
-                                Scalar(255,127,0), thickness, 8, 0);
-                    }
-                }
 
+                //Отрисовка распознаных объектов на превью
                 for (int i = 0; i < facesFull.size(); ++i)
                 {
                     facesFull[i].x *= scale;
