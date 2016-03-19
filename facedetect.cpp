@@ -234,17 +234,23 @@ int main( int argc, const char** argv )
     if( capture.isOpened() )
     {
         cout << "Video capturing has been started ..." << endl;
+
         const int previewHeight = 480;
-
-
         const Size fullFrameSize = Size((int) capture.get(CV_CAP_PROP_FRAME_WIDTH),
                   (int) capture.get(CV_CAP_PROP_FRAME_HEIGHT));
         const float frameRatio= (float)fullFrameSize.width / (float)fullFrameSize.height;
-
         const Size roiSize = Size((int)(fullFrameSize.width/3.0),(int)(fullFrameSize.height/3.0));
         const Size previewSmallSize = Size((int)(previewHeight*frameRatio),previewHeight);
+        const double fx = 1 / scale;
+        const double ticksPerMsec=cvGetTickFrequency() * 1.0e6;
+        const float thickness = 3.0*(float)fullFrameSize.height/(float)previewSmallSize.height;
+        const int textOffset = thickness*2;
+        const int textThickness = thickness/2;
+        const int dotsRadius = thickness*2;
+        const double fontScale = thickness/5.0;
 
         stringstream outFileTitle;
+
         if(isWebcam){
             time_t t = time(0);   // get time now
             struct tm * now = localtime( & t );
@@ -301,92 +307,97 @@ int main( int argc, const char** argv )
                 << "rois[0].x\trois[0].y\t" << endl;
         }
 
+
         Mat previewSmall, previewFrame,gray,smallImg;
-		bool motionDetected=true;
-		const double fx = 1 / scale;   
+        Mat frameTemp;
+        bool motionDetected=true;
 
         vector<Rect> rois;
         vector<Rect> facesFull,facesProf,eyesL,eyesR;
-        static Point leftUp;
-        static Point leftDown;
-        static Point rightUp;
-        static Point rightDown;
-        int64 oneIterEnd, oneIterStart,motDetStart,motDetEnd,faceDetStart,faceDetEnd,updateStart,updateEnd, timeStart;
-        double oneIterTime, motDetTime, faceDetTime,updateTime,timeEnd;
-        const double ticksPerMsec=cvGetTickFrequency() * 1.0e6; 
-        const float thickness = 3.0*(float)fullFrameSize.height/(float)previewSmallSize.height;
-
-        const int textOffset = thickness*2;
-        const int textThickness = thickness/2;
-
-        const int dotsRadius = thickness*2;
-        const double fontScale = thickness/5.0;
         vector<Rect> faceBuf;
-        int faceCnt=0;
-        /// Поиск первого лица
-        capture >> frame;
-        Mat frameTemp;
-        resize( frame, frameTemp,roiSize, 0, 0, INTER_LINEAR );
+        int64 oneIterEnd, oneIterStart,motDetStart,motDetEnd,faceDetStart,faceDetEnd,updateStart,updateEnd, timeStart;
+        vector<int64> tStamps;
+        double oneIterTime, motDetTime, faceDetTime,updateTime,timeEnd;
         string title = "Small preview";
-        cvNamedWindow(title.c_str(), CV_WINDOW_NORMAL);
 
-        while(faceCnt<2){
-            capture >> frame;
-            if(frame.empty()) {clog << "Frame is empty" << endl; break;}
-            previewFrame = frame.clone();
+        // точки золотого сечения по правилу третей
+        Point leftUp;
+        Point leftDown;
+        Point rightUp;
+        Point rightDown;
 
-            cvtColor(frame, gray, COLOR_BGR2GRAY );
-            resize( gray, smallImg,roiSize, 0, 0, INTER_LINEAR );
-            equalizeHist( smallImg, smallImg );
-            cascadeFull.detectMultiScale( smallImg, facesFull,
-                                          1.1, 2, 0
-                                          |CASCADE_FIND_BIGGEST_OBJECT
-                                          |CASCADE_DO_ROUGH_SEARCH
-                                          |CASCADE_SCALE_IMAGE,Size(30, 30) );
-            cascadeProf.detectMultiScale( smallImg, facesProf,
-                                          1.1, 2, 0
-                                          |CASCADE_FIND_BIGGEST_OBJECT
-                                          |CASCADE_DO_ROUGH_SEARCH
-                                          |CASCADE_SCALE_IMAGE, Size(30, 30)); ///@todo вывести все параметры отдельно
-            if(!facesFull.empty()){
-                faceBuf.push_back(facesFull[0]);
-                faceCnt++;
-            }
-            if(!facesProf.empty()){
-                faceBuf.push_back(facesProf[0]);
-                faceCnt++;
-            }
+        capture >> frame;
+        resize( frame, frameTemp,roiSize, 0, 0, INTER_LINEAR );
+        if(showPreview) cvNamedWindow(title.c_str(), CV_WINDOW_NORMAL);
 
-            resize( frame, frameTemp,roiSize, 0, 0, INTER_LINEAR );
-            outputVideo << frameTemp; /// \todo 25.02.2016 сделать вывод для каждого лица
-            if(recordPreview){
-                resize( previewFrame, previewSmall,previewSmallSize, 0, 0, INTER_LINEAR );
-                previewVideo << previewSmall;
+        try{
+            while(faceBuf.empty() || faceBuf.size()<2){
+                tStamps.push_back(cvGetTickCount());
+                capture >> frame;
+                if(frame.empty()) {clog << "Frame is empty" << endl; break;}
+                cvtColor(frame, gray, COLOR_BGR2GRAY );
+                resize( gray, smallImg, Size(), fx, fx, INTER_LINEAR ); /// @todo 19.03.2016 сделать таймер
+                cascadeFull.detectMultiScale( smallImg, facesFull,
+                                              1.1, 2, 0
+                                              |CASCADE_FIND_BIGGEST_OBJECT
+                                              |CASCADE_DO_ROUGH_SEARCH
+                                              |CASCADE_SCALE_IMAGE,Size(30, 30) );
+                cascadeProf.detectMultiScale( smallImg, facesProf,
+                                              1.1, 2, 0
+                                              |CASCADE_FIND_BIGGEST_OBJECT
+                                              |CASCADE_DO_ROUGH_SEARCH
+                                              |CASCADE_SCALE_IMAGE, Size(30, 30)); ///@todo 19.03.2016 вывести все параметры отдельно
+                if(!facesFull.empty()) faceBuf.push_back(facesFull[0]);
+                if(!facesProf.empty()) faceBuf.push_back(facesProf[0]);
+
+                resize( frame, frame,roiSize, 0, 0, INTER_LINEAR);
+                outputVideo << frame; /// \todo 25.02.2016 сделать вывод для каждого лица
+
+                if(recordPreview || showPreview)resize( frame, previewSmall,previewSmallSize, 0, 0, INTER_NEAREST);
+                if(recordPreview)previewVideo << previewSmall;
+                if(showPreview) imshow(title.c_str(), previewSmall);
+
+                tStamps.push_back(cvGetTickCount());
+
+                char c = waitKey(10);
+                if(c==27)break;
+
+                for(size_t i=0;i<tStamps.size()-1;++i){
+                    cout << " speed: " << 1/((tStamps[i+1]-tStamps[i])/ticksPerMsec) << " ";
+                }
+                tStamps.clear();
+                cout <<"frame:"<< ++frameCounter << " ("<<(int)((100*(float)frameCounter)/(float)videoLength) <<"% of video)"<< endl;
             }
-            if(showPreview){
-                resize( previewFrame, previewSmall, previewSmallSize, 0, 0, INTER_NEAREST );
-                imshow(title.c_str(), previewSmall);
+            cout << "! --- Faces found ---!" << endl;
+            int x,y, sumX=0,sumY=0;
+            for(size_t i; i<faceBuf.size();++i){
+                sumX+=faceBuf[i].x;
+                sumY+=faceBuf[i].y;
             }
-            char c = waitKey(10);
-            if(c==27)break;
-            cout <<"frame:"<< ++frameCounter << " ("<<(int)((100*(float)frameCounter)/(float)videoLength) <<"% of video)"<< endl;
+            x=sumX/faceBuf.size();
+            y=sumY/faceBuf.size();
+
+            rois.push_back(Rect(scale*(x-rightUp.x),
+                                scale*(y-rightUp.y),
+                                roiSize.width,roiSize.height));
+            if(rois[0].x<=0){
+                rois[0].x = 0;
+            }else if(frame.cols < rois[0].x+rois[0].width){
+                rois[0].x = frame.cols-rois[0].width;
+            }
+            if(rois[0].y <= 0){
+                rois[0].y = 0;
+            }else if(frame.rows < rois[0].y+rois[0].height){
+                rois[0].y=frame.rows-rois[0].height;
+            }
         }
-        cout << "! --- Faces found ---!" << endl;
-        int x,y, sumX=0,sumY=0;
-        for(size_t i; i<faceBuf.size();++i){
-            sumX+=faceBuf[i].x;
-            sumY+=faceBuf[i].y;
+        catch (cv::Exception& e){
+            clog << "Problem in line " << e.line << endl;
         }
-        x=sumX/faceBuf.size();
-        y=sumY/faceBuf.size();
 
-        rois.push_back(Rect(scale*(x-rightUp.x),
-                            scale*(y-rightUp.y),
-                            roiSize.width,roiSize.height));
+        timeStart = cvGetTickCount();
 
-        timeStart = cvGetTickCount(); // generalTimer
-
-        /// главный цикл.
+  ////////////////////////////////////////////////
         for(;;)
         {
             oneIterStart = cvGetTickCount(); 
@@ -399,10 +410,9 @@ int main( int argc, const char** argv )
             previewFrame = frame.clone();
 
             faceDetStart = cvGetTickCount();
-            cvtColor( frame, gray, COLOR_BGR2GRAY );
             if(motionDetected){
+                cvtColor( frame, gray, COLOR_BGR2GRAY );
                 resize( gray, smallImg, Size(), fx, fx, INTER_LINEAR );
-                equalizeHist( smallImg, smallImg );
                 /* Поиск лиц в анфас */
                 cascadeFull.detectMultiScale( smallImg, facesFull,
                     1.1, 2, 0
