@@ -100,9 +100,9 @@ void updateRoiCoords(vector<Rect> faces,vector<Rect> &rois, int maxCols, int max
     }
 }
     
-    bool detectMotion(Mat img, int thresh=50, int blur=21, bool showPrev=false){
+    int detectMotion(Mat img, int thresh=50, int blur=21, bool showPrev=false){
         static Mat diff,gr, grLast;
-        bool motionDetected=false;
+        int motion=0;
         cvtColor( img, gr, COLOR_BGR2GRAY );
         if (!grLast.empty())
         {
@@ -110,7 +110,7 @@ void updateRoiCoords(vector<Rect> faces,vector<Rect> &rois, int maxCols, int max
             GaussianBlur(gr, gr, Size(blur,blur), 0,0);
             absdiff(gr, grLast, diff);
             threshold(diff, diff, thresh, 255, cv::THRESH_BINARY);
-            motionDetected=((int)mean(diff)[0] > 0); // Движение в кадрике обнаружено
+            motion=(int)mean(diff)[0]; // Движение в кадрике обнаружено
 
             if(showPrev){
                 stringstream motion;
@@ -122,7 +122,7 @@ void updateRoiCoords(vector<Rect> faces,vector<Rect> &rois, int maxCols, int max
             }
         }
 		grLast=gr.clone();
-		return motionDetected;
+        return motion;
 	}       
 int main( int argc, const char** argv )
 {
@@ -235,13 +235,14 @@ int main( int argc, const char** argv )
     {
         cout << "Video capturing has been started ..." << endl;
         const int previewHeight = 480;
-        const int fourcc = CV_FOURCC('M', 'P', '4', '2'); // codecs
-        const Size roiSize = Size((int) capture.get(CV_CAP_PROP_FRAME_WIDTH)/3,
-                  (int) capture.get(CV_CAP_PROP_FRAME_HEIGHT)/3);
+
+
         const Size fullFrameSize = Size((int) capture.get(CV_CAP_PROP_FRAME_WIDTH),
                   (int) capture.get(CV_CAP_PROP_FRAME_HEIGHT));
-        const Size previewSmallSize =
-                Size(previewHeight*fullFrameSize.width/fullFrameSize.height,previewHeight);
+        const float frameRatio= (float)fullFrameSize.width / (float)fullFrameSize.height;
+
+        const Size roiSize = Size((int)(fullFrameSize.width/3.0),(int)(fullFrameSize.height/3.0));
+        const Size previewSmallSize = Size((int)(previewHeight*frameRatio),previewHeight);
 
         stringstream outFileTitle;
         if(isWebcam){
@@ -258,13 +259,18 @@ int main( int argc, const char** argv )
             outFileTitle << inputName.substr(inputName.find_last_of('/')+1)
             << __DATE__ <<" "<< __TIME__;
         }
-             int fps;
-
-        if(isWebcam)
+        int fps;
+        int fourcc;
+        if(isWebcam){
             fps = capture.get(CAP_PROP_FPS)/5;
+            fourcc = VideoWriter::fourcc('M','J','P','G'); // codecs
+        }
         else{
+            fourcc = capture.get(CV_CAP_PROP_FOURCC); // codecs
             fps = capture.get(CAP_PROP_FPS);
         }
+        long int videoLength = capture.get(CAP_PROP_FRAME_COUNT);
+        long int frameCounter=1;
         VideoWriter outputVideo("results/closeUp_"+outFileTitle.str()+".avi",fourcc,
                                  fps, roiSize, true);
         if(!outputVideo.isOpened()){
@@ -318,17 +324,30 @@ int main( int argc, const char** argv )
         vector<Rect> faceBuf;
         int faceCnt=0;
         /// Поиск первого лица
+        capture >> frame;
+        Mat frameTemp;
+        resize( frame, frameTemp,roiSize, 0, 0, INTER_LINEAR );
+        string title = "Small preview";
+        cvNamedWindow(title.c_str(), CV_WINDOW_NORMAL);
+
         while(faceCnt<2){
             capture >> frame;
-            if(frame.empty()) {clog << "Frame is empty" << endl; continue;}
+            if(frame.empty()) {clog << "Frame is empty" << endl; break;}
             previewFrame = frame.clone();
+
             cvtColor(frame, gray, COLOR_BGR2GRAY );
-            resize( gray, smallImg, Size(), fx, fx, INTER_LINEAR );
+            resize( gray, smallImg,roiSize, 0, 0, INTER_LINEAR );
             equalizeHist( smallImg, smallImg );
             cascadeFull.detectMultiScale( smallImg, facesFull,
-                                          1.1, 2, 0|CASCADE_SCALE_IMAGE,Size(30, 30) );
+                                          1.1, 2, 0
+                                          |CASCADE_FIND_BIGGEST_OBJECT
+                                          |CASCADE_DO_ROUGH_SEARCH
+                                          |CASCADE_SCALE_IMAGE,Size(30, 30) );
             cascadeProf.detectMultiScale( smallImg, facesProf,
-                                          1.1, 2, 0|CASCADE_SCALE_IMAGE, Size(30, 30)); ///@todo вывести все параметры отдельно
+                                          1.1, 2, 0
+                                          |CASCADE_FIND_BIGGEST_OBJECT
+                                          |CASCADE_DO_ROUGH_SEARCH
+                                          |CASCADE_SCALE_IMAGE, Size(30, 30)); ///@todo вывести все параметры отдельно
             if(!facesFull.empty()){
                 faceBuf.push_back(facesFull[0]);
                 faceCnt++;
@@ -338,12 +357,21 @@ int main( int argc, const char** argv )
                 faceCnt++;
             }
 
-            outputVideo << frame; // Пока не обнаружили лица просто выводим весь кадр
+            resize( frame, frameTemp,roiSize, 0, 0, INTER_LINEAR );
+            outputVideo << frameTemp; /// \todo 25.02.2016 сделать вывод для каждого лица
             if(recordPreview){
+                resize( previewFrame, previewSmall,previewSmallSize, 0, 0, INTER_LINEAR );
                 previewVideo << previewSmall;
-                resize( previewFrame, previewSmall,previewSmallSize, 0, 0, INTER_NEAREST );
             }
+            if(showPreview){
+                resize( previewFrame, previewSmall, previewSmallSize, 0, 0, INTER_NEAREST );
+                imshow(title.c_str(), previewSmall);
+            }
+            char c = waitKey(10);
+            if(c==27)break;
+            cout <<"frame:"<< ++frameCounter << " ("<<(int)((100*(float)frameCounter)/(float)videoLength) <<"% of video)"<< endl;
         }
+        cout << "! --- Faces found ---!" << endl;
         int x,y, sumX=0,sumY=0;
         for(size_t i; i<faceBuf.size();++i){
             sumX+=faceBuf[i].x;
@@ -355,6 +383,7 @@ int main( int argc, const char** argv )
         rois.push_back(Rect(scale*(x-rightUp.x),
                             scale*(y-rightUp.y),
                             roiSize.width,roiSize.height));
+
         timeStart = cvGetTickCount(); // generalTimer
 
         /// главный цикл.
@@ -362,6 +391,7 @@ int main( int argc, const char** argv )
         {
             oneIterStart = cvGetTickCount(); 
             capture >> frame;
+            cout <<"frame:"<< ++frameCounter << " ("<<(int)((100*(float)frameCounter)/(float)videoLength) <<"% of video)"<< endl;
             if(frame.empty()) {
                 clog << "Frame is empty" << endl;
                 break;
@@ -429,12 +459,13 @@ int main( int argc, const char** argv )
 
             updateStart = cvGetTickCount();
             updateRoiCoords(facesFull,rois,fullFrameSize.width,fullFrameSize.height);
+            updateRoiCoords(facesProf,rois,fullFrameSize.width,fullFrameSize.height);
             updateEnd = cvGetTickCount();
 
             motDetStart = cvGetTickCount();
             for (int i = 0; i < rois.size(); ++i)
             {
-                motionDetected = detectMotion(frame(rois[i]),50,21,showPreview);
+                motionDetected = (detectMotion(frame(rois[i]),50,21,showPreview)>0);
                 
                 if(showPreview || recordPreview){ // Отрисовка области интереса
                     rectangle(previewFrame,rois[i],Scalar(0,0,255), thickness, 8, 0);
@@ -462,15 +493,13 @@ int main( int argc, const char** argv )
             }
             motDetEnd = cvGetTickCount();
             outputVideo << frame(rois[0]); /// \todo 25.02.2016 сделать вывод для каждого лица
-            /// Начать вывод изображений во время первой детекции лица
             if(recordPreview){
                 previewVideo << previewSmall;
-                resize( previewFrame, previewSmall,
-                        previewSmallSize, 0, 0, INTER_NEAREST );
+                resize( previewFrame, previewSmall,previewSmallSize, 0, 0, INTER_LINEAR );
             }
             if(showPreview){
                 resize( previewFrame, previewSmall, previewSmallSize, 0, 0, INTER_NEAREST );
-                imshow("Small preview "+outFileTitle.str(),previewSmall);
+                imshow(title.c_str(),previewSmall);
             }
 
             int c = waitKey(10);
