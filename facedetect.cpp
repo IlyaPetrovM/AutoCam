@@ -449,7 +449,7 @@ int main( int argc, const char** argv )
         }
 
         timeStart = cvGetTickCount();
-
+Mat result;
   ////////////////////////////////////////////////
         for(;;)
         {
@@ -464,6 +464,7 @@ int main( int argc, const char** argv )
 
             faceDetStart = cvGetTickCount();
             if(motionDetected){
+                /// @todo 26.03.2016 поиск лиц только в области интереса.
                 cvtColor( frame, gray, COLOR_BGR2GRAY );
                 resize( gray, smallImg, Size(), fx, fx, INTER_LINEAR );
                 /* Поиск лиц в анфас */
@@ -507,8 +508,8 @@ int main( int argc, const char** argv )
                 motionDetected = (detectMotion(frame(rois[i]),50,21,showPreview)>0);
             motDetEnd = cvGetTickCount();
 
-
-            outputVideo << frame(rois[0]); /// \todo 25.02.2016 сделать вывод для каждого лица
+            resize(frame(rois[0]), result , roiSize, 0,0, INTER_LINEAR );
+            outputVideo << result ; /// \todo 25.02.2016 сделать вывод для каждого лица
 
             if(showPreview || recordPreview){ // Отрисовка области интереса
                 drawRects(previewFrame,rois,"ROI",Scalar(0,0,255),fontScale,textThickness,textOffset);
