@@ -28,7 +28,18 @@ string cascadeFullName = "../../data/haarcascades/haarcascade_frontalface_alt.xm
 string cascadeProfName = "../../data/haarcascades/haarcascade_profileface.xml";
 string cascadeLEyeName = "../../data/haarcascades/haarcascade_lefteye_2splits.xml";
 string cascadeREyeName = "../../data/haarcascades/haarcascade_righteye_2splits.xml";
-void updateRoiCoords(vector<Rect> faces,vector<Rect> &rois, int maxCols, int maxRows){
+
+inline void scaleRect(Rect& r, const double& sc) {
+    r.x *= sc;
+    r.y *= sc;
+    r.height *= sc;
+    r.width *= sc;
+}
+
+void updateRoiCoords(const vector<Rect> &faces,
+                     vector<Rect> &rois,
+                     const int& maxCols,
+                     const int& maxRows){
     static int roiHeight=240,roiWidth=roiHeight*4.0/3.0; //TODO 25.02.2016 Сделать для нескольких ROI с настраиваемыми размерами
     static Point leftUp(rois[0].width/3.0, rois[0].height/3.0);
     // static Point leftUp(0,0);
@@ -99,7 +110,34 @@ void updateRoiCoords(vector<Rect> faces,vector<Rect> &rois, int maxCols, int max
         }
     }
 }
-    
+
+void drawRects(Mat& img, const vector<Rect>& rects, string t="rect", Scalar color=Scalar(255,0,0),
+              float fontScale=1.0, float textThickness=1.0, int textOffset=0, int thickness=1, int fontFace=CV_FONT_NORMAL){
+    for (int i = 0; i < rects.size(); ++i)
+    {
+        stringstream title;
+        title << t<<" "<< i;
+        putText(img, title.str(),
+                Point(rects[i].x,
+                      rects[i].y-textOffset),
+                fontFace, fontScale,color,textThickness);
+        rectangle(img,rects[i],
+                  color, thickness, 8, 0);
+    }
+}
+
+inline void drawGoldenRules(Mat& img, const Rect& r,Scalar color=Scalar(0,255,0),const double& dotsRadius=1){
+    //Отрисовка точек золотого сечения
+    circle(img,Point(r.x + r.width/3.0,
+                              r.y + r.height/3.0), 1,Scalar(0,255,0), dotsRadius);
+    circle(img,Point(r.x + 2.0*r.width/3.0,
+                              r.y + r.height/3.0),1,Scalar(0,255,0), dotsRadius);
+    circle(img,Point(r.x + r.width/3.0,
+                              r.y + 2.0*r.height/3.0),1,Scalar(0,255,0),dotsRadius);
+    circle(img,Point(r.x + 2.0*r.width/3.0,
+                              r.y + 2.0*r.height/3.0),1,Scalar(0,255,0),dotsRadius);
+}
+
     int detectMotion(Mat img, int thresh=50, int blur=21, bool showPrev=false){
         static Mat diff,gr, grLast;
         int motion=0;
@@ -242,7 +280,7 @@ int main( int argc, const char** argv )
         const Size roiSize = Size((int)(fullFrameSize.width/3.0),(int)(fullFrameSize.height/3.0));
         const Size previewSmallSize = Size((int)(previewHeight*frameRatio),previewHeight);
         const double fx = 1 / scale;
-        const double ticksPerMsec=cvGetTickFrequency() * 1.0e6;
+        const double ticksPerMsec=cvGetTickFrequency() * 1.0e3;
         const float thickness = 3.0*(float)fullFrameSize.height/(float)previewSmallSize.height;
         const int textOffset = thickness*2;
         const int textThickness = thickness/2;
@@ -257,13 +295,13 @@ int main( int argc, const char** argv )
              outFileTitle << "webcam"
                           << (now->tm_year + 1900) << '_'
                           << (now->tm_mon + 1) << '_'
-                          << now->tm_mday << " "
+                          << now->tm_mday << "_"
                           << now->tm_hour <<"-"
-                          << now->tm_min << " "
-                          << __DATE__ <<" "<< __TIME__;
+                          << now->tm_min << "_"
+                          << __DATE__ <<" "<< __TIME__ <<"_sc"<< scale;
         }else{
             outFileTitle << inputName.substr(inputName.find_last_of('/')+1)
-            << __DATE__ <<" "<< __TIME__;
+            << __DATE__ <<" "<< __TIME__<<"_sc"<< scale;
         }
         int fps;
         int fourcc;
@@ -298,13 +336,13 @@ int main( int argc, const char** argv )
         if(!logFile.is_open()){
             cout << "Error with opening the file:" << "results/test_"+outFileTitle.str()+".csv" << endl;
         }else{
-            logFile << "timestamp\t"
-                << "faceDetTime\t"
-                << "motDetTime\t"
-                << "updateTime\t"
-                << "oneIterTime\t"
-                << "faces[0].x\tfaces[0].y\t"
-                << "rois[0].x\trois[0].y\t" << endl;
+            logFile << "timestamp, ms\t"
+                << "faceDetTime, ms\t"
+                << "motDetTime, ms\t"
+                << "updateTime, ms\t"
+                << "oneIterTime, ms\t"
+                << "faces[0].x, px\tfaces[0].y, px\t"
+                << "rois[0].x, px\trois[0].y, px\t" << endl;
         }
 
 
@@ -317,6 +355,7 @@ int main( int argc, const char** argv )
         vector<Rect> faceBuf;
         int64 oneIterEnd, oneIterStart,motDetStart,motDetEnd,faceDetStart,faceDetEnd,updateStart,updateEnd, timeStart;
         vector<int64> tStamps;
+        vector<int> lines;
         double oneIterTime, motDetTime, faceDetTime,updateTime,timeEnd;
         string title = "Small preview";
 
@@ -331,12 +370,19 @@ int main( int argc, const char** argv )
         if(showPreview) cvNamedWindow(title.c_str(), CV_WINDOW_NORMAL);
 
         try{
-            while(faceBuf.empty() || faceBuf.size()<2){
-                tStamps.push_back(cvGetTickCount());
+            tStamps.push_back(cvGetTickCount()), lines.push_back(__LINE__);
+            while(faceBuf.empty() || faceBuf.size()<3){
+                tStamps.push_back(cvGetTickCount()), lines.push_back(__LINE__);
                 capture >> frame;
                 if(frame.empty()) {clog << "Frame is empty" << endl; break;}
+
+                tStamps.push_back(cvGetTickCount()), lines.push_back(__LINE__);
+
                 cvtColor(frame, gray, COLOR_BGR2GRAY );
                 resize( gray, smallImg, Size(), fx, fx, INTER_LINEAR ); /// @todo 19.03.2016 сделать таймер
+
+                tStamps.push_back(cvGetTickCount()), lines.push_back(__LINE__);
+
                 cascadeFull.detectMultiScale( smallImg, facesFull,
                                               1.1, 2, 0
                                               |CASCADE_FIND_BIGGEST_OBJECT
@@ -347,27 +393,34 @@ int main( int argc, const char** argv )
                                               |CASCADE_FIND_BIGGEST_OBJECT
                                               |CASCADE_DO_ROUGH_SEARCH
                                               |CASCADE_SCALE_IMAGE, Size(30, 30)); ///@todo 19.03.2016 вывести все параметры отдельно
+
+                tStamps.push_back(cvGetTickCount()), lines.push_back(__LINE__);
+
                 if(!facesFull.empty()) faceBuf.push_back(facesFull[0]);
                 if(!facesProf.empty()) faceBuf.push_back(facesProf[0]);
 
                 resize( frame, frame,roiSize, 0, 0, INTER_LINEAR);
                 outputVideo << frame; /// \todo 25.02.2016 сделать вывод для каждого лица
 
+                tStamps.push_back(cvGetTickCount()), lines.push_back(__LINE__);
+
                 if(recordPreview || showPreview)resize( frame, previewSmall,previewSmallSize, 0, 0, INTER_NEAREST);
                 if(recordPreview)previewVideo << previewSmall;
                 if(showPreview) imshow(title.c_str(), previewSmall);
 
-                tStamps.push_back(cvGetTickCount());
+                tStamps.push_back(cvGetTickCount()), lines.push_back(__LINE__);
 
                 char c = waitKey(10);
                 if(c==27)break;
-
+                ++frameCounter;
                 for(size_t i=0;i<tStamps.size()-1;++i){
-                    cout << " speed: " << 1/((tStamps[i+1]-tStamps[i])/ticksPerMsec) << " ";
+                    cout << "lines " << lines[i] <<"-"<<lines[i+1]
+                         << " t: " << ((double)(tStamps[i+1]-tStamps[i])/ticksPerMsec) << ", ms; " <<endl;
                 }
-                tStamps.clear();
-                cout <<"frame:"<< ++frameCounter << " ("<<(int)((100*(float)frameCounter)/(float)videoLength) <<"% of video)"<< endl;
+                cout <<"frame:"<< frameCounter << " ("<<(int)((100*(float)frameCounter)/(float)videoLength) <<"% of video)"<< endl;
+                tStamps.clear(), lines.clear();
             }
+
             cout << "! --- Faces found ---!" << endl;
             int x,y, sumX=0,sumY=0;
             for(size_t i; i<faceBuf.size();++i){
@@ -428,39 +481,16 @@ int main( int argc, const char** argv )
 //                    |CASCADE_DO_ROUGH_SEARCH
                     |CASCADE_SCALE_IMAGE,
                     Size(30, 30));
-
+                for (size_t i=0; i<facesFull.size(); ++i) {
+                    scaleRect(facesFull[i],scale);
+                }
+                for (size_t i=0; i<facesProf.size(); ++i) {
+                    scaleRect(facesProf[i],scale);
+                }
                 //Отрисовка распознаных объектов на превью
                 if(showPreview || recordPreview){
-                    for (int i = 0; i < facesFull.size(); ++i)
-                    {
-                        facesFull[i].x *= scale;
-                        facesFull[i].y *= scale;
-                        facesFull[i].height *= scale;
-                        facesFull[i].width *= scale;
-                        stringstream title;
-                        title<<"Full face "<<i;
-                        putText(previewFrame, title.str(),
-                                Point(facesFull[i].x,facesFull[i].y-textOffset),
-                                CV_FONT_NORMAL, fontScale,
-                                Scalar(255, 0,0),textThickness);
-                        rectangle(previewFrame,facesFull[0],
-                                Scalar(255,0,0), thickness, 8, 0);
-                    }
-                    for (int i = 0; i < facesProf.size(); ++i)
-                    {
-                        facesProf[i].x *= scale;
-                        facesProf[i].y *= scale;
-                        facesProf[i].height *= scale;
-                        facesProf[i].width *= scale;
-                        stringstream title;
-                        title<<"Profile face "<<i;
-                        putText(previewFrame, title.str(),
-                                Point(facesProf[i].x,facesProf[i].y-textOffset),
-                                CV_FONT_NORMAL, fontScale,
-                                Scalar(255,127,0),textThickness);
-                        rectangle(previewFrame,facesProf[0],
-                                Scalar(255,127,0), thickness, 8, 0);
-                    }
+                    drawRects(previewFrame,facesFull,"Full face",Scalar(255,0,0));
+                    drawRects(previewFrame,facesProf,"Profile",Scalar(255,127,0));
                 }
             }
 
@@ -474,42 +504,22 @@ int main( int argc, const char** argv )
 
             motDetStart = cvGetTickCount();
             for (int i = 0; i < rois.size(); ++i)
-            {
                 motionDetected = (detectMotion(frame(rois[i]),50,21,showPreview)>0);
-                
-                if(showPreview || recordPreview){ // Отрисовка области интереса
-                    rectangle(previewFrame,rois[i],Scalar(0,0,255), thickness, 8, 0);
-                    stringstream title;
-                    title<<"ROI "<<i;
-                    putText(previewFrame, title.str(),
-                            Point(rois[i].x,rois[i].y-textOffset),CV_FONT_NORMAL,
-                            fontScale, Scalar(0, 0, 255),textThickness);
-
-                    // Изменение точек золотого сечения
-                    leftUp.x=rois[i].x + rois[i].width/3.0;
-                    leftUp.y=rois[i].y + rois[i].height/3.0;
-                    rightUp.x=rois[i].x + 2.0*rois[i].width/3.0;
-                    rightUp.y=rois[i].y + rois[i].height/3.0;
-                    leftDown.x=rois[i].x + rois[i].width/3.0;
-                    leftDown.y=rois[i].y + 2.0*rois[i].height/3.0;
-                    rightDown.x=rois[i].x + 2.0*rois[i].width/3.0;
-                    rightDown.y=rois[i].y + 2.0*rois[i].height/3.0;
-                    //Отрисовка точек золотого сечения
-                    circle(previewFrame,leftUp, 1,Scalar(0,255,0), dotsRadius, 8, 0 );
-                    circle(previewFrame,rightUp,1,Scalar(0,255,0), dotsRadius, 8, 0 );
-                    circle(previewFrame,leftDown,1,Scalar(0,255,0),dotsRadius, 8, 0 );
-                    circle(previewFrame,rightDown,1,Scalar(0,255,0),dotsRadius, 8, 0 );
-                }
-            }
             motDetEnd = cvGetTickCount();
+
+
             outputVideo << frame(rois[0]); /// \todo 25.02.2016 сделать вывод для каждого лица
-            if(recordPreview){
-                previewVideo << previewSmall;
-                resize( previewFrame, previewSmall,previewSmallSize, 0, 0, INTER_LINEAR );
-            }
-            if(showPreview){
+
+            if(showPreview || recordPreview){ // Отрисовка области интереса
+                drawRects(previewFrame,rois,"ROI",Scalar(0,0,255),fontScale,textThickness,textOffset);
+                for (int i = 0; i < rois.size(); ++i)
+                    drawGoldenRules(previewFrame,rois[i],Scalar(0,255,0),dotsRadius);
+
                 resize( previewFrame, previewSmall, previewSmallSize, 0, 0, INTER_NEAREST );
-                imshow(title.c_str(),previewSmall);
+                if(recordPreview)
+                    previewVideo << previewSmall;
+                if(showPreview)
+                    imshow(title.c_str(),previewSmall);
             }
 
             int c = waitKey(10);
@@ -517,11 +527,11 @@ int main( int argc, const char** argv )
     
             /// Запись статистики
             oneIterEnd = cvGetTickCount(); 
-            timeEnd = (cvGetTickCount() - timeStart)*ticksPerMsec;
-            faceDetTime = (faceDetEnd - faceDetStart)*ticksPerMsec;
-            updateTime =  (updateEnd - updateStart)*ticksPerMsec;
-            motDetTime  = (motDetEnd - motDetStart)*ticksPerMsec;
-            oneIterTime = (oneIterEnd - oneIterStart)*ticksPerMsec;
+            timeEnd = (double)(cvGetTickCount() - timeStart)/ticksPerMsec;
+            faceDetTime = (double)(faceDetEnd - faceDetStart)/ticksPerMsec;
+            updateTime =  (double)(updateEnd - updateStart)/ticksPerMsec;
+            motDetTime  = (double)(motDetEnd - motDetStart)/ticksPerMsec;
+            oneIterTime = (double)(oneIterEnd - oneIterStart)/ticksPerMsec;
             if(logFile.is_open()) {
                 logFile  << timeEnd << "\t"
                     << faceDetTime << "\t" 
@@ -540,6 +550,7 @@ int main( int argc, const char** argv )
         }
         if(logFile.is_open())logFile.close();
         cout << "The results have been written to " << "''"+outFileTitle.str()+"''" << endl;
+        cvDestroyAllWindows();
     }
     else
     {
