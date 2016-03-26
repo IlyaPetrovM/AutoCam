@@ -111,8 +111,13 @@ void updateRoiCoords(const vector<Rect> &faces,
     }
 }
 
-void drawRects(Mat& img, const vector<Rect>& rects, string t="rect", Scalar color=Scalar(255,0,0),
-              float fontScale=1.0, float textThickness=1.0, int textOffset=0, int thickness=1, int fontFace=CV_FONT_NORMAL){
+void drawRects(Mat& img, const vector<Rect>& rects,
+               string t="rect", Scalar color=Scalar(255,0,0),
+               float fontScale=1.0,
+               float textThickness=1.0,
+               int textOffset=0,
+               int thickness=1,
+               int fontFace=CV_FONT_NORMAL){
     for (int i = 0; i < rects.size(); ++i)
     {
         stringstream title;
@@ -371,7 +376,7 @@ int main( int argc, const char** argv )
 
         try{
             tStamps.push_back(cvGetTickCount()), lines.push_back(__LINE__);
-            while(faceBuf.empty() || faceBuf.size()<3){
+            while(faceBuf.size()<10){
                 tStamps.push_back(cvGetTickCount()), lines.push_back(__LINE__);
                 capture >> frame;
                 if(frame.empty()) {clog << "Frame is empty" << endl; break;}
@@ -449,8 +454,10 @@ int main( int argc, const char** argv )
         }
 
         timeStart = cvGetTickCount();
-Mat result;
+        Mat result;
+        Rect fullShot = Rect(0,0,fullFrameSize.width,fullFrameSize.height);
   ////////////////////////////////////////////////
+        bool foundFaces=false;
         for(;;)
         {
             oneIterStart = cvGetTickCount(); 
@@ -463,12 +470,20 @@ Mat result;
             previewFrame = frame.clone();
 
             faceDetStart = cvGetTickCount();
-            if(motionDetected){
+            if(motionDetected || !foundFaces){
                 /// @todo 26.03.2016 поиск лиц только в области интереса.
-                cvtColor( frame, gray, COLOR_BGR2GRAY );
+
+                if(foundFaces){
+                    cvtColor( frame(rois[0]), gray, COLOR_BGR2GRAY );
+                    imshow("small gray",gray);
+                }
+                else{
+                    cvtColor( frame, gray, COLOR_BGR2GRAY );
+                    imshow("big gray",gray);
+                }
                 resize( gray, smallImg, Size(), fx, fx, INTER_LINEAR );
                 /* Поиск лиц в анфас */
-                cascadeFull.detectMultiScale( smallImg, facesFull,
+                cascadeFull.detectMultiScale(smallImg, facesFull,
                     1.1, 2, 0
 //                    |CASCADE_FIND_BIGGEST_OBJECT
 //                    |CASCADE_DO_ROUGH_SEARCH
@@ -484,10 +499,19 @@ Mat result;
                     Size(30, 30));
                 for (size_t i=0; i<facesFull.size(); ++i) {
                     scaleRect(facesFull[i],scale);
+                    if(foundFaces){
+                        facesFull[i].x+=rois[0].x,
+                        facesFull[i].y+=rois[0].y;
+                    }
                 }
                 for (size_t i=0; i<facesProf.size(); ++i) {
                     scaleRect(facesProf[i],scale);
+                    if(foundFaces){
+                        facesProf[i].x+=rois[0].x,
+                        facesProf[i].y+=rois[0].y;
+                    }
                 }
+                foundFaces = !(facesFull.empty() && facesProf.empty());
                 //Отрисовка распознаных объектов на превью
                 if(showPreview || recordPreview){
                     drawRects(previewFrame,facesFull,"Full face",Scalar(255,0,0));
@@ -499,13 +523,14 @@ Mat result;
             faceDetEnd = cvGetTickCount();
 
             updateStart = cvGetTickCount();
+            /// @todo 26.03.2016 Выбирать только один тип лица
             updateRoiCoords(facesFull,rois,fullFrameSize.width,fullFrameSize.height);
             updateRoiCoords(facesProf,rois,fullFrameSize.width,fullFrameSize.height);
             updateEnd = cvGetTickCount();
 
+/// @todo 26.03.2016 сделать более плавные движения
             motDetStart = cvGetTickCount();
-            for (int i = 0; i < rois.size(); ++i)
-                motionDetected = (detectMotion(frame(rois[i]),50,21,showPreview)>0);
+            motionDetected = (detectMotion(frame(rois[0]),50,21,showPreview)>0);
             motDetEnd = cvGetTickCount();
 
             resize(frame(rois[0]), result , roiSize, 0,0, INTER_LINEAR );
