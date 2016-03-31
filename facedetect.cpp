@@ -70,7 +70,6 @@ void updateRoiCoords(const vector<Rect> &faces,
                      const int& maxCols,
                      const int& maxRows)
 {
-      // итак, я вернулся живым.
     /// @todo 25.03.2016 Сделать для одного ROI
     static int roiHeight=240,roiWidth=roiHeight*4.0/3.0;
     static Point leftUp(rois[0].width/3.0, rois[0].height/3.0);
@@ -539,7 +538,8 @@ int main( int argc, const char** argv )
             updateStart = cvGetTickCount();
 
             if(!facesFull.empty() && !facesProf.empty()) {
-                updateRoiCoords(middle(facesFull[0],facesProf[0]),
+                vector<Rect> r; r.push_back(middle(facesFull[0],facesProf[0]));
+                updateRoiCoords(r,
                         rois,fullFrameSize.width,fullFrameSize.height);
             }else {
                 updateRoiCoords(facesFull,rois,fullFrameSize.width,fullFrameSize.height);
