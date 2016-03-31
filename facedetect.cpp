@@ -65,19 +65,18 @@ inline Rect middle(const Rect& a, const Rect& b){
     return mid;
 }
 
-void updateRoiCoords(const vector<Rect> &faces,
-                     vector<Rect> &rois,
+void updateRoiCoords(const Rect& face,
+                     Rect& roi,
                      const int& maxCols,
                      const int& maxRows)
 {
     /// @todo 25.03.2016 Сделать для одного ROI
-    static int roiHeight=240,roiWidth=roiHeight*4.0/3.0;
-    static Point leftUp(rois[0].width/3.0, rois[0].height/3.0);
+    static Point leftUp(roi.width/3.0, roi.height/3.0); // Вот где они методы!!!
     // static Point leftUp(0,0);
-    static Point leftDown(rois[0].width/3.0, 2.0*rois[0].height/3.0);
-    static Point rightUp(2.0*rois[0].width/3.0,rois[0].height/3.0);
-    static Point rightDown(2.0*rois[0].width/3.0,2.0*rois[0].height/3.0);
-    static Point center(rois[0].width/2,rois[0].height/3);
+    static Point leftDown(roi.width/3.0, 2.0*roi.height/3.0);
+    static Point rightUp(2.0*roi.width/3.0,roi.height/3.0);
+    static Point rightDown(2.0*roi.width/3.0,2.0*roi.height/3.0);
+    static Point center(roi.width/2,roi.height/3);
     static double t = 0;
     static float distX=0.0;
     static float distY=0.0;
@@ -89,46 +88,33 @@ void updateRoiCoords(const vector<Rect> &faces,
     static double cntX=0.0,cntY=0.0;
     static double uX,uY;
     /// @todo 27.03.2016 перемещать область интереса только на небольшие расстояния
-    /// @todo 27.03.2016 убрать оматическое увеличение количества кадриков
-    if(rois.empty()){
-        for (int i = 0; i < faces.size(); ++i)
-        {
-            rois.push_back(Rect((faces[i].x-rightUp.x),
-                                (faces[i].y-rightUp.y),
-                                roiWidth,roiHeight));
-        }
-    }
-    Point target;
-    for (int i = 0; i < rois.size() && i < faces.size(); ++i)
-    {
-        Point p(getGoldenPoint(rois[i],faces[i]));
+        Point p(getGoldenPoint(roi,face));
 
         /// PID - регулятор для позиционирования камеры
         dPrevX = distX;
-        distX  = p.x-rois[i].x;
+        distX  = p.x-roi.x;
         DeltaX = distX-dPrevX;
         cntX   += distX;
         uX     = distX*Kp + cntX*Ki + DeltaX*Kd;
-        rois[i].x += uX;
+        roi.x += uX;
 
         dPrevY = distY;
-        distY  = p.y-rois[i].y;
+        distY  = p.y-roi.y;
         DeltaY = distY-dPrevY;
         cntY   += distY;
         uY     = distY*Kp + cntY*Ki + DeltaY*Kd;
-        rois[i].y += uY;
+        roi.y += uY;
 
-        if(rois[i].x<=0){
-            rois[i].x = 0;
-        }else if(maxCols < rois[i].x+rois[i].width){
-            rois[i].x = maxCols-rois[i].width;
+        if(roi.x<=0){
+            roi.x = 0;
+        }else if(maxCols < roi.x+roi.width){
+            roi.x = maxCols-roi.width;
         }
-        if(rois[i].y <= 0){
-            rois[i].y = 0;
-        }else if(maxRows < rois[i].y+rois[i].height){
-            rois[i].y=maxRows-rois[i].height;
+        if(roi.y <= 0){
+            roi.y = 0;
+        }else if(maxRows < roi.y+roi.height){
+            roi.y=maxRows-roi.height;
         }
-    }
 }
 
 void drawRects(Mat& img, const vector<Rect>& rects,
@@ -538,12 +524,11 @@ int main( int argc, const char** argv )
             updateStart = cvGetTickCount();
 
             if(!facesFull.empty() && !facesProf.empty()) {
-                vector<Rect> r; r.push_back(middle(facesFull[0],facesProf[0]));
-                updateRoiCoords(r,
-                        rois,fullFrameSize.width,fullFrameSize.height);
+                updateRoiCoords(middle(facesFull[0],facesProf[0]),
+                        rois[0],fullFrameSize.width,fullFrameSize.height);
             }else {
-                updateRoiCoords(facesFull,rois,fullFrameSize.width,fullFrameSize.height);
-                updateRoiCoords(facesProf,rois,fullFrameSize.width,fullFrameSize.height);
+                updateRoiCoords(facesFull[0],rois[0],fullFrameSize.width,fullFrameSize.height);
+                updateRoiCoords(facesProf[0],rois[0],fullFrameSize.width,fullFrameSize.height);
             }
             updateEnd = cvGetTickCount();
 
