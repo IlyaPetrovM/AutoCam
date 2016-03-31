@@ -88,8 +88,8 @@ void updateRoiCoords(const vector<Rect> &faces,
     static double Kp=0.1, Ki=0.001, Kd=-0.09;//0.001 , 0.05
     static double cntX=0.0,cntY=0.0;
     static double uX,uY;
-
-    //todo автоматическое увеличение количества кадриков
+    /// @todo 27.03.2016 перемещать область интереса только на небольшие расстояния
+    /// @todo 27.03.2016 убрать оматическое увеличение количества кадриков
     if(rois.empty()){
         for (int i = 0; i < faces.size(); ++i)
         {
@@ -536,6 +536,7 @@ int main( int argc, const char** argv )
             faceDetEnd = cvGetTickCount();
 
             updateStart = cvGetTickCount();
+
             if(!facesFull.empty() && !facesProf.empty()) {
                 updateRoiCoords(middle(facesFull[0],facesProf[0]),
                         rois,fullFrameSize.width,fullFrameSize.height);
