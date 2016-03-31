@@ -70,6 +70,7 @@ void updateRoiCoords(const vector<Rect> &faces,
                      const int& maxCols,
                      const int& maxRows)
 {
+      ///  В этом бранче я попытаюсь обработать вот  эту функцию и вернуться живым
     /// @todo 25.03.2016 Сделать для одного ROI
     static int roiHeight=240,roiWidth=roiHeight*4.0/3.0;
     static Point leftUp(rois[0].width/3.0, rois[0].height/3.0);
