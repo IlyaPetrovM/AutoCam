@@ -70,14 +70,6 @@ void updateRoiCoords(const Rect& face,
                      const int& maxCols,
                      const int& maxRows)
 {
-    /// @todo 25.03.2016 Сделать для одного ROI
-    static Point leftUp(roi.width/3.0, roi.height/3.0); // Вот где они методы!!!
-    // static Point leftUp(0,0);
-    static Point leftDown(roi.width/3.0, 2.0*roi.height/3.0);
-    static Point rightUp(2.0*roi.width/3.0,roi.height/3.0);
-    static Point rightDown(2.0*roi.width/3.0,2.0*roi.height/3.0);
-    static Point center(roi.width/2,roi.height/3);
-    static double t = 0;
     static float distX=0.0;
     static float distY=0.0;
     static float dPrevX=0.0;
@@ -352,7 +344,7 @@ int main( int argc, const char** argv )
                 << "updateTime, ms\t"
                 << "oneIterTime, ms\t"
                 << "faces[0].x, px\tfaces[0].y, px\t"
-                << "rois[0].x, px\trois[0].y, px\t" << endl;
+                << ".x, px\trois[0].y, px\t" << endl;
         }
 
 
@@ -360,7 +352,7 @@ int main( int argc, const char** argv )
         Mat frameTemp;
         bool motionDetected=true;
 
-        vector<Rect> rois;
+        Rect roi;
         vector<Rect> facesFull,facesProf,eyesL,eyesR;
         vector<Rect> faceBuf;
         int64 oneIterEnd, oneIterStart,motDetStart,motDetEnd,faceDetStart,faceDetEnd,updateStart,updateEnd, timeStart;
@@ -449,16 +441,16 @@ int main( int argc, const char** argv )
             height=sumHeight/faceBuf.size();
             width=sumWidth/faceBuf.size();
             Point p(getGoldenPoint(Rect(0,0,roiSize.width,roiSize.height),Rect((int)x,(int)y,faceBuf[0].height,faceBuf[0].height)));
-            rois.push_back(Rect(p.x,p.y,roiSize.width,roiSize.height));
-            if(rois[0].x<=0){
-                rois[0].x = 0;
-            }else if(fullFrameSize.width < rois[0].x+rois[0].width){
-                rois[0].x = fullFrameSize.width-rois[0].width;
+            roi = Rect(p.x,p.y,roiSize.width,roiSize.height);
+            if(roi.x<=0){
+                roi.x = 0;
+            }else if(fullFrameSize.width < roi.x+roi.width){
+                roi.x = fullFrameSize.width-roi.width;
             }
-            if(rois[0].y <= 0){
-                rois[0].y = 0;
-            }else if(fullFrameSize.height < rois[0].y+rois[0].height){
-                rois[0].y=fullFrameSize.height-rois[0].height;
+            if(roi.y <= 0){
+                roi.y = 0;
+            }else if(fullFrameSize.height < roi.y+roi.height){
+                roi.y=fullFrameSize.height-roi.height;
             }
         }
         catch (cv::Exception& e){
@@ -483,7 +475,7 @@ int main( int argc, const char** argv )
 
             faceDetStart = cvGetTickCount();
             if(motionDetected || !foundFaces){
-                if(foundFaces) cvtColor( frame(rois[0]), gray, COLOR_BGR2GRAY );
+                if(foundFaces) cvtColor( frame(roi), gray, COLOR_BGR2GRAY );
                 else cvtColor( frame, gray, COLOR_BGR2GRAY );
 
                 resize( gray, smallImg, Size(), fx, fx, INTER_LINEAR );
@@ -499,15 +491,15 @@ int main( int argc, const char** argv )
                 for (size_t i=0; i<facesFull.size(); ++i) {
                     scaleRect(facesFull[i],scale);
                     if(foundFaces){
-                        facesFull[i].x+=rois[0].x,
-                        facesFull[i].y+=rois[0].y;
+                        facesFull[i].x+=roi.x,
+                        facesFull[i].y+=roi.y;
                     }
                 }
                 for (size_t i=0; i<facesProf.size(); ++i) {
                     scaleRect(facesProf[i],scale);
                     if(foundFaces){
-                        facesProf[i].x+=rois[0].x,
-                        facesProf[i].y+=rois[0].y;
+                        facesProf[i].x+=roi.x,
+                        facesProf[i].y+=roi.y;
                     }
                 }
                 foundFaces = !(facesFull.empty() && facesProf.empty());
@@ -525,24 +517,23 @@ int main( int argc, const char** argv )
 
             if(!facesFull.empty() && !facesProf.empty()) {
                 updateRoiCoords(middle(facesFull[0],facesProf[0]),
-                        rois[0],fullFrameSize.width,fullFrameSize.height);
+                        roi,fullFrameSize.width,fullFrameSize.height);
             }else {
-                updateRoiCoords(facesFull[0],rois[0],fullFrameSize.width,fullFrameSize.height);
-                updateRoiCoords(facesProf[0],rois[0],fullFrameSize.width,fullFrameSize.height);
+                updateRoiCoords(facesFull[0],roi,fullFrameSize.width,fullFrameSize.height);
+                updateRoiCoords(facesProf[0],roi,fullFrameSize.width,fullFrameSize.height);
             }
             updateEnd = cvGetTickCount();
 
             motDetStart = cvGetTickCount();
-            motionDetected = (detectMotion(frame(rois[0]),50,21,showPreview)>5);
+            motionDetected = (detectMotion(frame(roi),50,21,showPreview)>5);
             motDetEnd = cvGetTickCount();
 
-            resize(frame(rois[0]), result , roiSize, 0,0, INTER_LINEAR );
+            resize(frame(roi), result , roiSize, 0,0, INTER_LINEAR );
             outputVideo << result ;
 
             if(showPreview || recordPreview){ // Отрисовка области интереса
-                drawRects(previewFrame,rois,"ROI",Scalar(0,0,255),fontScale,textThickness,textOffset);
-                for (int i = 0; i < rois.size(); ++i)
-                    drawGoldenRules(previewFrame,rois[i],Scalar(0,255,0),dotsRadius);
+                rectangle(previewFrame,roi,Scalar(0,0,255),thickness);
+                drawGoldenRules(previewFrame,roi,Scalar(0,255,0),dotsRadius);
 
                 resize( previewFrame, previewSmall, previewSmallSize, 0, 0, INTER_NEAREST );
                 if(recordPreview)
@@ -570,9 +561,8 @@ int main( int argc, const char** argv )
                 if(!facesFull.empty())
                     logFile << facesFull[0].x << "\t"
                                      << facesFull[0].y << "\t"; else logFile << "\t\t";
-                if(!rois.empty())
-                    logFile << rois[0].x << "\t"
-                                    << rois[0].y << "\t";else logFile << "\t\t";
+                 logFile << roi.x << "\t"
+                                    << roi.y << "\t";
                 logFile  << endl;
             }
             oneIterEnd = faceDetEnd = motDetEnd = -1;
