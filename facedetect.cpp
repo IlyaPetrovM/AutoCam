@@ -474,53 +474,37 @@ int main( int argc, const char** argv )
             previewFrame = frame.clone();
 
             faceDetStart = cvGetTickCount();
-            if(motionDetected || !foundFaces){
-                if(foundFaces) cvtColor( frame(roi), gray, COLOR_BGR2GRAY );
-                else cvtColor( frame, gray, COLOR_BGR2GRAY );
+            cvtColor( frame, gray, COLOR_BGR2GRAY );
+            resize( gray, smallImg, Size(), fx, fx, INTER_LINEAR );
 
-                resize( gray, smallImg, Size(), fx, fx, INTER_LINEAR );
+            /// @todo 26.03.2016 сделать более плавные движения (каждые полсекунды)
+            /* Поиск лиц в анфас */
+            cascadeFull.detectMultiScale(smallImg, facesFull,
+                scaleFactor, minNeighbors, 0|CASCADE_SCALE_IMAGE,minfaceSize);
+            /// Поиск лиц в профиль
+            cascadeProf.detectMultiScale( smallImg, facesProf,
+                scaleFactor, minNeighbors, 0|CASCADE_SCALE_IMAGE,minfaceSize);
 
-                /// @todo 26.03.2016 сделать более плавные движения (каждые полсекунды)
-                /* Поиск лиц в анфас */
-                cascadeFull.detectMultiScale(smallImg, facesFull,
-                    scaleFactor, minNeighbors, 0|CASCADE_SCALE_IMAGE,minfaceSize);
-                /// Поиск лиц в профиль
-                cascadeProf.detectMultiScale( smallImg, facesProf,
-                    scaleFactor, minNeighbors, 0|CASCADE_SCALE_IMAGE,minfaceSize);
-
-                for (size_t i=0; i<facesFull.size(); ++i) {
-                    scaleRect(facesFull[i],scale);
-                    if(foundFaces){
-                        facesFull[i].x+=roi.x,
-                        facesFull[i].y+=roi.y;
-                    }
-                }
-                for (size_t i=0; i<facesProf.size(); ++i) {
-                    scaleRect(facesProf[i],scale);
-                    if(foundFaces){
-                        facesProf[i].x+=roi.x,
-                        facesProf[i].y+=roi.y;
-                    }
-                }
-                foundFaces = !(facesFull.empty() && facesProf.empty());
-                //Отрисовка распознаных объектов на превью
-                if(showPreview || recordPreview){
-                    drawRects(previewFrame,facesFull,"Full face",Scalar(255,0,0));
-                    drawRects(previewFrame,facesProf,"Profile",Scalar(255,127,0));
-                }
+            for (size_t i=0; i<facesFull.size(); ++i) {
+                scaleRect(facesFull[i],scale);
             }
-
-
+            for (size_t i=0; i<facesProf.size(); ++i) {
+                scaleRect(facesProf[i],scale);
+            }
+            foundFaces = !(facesFull.empty() && facesProf.empty());
+            //Отрисовка распознаных объектов на превью
+            if(showPreview || recordPreview){
+                drawRects(previewFrame,facesFull,"Full face",Scalar(255,0,0));
+                drawRects(previewFrame,facesProf,"Profile",Scalar(255,127,0));
+            }
             faceDetEnd = cvGetTickCount();
-
             updateStart = cvGetTickCount();
 
-               if(!facesFull.empty()) updateRoiCoords(facesFull[0],roi,fullFrameSize.width,fullFrameSize.height);
-                if(!facesProf.empty()) updateRoiCoords(facesProf[0],roi,fullFrameSize.width,fullFrameSize.height);
+            if(!facesFull.empty()) updateRoiCoords(facesFull[0],roi,fullFrameSize.width,fullFrameSize.height);
+            if(!facesProf.empty()) updateRoiCoords(facesProf[0],roi,fullFrameSize.width,fullFrameSize.height);
             updateEnd = cvGetTickCount();
 
             motDetStart = cvGetTickCount();
-            motionDetected = (detectMotion(frame(roi),50,21,showPreview)>5);
             motDetEnd = cvGetTickCount();
 
             resize(frame(roi), result , roiSize, 0,0, INTER_LINEAR );
