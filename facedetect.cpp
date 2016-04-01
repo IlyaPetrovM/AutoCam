@@ -515,13 +515,8 @@ int main( int argc, const char** argv )
 
             updateStart = cvGetTickCount();
 
-//            if(!facesFull.empty() && !facesProf.empty()) {
-//                updateRoiCoords(middle(facesFull[0],facesProf[0]),
-//                        roi,fullFrameSize.width,fullFrameSize.height);
-//            }else {
                if(!facesFull.empty()) updateRoiCoords(facesFull[0],roi,fullFrameSize.width,fullFrameSize.height);
                 if(!facesProf.empty()) updateRoiCoords(facesProf[0],roi,fullFrameSize.width,fullFrameSize.height);
-//            }
             updateEnd = cvGetTickCount();
 
             motDetStart = cvGetTickCount();
