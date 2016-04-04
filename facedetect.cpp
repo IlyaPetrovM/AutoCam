@@ -347,13 +347,14 @@ int main( int argc, const char** argv )
         if(!logFile.is_open()){
             cout << "Error with opening the file:" << "results/test_"+outFileTitle.str()+".csv" << endl;
         }else{
-            logFile << "timestamp, ms\t"
+            logFile << "frame\t"
+                    << "timestamp, ms\t"
                 << "faceDetTime, ms\t"
                 << "motDetTime, ms\t"
                 << "updateTime, ms\t"
                 << "oneIterTime, ms\t"
-                << "faces[0].x, px\tfaces[0].y, px\t"
-                << ".x, px\trois[0].y, px\t" << endl;
+                << "faces[0].x, px"<<"\t"<<"faces[0].y, px"<<"\t"
+                << "roi.x, px\t"<<"roi.y, px"<<"\t" << endl;
         }
 
 
@@ -468,7 +469,6 @@ int main( int argc, const char** argv )
 
         timeStart = cvGetTickCount();
         Mat result;
-        Rect fullShot = Rect(0,0,fullFrameSize.width,fullFrameSize.height);
         bool foundFaces=false;
         Rect aim=faceBuf[0];
 
@@ -540,7 +540,7 @@ int main( int argc, const char** argv )
                               << now->tm_hour <<":"
                               << now->tm_min << ":"
                               << now->tm_sec << "."
-                              << frameCounter%fps<< " build:"
+                              << frameCounter<< " build:"
                               << __DATE__ <<" "<< __TIME__ ;
                  putText(previewFrame,timestring.str(),Point(0,previewHeight-3),CV_FONT_NORMAL,0.7,Scalar(0,0,0),5);
                  putText(previewFrame,timestring.str(),Point(0,previewHeight-3),CV_FONT_NORMAL,0.7,Scalar(255,255,255));
@@ -563,7 +563,8 @@ int main( int argc, const char** argv )
             motDetTime  = (double)(motDetEnd - motDetStart)/ticksPerMsec;
             oneIterTime = (double)(oneIterEnd - oneIterStart)/ticksPerMsec;
             if(logFile.is_open()) {
-                logFile  << timeEnd << "\t"
+                logFile  << frameCounter << "\t"
+                         << timeEnd << "\t"
                     << faceDetTime << "\t" 
                     << motDetTime << "\t" 
                     << updateTime << "\t"
