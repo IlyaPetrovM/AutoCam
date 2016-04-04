@@ -317,7 +317,7 @@ int main( int argc, const char** argv )
         int fps;
         int fourcc;
         if(isWebcam){
-            fps = capture.get(CAP_PROP_FPS)/5;
+            fps = capture.get(CAP_PROP_FPS)/5.0;
             fourcc = VideoWriter::fourcc('M','J','P','G'); // codecs
         }
         else{
@@ -469,9 +469,10 @@ int main( int argc, const char** argv )
         timeStart = cvGetTickCount();
         Mat result;
         Rect fullShot = Rect(0,0,fullFrameSize.width,fullFrameSize.height);
-  ////////////////////////////////////////////////
         bool foundFaces=false;
         Rect aim=faceBuf[0];
+
+  ////////////////////////////////////////////////
         for(;;)
         {
             oneIterStart = cvGetTickCount(); 
@@ -511,8 +512,12 @@ int main( int argc, const char** argv )
             updateStart = cvGetTickCount();
 
             /// \todo 05.04.2016 Добавить переменную цели, к которой будет идти рамка
-            if(!facesProf.empty()) aim = facesProf[0];
-            if(!facesFull.empty()) aim = facesFull[0];
+            if(frameCounter%fps==0){
+                if(!facesProf.empty()) aim = facesProf[0];
+                if(!facesFull.empty()) aim = facesFull[0];
+                rectangle(previewFrame,aim,Scalar(0,255,0),thickness);
+                putText(previewFrame, "aim",aim.tl(),CV_FONT_NORMAL,1.0,Scalar(0,255,0),thickness);
+            }
             updateRoiCoords(aim,roi,fullFrameSize.width,fullFrameSize.height);
             updateEnd = cvGetTickCount();
 
@@ -525,6 +530,20 @@ int main( int argc, const char** argv )
             if(showPreview || recordPreview){ // Отрисовка области интереса
                 rectangle(previewFrame,roi,Scalar(0,0,255),thickness);
                 drawGoldenRules(previewFrame,roi,Scalar(0,255,0),dotsRadius);
+                /// Вывести время в превью
+                time_t t = time(0);   // get time now
+                struct tm * now = localtime( & t );
+                stringstream timestring;
+                 timestring << (now->tm_year + 1900) << '.'
+                              << (now->tm_mon + 1) << '.'
+                              << now->tm_mday << " "
+                              << now->tm_hour <<":"
+                              << now->tm_min << ":"
+                              << now->tm_sec << "."
+                              << frameCounter%fps<< " build:"
+                              << __DATE__ <<" "<< __TIME__ ;
+                 putText(previewFrame,timestring.str(),Point(0,previewHeight-3),CV_FONT_NORMAL,0.7,Scalar(0,0,0),5);
+                 putText(previewFrame,timestring.str(),Point(0,previewHeight-3),CV_FONT_NORMAL,0.7,Scalar(255,255,255));
 
                 resize( previewFrame, previewSmall, previewSmallSize, 0, 0, INTER_NEAREST );
                 if(recordPreview)
