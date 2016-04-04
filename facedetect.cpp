@@ -80,7 +80,7 @@ void updateRoiCoords(const Rect& face,
     static double cntX=0.0,cntY=0.0;
     static double uX,uY;
     const double minDist = 0; /// \todo 05.04.2016 Минимальноерасстояние большее 1 заставляет рамку двигаться постоянно, а это не выгодно.
-    const double maxDist = 10;
+    double maxDist = (double)maxCols/100.0;
         Point p(getGoldenPoint(roi,face));
 
         /// PID - регулятор для позиционирования камеры
@@ -92,7 +92,7 @@ void updateRoiCoords(const Rect& face,
         if(uX>maxDist)uX=maxDist;
         else if(uX<-maxDist)uX=-maxDist;
         else if(0<uX && uX<minDist)uX=minDist;
-        else if(uX<minDist && uX<0)uX=-minDist;
+        else if(-minDist<uX && uX<0)uX=-minDist;
         roi.x += uX;
 
         dPrevY = distY;
@@ -103,7 +103,7 @@ void updateRoiCoords(const Rect& face,
         if(uY>maxDist)uY=maxDist;
         else if(uY<-maxDist)uY=-maxDist;
         else if(0<uY && uY<minDist)uY=minDist;
-        else if(uY<minDist && uY<0)uY=-minDist;
+        else if(-minDist<uY && uY<0)uY=-minDist;
         roi.y += uY;
 
         if(roi.x<=0){
