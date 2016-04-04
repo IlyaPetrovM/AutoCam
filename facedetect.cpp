@@ -471,6 +471,7 @@ int main( int argc, const char** argv )
         Rect fullShot = Rect(0,0,fullFrameSize.width,fullFrameSize.height);
   ////////////////////////////////////////////////
         bool foundFaces=false;
+        Rect aim=faceBuf[0];
         for(;;)
         {
             oneIterStart = cvGetTickCount(); 
@@ -509,8 +510,10 @@ int main( int argc, const char** argv )
             faceDetEnd = cvGetTickCount();
             updateStart = cvGetTickCount();
 
-            if(!facesFull.empty()) updateRoiCoords(facesFull[0],roi,fullFrameSize.width,fullFrameSize.height);
-            if(!facesProf.empty()) updateRoiCoords(facesProf[0],roi,fullFrameSize.width,fullFrameSize.height);
+            /// \todo 05.04.2016 Добавить переменную цели, к которой будет идти рамка
+            if(!facesProf.empty()) aim = facesProf[0];
+            if(!facesFull.empty()) aim = facesFull[0];
+            updateRoiCoords(aim,roi,fullFrameSize.width,fullFrameSize.height);
             updateEnd = cvGetTickCount();
 
             motDetStart = cvGetTickCount();
