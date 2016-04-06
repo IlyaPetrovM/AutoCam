@@ -12,7 +12,7 @@
 
 using namespace std;
 using namespace cv;
-
+const double fi=1.61803398;
 static void help()
 {
     cout << "Build date:" << __DATE__ << " " << __TIME__
@@ -92,27 +92,38 @@ public:
         return u;
     }
 };
-
-void updateRoiCoords(const Rect& face,
+void autoZoom(const Rect& face,
+              Rect& roi,
+              const int& maxWidth,
+              const int& maxHeight, const double& relation){
+       static PIDController pidZ(0.1,0.001,-0.09,(double)maxWidth/100.0);
+       double uZ=pidZ.getU(face.width*relation - roi.width);
+       roi.width +=uZ;
+       roi.x -= uZ;
+       roi.y -= uZ;
+       if(roi.width > maxWidth) roi.width = maxWidth;
+       roi.height = maxHeight*roi.width/maxWidth;
+}
+void autoMove(const Rect& face,
                      Rect& roi,
-                     const int& maxCols,
-                     const int& maxRows)
+                     const int& maxWidth,
+                     const int& maxHeight)
 {
+    static PIDController pidX(0.1, 0.001, -0.09,(double)maxWidth/100.0);
+    static PIDController pidY(0.1, 0.001, -0.09,(double)maxWidth/100.0);
+
     Point p(getGoldenPoint(roi,face));
-    static PIDController pidX(0.1, 0.001, -0.09,(double)maxCols/100.0);
-    static PIDController pidY(0.1, 0.001, -0.09,(double)maxCols/100.0);
     roi.x += pidX.getU(p.x-roi.x);
     roi.y += pidY.getU(p.y-roi.y);
-
     if(roi.x<=0){
         roi.x = 0;
-    }else if(maxCols < roi.x+roi.width){
-        roi.x = maxCols-roi.width;
+    }else if(maxWidth < roi.x+roi.width){
+        roi.x = maxWidth-roi.width;
     }
     if(roi.y <= 0){
         roi.y = 0;
-    }else if(maxRows < roi.y+roi.height){
-        roi.y=maxRows-roi.height;
+    }else if(maxHeight < roi.y+roi.height){
+        roi.y=maxHeight-roi.height;
     }
 }
 
@@ -468,7 +479,9 @@ int main( int argc, const char** argv )
         timeStart = cvGetTickCount();
         Mat result;
         bool foundFaces=false;
-        Rect aim=faceBuf[0];
+//        Rect aim=faceBuf[0];
+        Rect aim=Rect(0,0,fullFrameSize.width,fullFrameSize.height);
+        roi = aim;
 
   ////////////////////////////////////////////////
         for(;;)
@@ -517,7 +530,8 @@ int main( int argc, const char** argv )
                     putText(previewFrame, "aim",aim.tl(),CV_FONT_NORMAL,1.0,Scalar(0,255,0),thickness);
                 }
             }
-            updateRoiCoords(aim,roi,fullFrameSize.width,fullFrameSize.height);
+            autoZoom(aim,roi,fullFrameSize.width,fullFrameSize.height,fi);
+            autoMove(aim,roi,fullFrameSize.width,fullFrameSize.height);
             updateEnd = cvGetTickCount();
 
             motDetStart = cvGetTickCount();
