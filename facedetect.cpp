@@ -64,58 +64,56 @@ inline Rect middle(const Rect& a, const Rect& b){
     mid.height = (a.height + b.height)/2;
     return mid;
 }
+/// PID - регулятор для позиционирования камеры
+class PIDController{
+    double errPrev;
+    double Kp, Ki, Kd;//0.001 , 0.05
+    double stor;
+    double u;
+    double minU; /// \todo 05.04.2016 Минимальноерасстояние большее 1 заставляет рамку двигаться постоянно, а это не выгодно.
+    double maxU;
+public:
+    PIDController(const double& kp,const double& ki,const double& kd, const double& max_u, const double& min_u=0){
+        errPrev=stor=0.0;
+        Kp=kp, Ki=ki, Kd=kd;//0.001 , 0.05
+        minU=min_u;
+        maxU=max_u;
+    }
+    double getU(const double& err){
+        stor   += err;
+        u     = err*Kp + stor*Ki + (err-errPrev)*Kd;
+        errPrev = err;
+
+        if(u>maxU)u=maxU;
+        else if(u<-maxU)u=-maxU;
+        else if(0<u && u<minU)u=minU;
+        else if(-minU<u && u<0)u=-minU;
+
+        return u;
+    }
+};
 
 void updateRoiCoords(const Rect& face,
                      Rect& roi,
                      const int& maxCols,
                      const int& maxRows)
 {
-    static float distX=0.0;
-    static float distY=0.0;
-    static float dPrevX=0.0;
-    static float dPrevY=0.0;
-    static float DeltaX=0.0;
-    static float DeltaY=0.0;
-    static double Kp=0.1, Ki=0.001, Kd=-0.09;//0.001 , 0.05
-    static double cntX=0.0,cntY=0.0;
-    static double uX,uY;
-    const double minDist = 0; /// \todo 05.04.2016 Минимальноерасстояние большее 1 заставляет рамку двигаться постоянно, а это не выгодно.
-    double maxDist = (double)maxCols/100.0;
-        Point p(getGoldenPoint(roi,face));
+    Point p(getGoldenPoint(roi,face));
+    static PIDController pidX(0.1, 0.001, -0.09,(double)maxCols/100.0);
+    static PIDController pidY(0.1, 0.001, -0.09,(double)maxCols/100.0);
+    roi.x += pidX.getU(p.x-roi.x);
+    roi.y += pidY.getU(p.y-roi.y);
 
-        /// PID - регулятор для позиционирования камеры
-        dPrevX = distX;
-        distX  = p.x-roi.x;
-        DeltaX = distX-dPrevX;
-        cntX   += distX;
-        uX     = distX*Kp + cntX*Ki + DeltaX*Kd;
-        if(uX>maxDist)uX=maxDist;
-        else if(uX<-maxDist)uX=-maxDist;
-        else if(0<uX && uX<minDist)uX=minDist;
-        else if(-minDist<uX && uX<0)uX=-minDist;
-        roi.x += uX;
-
-        dPrevY = distY;
-        distY  = p.y-roi.y;
-        DeltaY = distY-dPrevY;
-        cntY   += distY;
-        uY     = distY*Kp + cntY*Ki + DeltaY*Kd;
-        if(uY>maxDist)uY=maxDist;
-        else if(uY<-maxDist)uY=-maxDist;
-        else if(0<uY && uY<minDist)uY=minDist;
-        else if(-minDist<uY && uY<0)uY=-minDist;
-        roi.y += uY;
-
-        if(roi.x<=0){
-            roi.x = 0;
-        }else if(maxCols < roi.x+roi.width){
-            roi.x = maxCols-roi.width;
-        }
-        if(roi.y <= 0){
-            roi.y = 0;
-        }else if(maxRows < roi.y+roi.height){
-            roi.y=maxRows-roi.height;
-        }
+    if(roi.x<=0){
+        roi.x = 0;
+    }else if(maxCols < roi.x+roi.width){
+        roi.x = maxCols-roi.width;
+    }
+    if(roi.y <= 0){
+        roi.y = 0;
+    }else if(maxRows < roi.y+roi.height){
+        roi.y=maxRows-roi.height;
+    }
 }
 
 void drawRects(Mat& img, const vector<Rect>& rects,
@@ -510,13 +508,14 @@ int main( int argc, const char** argv )
             }
             faceDetEnd = cvGetTickCount();
             updateStart = cvGetTickCount();
-
-            /// \todo 05.04.2016 Добавить переменную цели, к которой будет идти рамка
-            if(frameCounter%fps==0){
+            /// \todo 05.04.2016 Сделать настраиваемым параметр обновления цели,к которой должна плыть рамка
+            if(frameCounter%fps == 0){
                 if(!facesProf.empty()) aim = facesProf[0];
                 if(!facesFull.empty()) aim = facesFull[0];
-                rectangle(previewFrame,aim,Scalar(0,255,0),thickness);
-                putText(previewFrame, "aim",aim.tl(),CV_FONT_NORMAL,1.0,Scalar(0,255,0),thickness);
+                if(showPreview || recordPreview){
+                    rectangle(previewFrame,aim,Scalar(0,255,0),thickness);
+                    putText(previewFrame, "aim",aim.tl(),CV_FONT_NORMAL,1.0,Scalar(0,255,0),thickness);
+                }
             }
             updateRoiCoords(aim,roi,fullFrameSize.width,fullFrameSize.height);
             updateEnd = cvGetTickCount();
@@ -542,10 +541,10 @@ int main( int argc, const char** argv )
                               << now->tm_sec << "."
                               << frameCounter<< " build:"
                               << __DATE__ <<" "<< __TIME__ ;
-                 putText(previewFrame,timestring.str(),Point(0,previewHeight-3),CV_FONT_NORMAL,0.7,Scalar(0,0,0),5);
-                 putText(previewFrame,timestring.str(),Point(0,previewHeight-3),CV_FONT_NORMAL,0.7,Scalar(255,255,255));
 
                 resize( previewFrame, previewSmall, previewSmallSize, 0, 0, INTER_NEAREST );
+                putText(previewSmall,timestring.str(),Point(0,previewSmallSize.height-3),CV_FONT_NORMAL,0.7,Scalar(0,0,0),5);
+                putText(previewSmall,timestring.str(),Point(0,previewSmallSize.height-3),CV_FONT_NORMAL,0.7,Scalar(255,255,255));
                 if(recordPreview)
                     previewVideo << previewSmall;
                 if(showPreview)
