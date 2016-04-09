@@ -92,17 +92,25 @@ public:
         return u;
     }
 };
+
+inline Point rcenter(const Rect& r){
+    return Point(cvRound(r.x+r.width*0.5) , cvRound(r.y+r.height*0.5));
+}
+
 void autoZoom(const Rect& face,
               Rect& roi,
               const int& maxWidth,
               const int& maxHeight, const double& relation){
-       static PIDController pidZ(0.1,0.001,-0.09,(double)maxWidth/100.0);
-       double uZ=pidZ.getU(face.width*relation - roi.width);
-       roi.width +=uZ;
-       roi.x -= uZ;
-       roi.y -= uZ;
-       if(roi.width > maxWidth) roi.width = maxWidth;
-       roi.height = maxHeight*roi.width/maxWidth;
+    /// \todo 06.04.2016 что-то здесь не так. Точность наводки почему-то сбивается.
+       static PIDController pidZ(0.01,0.001,-0.0,(double)maxWidth/100.0);
+       int dh = pidZ.getU((face.height*relation) - roi.height);
+       Point pb = rcenter(roi);
+       roi.height += dh;
+       roi.width = (roi.height*maxWidth/maxHeight);
+       Point pa = rcenter(roi);
+       roi -= (pa-pb);
+       cout << roi << "; dh=" <<dh << "; roi.height+dh=" << roi.height+dh << " points:" <<pa<<pb <<(pa-pb);
+       cout << endl;
 }
 void autoMove(const Rect& face,
                      Rect& roi,
@@ -115,16 +123,6 @@ void autoMove(const Rect& face,
     Point p(getGoldenPoint(roi,face));
     roi.x += pidX.getU(p.x-roi.x);
     roi.y += pidY.getU(p.y-roi.y);
-    if(roi.x<=0){
-        roi.x = 0;
-    }else if(maxWidth < roi.x+roi.width){
-        roi.x = maxWidth-roi.width;
-    }
-    if(roi.y <= 0){
-        roi.y = 0;
-    }else if(maxHeight < roi.y+roi.height){
-        roi.y=maxHeight-roi.height;
-    }
 }
 
 void drawRects(Mat& img, const vector<Rect>& rects,
@@ -296,6 +294,7 @@ int main( int argc, const char** argv )
         const int previewHeight = 480;
         const Size fullFrameSize = Size((int) capture.get(CV_CAP_PROP_FRAME_WIDTH),
                   (int) capture.get(CV_CAP_PROP_FRAME_HEIGHT));
+        const Rect fullShot(Point(0,0),fullFrameSize);
         const float frameRatio= (float)fullFrameSize.width / (float)fullFrameSize.height;
         const Size roiSize = Size((int)(fullFrameSize.width/3.0),(int)(fullFrameSize.height/3.0));
         const Size previewSmallSize = Size((int)(previewHeight*frameRatio),previewHeight);
@@ -460,7 +459,7 @@ int main( int argc, const char** argv )
             height=sumHeight/faceBuf.size();
             width=sumWidth/faceBuf.size();
             Point p(getGoldenPoint(Rect(0,0,roiSize.width,roiSize.height),Rect((int)x,(int)y,faceBuf[0].height,faceBuf[0].height)));
-            roi = Rect(p.x,p.y,roiSize.width,roiSize.height);
+            roi = Rect(p,roiSize);
             if(roi.x<=0){
                 roi.x = 0;
             }else if(fullFrameSize.width < roi.x+roi.width){
@@ -479,10 +478,10 @@ int main( int argc, const char** argv )
         timeStart = cvGetTickCount();
         Mat result;
         bool foundFaces=false;
-//        Rect aim=faceBuf[0];
-        Rect aim=Rect(0,0,fullFrameSize.width,fullFrameSize.height);
-        roi = aim;
-
+        Rect aim=faceBuf[0];
+        roi = Rect(Point(0,0),roiSize);
+        roi = Rect(rcenter(fullShot)-rcenter(roi),roiSize);
+        unsigned int aimUpdateFreq=3;
   ////////////////////////////////////////////////
         for(;;)
         {
@@ -522,7 +521,7 @@ int main( int argc, const char** argv )
             faceDetEnd = cvGetTickCount();
             updateStart = cvGetTickCount();
             /// \todo 05.04.2016 Сделать настраиваемым параметр обновления цели,к которой должна плыть рамка
-            if(frameCounter%fps == 0){
+            if(frameCounter%aimUpdateFreq == 0){
                 if(!facesProf.empty()) aim = facesProf[0];
                 if(!facesFull.empty()) aim = facesFull[0];
                 if(showPreview || recordPreview){
@@ -530,8 +529,21 @@ int main( int argc, const char** argv )
                     putText(previewFrame, "aim",aim.tl(),CV_FONT_NORMAL,1.0,Scalar(0,255,0),thickness);
                 }
             }
-            autoZoom(aim,roi,fullFrameSize.width,fullFrameSize.height,fi);
-            autoMove(aim,roi,fullFrameSize.width,fullFrameSize.height);
+
+            /// Motion and zoom
+            autoZoom(aim,roi,fullFrameSize.width,fullFrameSize.height,fi); /// \todo 06.04.2016
+//            autoMove(aim,roi,fullFrameSize.width,fullFrameSize.height);
+            if(roi.area() > fullShot.area()) {
+                roi.height=fullShot.size().height;
+                roi.width=fullShot.size().width;
+            }
+            if(roi.x<0) roi.x = 0;
+            else if(fullFrameSize.width < roi.x+roi.width)
+                roi.x = fullFrameSize.width-roi.width;
+            if(roi.y<0)roi.y = 0;
+            else if(fullFrameSize.height < roi.y+roi.height)
+                roi.y=fullFrameSize.height-roi.height;
+
             updateEnd = cvGetTickCount();
 
             motDetStart = cvGetTickCount();
