@@ -12,7 +12,7 @@
 
 using namespace std;
 using namespace cv;
-const double fi=1.61803398;
+const double FI=1.61803398;
 static void help()
 {
     cout << "Build date:" << __DATE__ << " " << __TIME__
@@ -56,7 +56,6 @@ Point getGoldenPoint(Rect roi, Rect face){
     return Point(x,y);
 }
 inline Rect middle(const Rect& a, const Rect& b){
-///\todo 27.03.2016
     Rect mid;
     mid.x = (a.x + b.x)/2;
     mid.y = (a.y + b.y)/2;
@@ -70,8 +69,8 @@ class PIDController{
     double Kp, Ki, Kd;//0.001 , 0.05
     double stor;
     double u;
-    double minU; /// \todo 05.04.2016 Минимальноерасстояние большее 1 заставляет рамку двигаться постоянно, а это не выгодно.
     double maxU;
+    double minU;
 public:
     PIDController(const double& kp,const double& ki,const double& kd, const double& max_u, const double& min_u=0){
         errPrev=stor=0.0;
@@ -99,18 +98,15 @@ inline Point rcenter(const Rect& r){
 
 void autoZoom(const Rect& face,
               Rect& roi,
-              const int& maxWidth,
-              const int& maxHeight, const double& relation){
-    /// \todo 06.04.2016 что-то здесь не так. Точность наводки почему-то сбивается.
-       static PIDController pidZ(0.01,0.001,-0.0,(double)maxWidth/100.0);
-       int dh = pidZ.getU((face.height*relation) - roi.height);
+              float aspectRatio, int maxStep, const double& relation){
+       static PIDController pidZ(0.025,0.001,-0.09,maxStep);
+       int dh = pidZ.getU(face.height*relation - roi.height);
        Point pb = rcenter(roi);
        roi.height += dh;
-       roi.width = (roi.height*maxWidth/maxHeight);
+       roi.width = (roi.height*aspectRatio);
        Point pa = rcenter(roi);
        roi -= (pa-pb);
-       cout << roi << "; dh=" <<dh << "; roi.height+dh=" << roi.height+dh << " points:" <<pa<<pb <<(pa-pb);
-       cout << endl;
+
 }
 void autoMove(const Rect& face,
                      Rect& roi,
@@ -295,12 +291,15 @@ int main( int argc, const char** argv )
         const Size fullFrameSize = Size((int) capture.get(CV_CAP_PROP_FRAME_WIDTH),
                   (int) capture.get(CV_CAP_PROP_FRAME_HEIGHT));
         const Rect fullShot(Point(0,0),fullFrameSize);
+        float aspectRatio = (float)fullShot.width/(float)fullShot.height;
+        const int maxStep = fullShot.width*0.8;
         const float frameRatio= (float)fullFrameSize.width / (float)fullFrameSize.height;
         const Size roiSize = Size((int)(fullFrameSize.width/3.0),(int)(fullFrameSize.height/3.0));
         const Size previewSmallSize = Size((int)(previewHeight*frameRatio),previewHeight);
         const double fx = 1 / scale;
         const double ticksPerMsec=cvGetTickFrequency() * 1.0e3;
         const float thickness = 3.0*(float)fullFrameSize.height/(float)previewSmallSize.height;
+        const int stabThresh = 15.0*(float)fullFrameSize.height/(float)previewSmallSize.height;
         const int textOffset = thickness*2;
         const int textThickness = thickness/2;
         const int dotsRadius = thickness*2;
@@ -379,109 +378,20 @@ int main( int argc, const char** argv )
         double oneIterTime, motDetTime, faceDetTime,updateTime,timeEnd;
         string title = "Small preview";
 
-        capture >> frame;
-        resize( frame, frameTemp,roiSize, 0, 0, INTER_LINEAR );
-        if(showPreview) cvNamedWindow(title.c_str(), CV_WINDOW_NORMAL);
-        int faceCnt=0;
         const int minNeighbors=1; //количество соседей
         const double scaleFactor=1.25;
         const Size minfaceSize=Size(25,25);
-        if(scaleFactor<1.01)return -1;
-        try{
-            tStamps.push_back(cvGetTickCount()), lines.push_back(__LINE__);
-            while(faceBuf.size()<3){
-                tStamps.push_back(cvGetTickCount()), lines.push_back(__LINE__);
-                capture >> frame;
-                if(frame.empty()) {clog << "Frame is empty" << endl; break;}
-
-                tStamps.push_back(cvGetTickCount()), lines.push_back(__LINE__);
-
-                cvtColor(frame, gray, COLOR_BGR2GRAY );
-                resize( gray, smallImg, Size(), fx, fx, INTER_LINEAR );
-
-                tStamps.push_back(cvGetTickCount()), lines.push_back(__LINE__);
-
-                cascadeFull.detectMultiScale( smallImg, facesFull,
-                                              scaleFactor, minNeighbors, 0
-                                              |CASCADE_FIND_BIGGEST_OBJECT
-                                              |CASCADE_DO_ROUGH_SEARCH
-                                              |CASCADE_SCALE_IMAGE, minfaceSize);
-                cascadeProf.detectMultiScale( smallImg, facesProf,
-                                              scaleFactor, minNeighbors, 0
-                                              |CASCADE_FIND_BIGGEST_OBJECT
-                                              |CASCADE_DO_ROUGH_SEARCH
-                                              |CASCADE_SCALE_IMAGE, minfaceSize);
-
-                tStamps.push_back(cvGetTickCount()), lines.push_back(__LINE__);
-
-                if(!facesFull.empty()) {scaleRect(facesFull[0],scale);faceBuf.push_back(facesFull[0]);faceCnt++;}
-                if(!facesProf.empty()) {scaleRect(facesProf[0],scale);faceBuf.push_back(facesProf[0]);faceCnt++;}
-
-                Mat result;
-                resize( frame, result,roiSize, 0, 0, INTER_LINEAR);
-                outputVideo << result;
-
-                tStamps.push_back(cvGetTickCount()), lines.push_back(__LINE__);
-
-
-                if(recordPreview || showPreview){
-                    previewFrame = frame.clone();
-                    drawRects(previewFrame,faceBuf,"Face");
-                    resize( previewFrame, previewSmall,previewSmallSize, 0, 0, INTER_NEAREST);
-                }
-                if(recordPreview)previewVideo << previewSmall;
-                if(showPreview) imshow(title.c_str(), previewSmall);
-
-
-                tStamps.push_back(cvGetTickCount()), lines.push_back(__LINE__);
-
-                char c = waitKey(10);
-                if(c==27)break;
-                ++frameCounter;
-                for(size_t i=0;i<tStamps.size()-1;++i){
-                    cout << "lines " << lines[i] <<"-"<<lines[i+1]
-                         << " t: " << ((double)(tStamps[i+1]-tStamps[i])/ticksPerMsec) << ", ms; " <<endl;
-                }
-                cout <<"frame:"<< frameCounter << " ("<<(int)((100*(float)frameCounter)/(float)videoLength) <<"% of video) faces:"<< faceBuf.size() << endl;
-                tStamps.clear(), lines.clear();
-            }
-
-            cout << "! --- Faces found ---!" << endl;
-            uint64 x,y, sumX=0,sumY=0, sumWidth,sumHeight,height,width;
-            for(size_t i; i<faceBuf.size();++i){
-                sumX+=faceBuf[i].x;
-                sumY+=faceBuf[i].y;
-                sumWidth+=faceBuf[i].width;
-                sumHeight+=faceBuf[i].height;
-            }
-            x=sumX/faceBuf.size();
-            y=sumY/faceBuf.size();
-            height=sumHeight/faceBuf.size();
-            width=sumWidth/faceBuf.size();
-            Point p(getGoldenPoint(Rect(0,0,roiSize.width,roiSize.height),Rect((int)x,(int)y,faceBuf[0].height,faceBuf[0].height)));
-            roi = Rect(p,roiSize);
-            if(roi.x<=0){
-                roi.x = 0;
-            }else if(fullFrameSize.width < roi.x+roi.width){
-                roi.x = fullFrameSize.width-roi.width;
-            }
-            if(roi.y <= 0){
-                roi.y = 0;
-            }else if(fullFrameSize.height < roi.y+roi.height){
-                roi.y=fullFrameSize.height-roi.height;
-            }
-        }
-        catch (cv::Exception& e){
-            clog << "Problem in line " << e.line << endl;
-        }
-
         timeStart = cvGetTickCount();
         Mat result;
         bool foundFaces=false;
-        Rect aim=faceBuf[0];
-        roi = Rect(Point(0,0),roiSize);
-        roi = Rect(rcenter(fullShot)-rcenter(roi),roiSize);
-        unsigned int aimUpdateFreq=3;
+        Rect aim=fullShot;
+        roi = fullShot;
+        unsigned int aimUpdateFreq=5;
+        float step=1.5;
+        double relation = FI;
+        bool bZoom=false;
+        if(scaleFactor<1.01)return -1;
+
   ////////////////////////////////////////////////
         for(;;)
         {
@@ -498,7 +408,6 @@ int main( int argc, const char** argv )
             cvtColor( frame, gray, COLOR_BGR2GRAY );
             resize( gray, smallImg, Size(), fx, fx, INTER_LINEAR );
 
-            /// @todo 26.03.2016 сделать более плавные движения (каждые полсекунды)
             /* Поиск лиц в анфас */
             cascadeFull.detectMultiScale(smallImg, facesFull,
                 scaleFactor, minNeighbors, 0|CASCADE_SCALE_IMAGE,minfaceSize);
@@ -520,7 +429,6 @@ int main( int argc, const char** argv )
             }
             faceDetEnd = cvGetTickCount();
             updateStart = cvGetTickCount();
-            /// \todo 05.04.2016 Сделать настраиваемым параметр обновления цели,к которой должна плыть рамка
             if(frameCounter%aimUpdateFreq == 0){
                 if(!facesProf.empty()) aim = facesProf[0];
                 if(!facesFull.empty()) aim = facesFull[0];
@@ -531,8 +439,13 @@ int main( int argc, const char** argv )
             }
 
             /// Motion and zoom
-            autoZoom(aim,roi,fullFrameSize.width,fullFrameSize.height,fi); /// \todo 06.04.2016
-//            autoMove(aim,roi,fullFrameSize.width,fullFrameSize.height);
+            float aimH = aim.height*relation;
+            if(( aimH>(float)roi.height*step || aimH<(float)roi.height/step) && !bZoom)bZoom=true;
+            if((abs(cvRound(aimH)-roi.height) < stabThresh) && bZoom)bZoom=false;
+            if(bZoom) autoZoom(aim,roi,aspectRatio,maxStep,relation);
+
+            autoMove(aim,roi,fullFrameSize.width,fullFrameSize.height);
+
             if(roi.area() > fullShot.area()) {
                 roi.height=fullShot.size().height;
                 roi.width=fullShot.size().width;
@@ -543,7 +456,7 @@ int main( int argc, const char** argv )
             if(roi.y<0)roi.y = 0;
             else if(fullFrameSize.height < roi.y+roi.height)
                 roi.y=fullFrameSize.height-roi.height;
-
+            /// end Motion and zoom
             updateEnd = cvGetTickCount();
 
             motDetStart = cvGetTickCount();
@@ -553,6 +466,7 @@ int main( int argc, const char** argv )
             outputVideo << result ;
 
             if(showPreview || recordPreview){ // Отрисовка области интереса
+                if(bZoom)rectangle(previewFrame,roi,Scalar(127,127,127),stabThresh,LINE_AA);
                 rectangle(previewFrame,roi,Scalar(0,0,255),thickness);
                 drawGoldenRules(previewFrame,roi,Scalar(0,255,0),dotsRadius);
                 /// Вывести время в превью
