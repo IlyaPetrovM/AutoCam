@@ -29,39 +29,28 @@ string cascadeProfName = "../../data/haarcascades/haarcascade_profileface.xml";
 string cascadeLEyeName = "../../data/haarcascades/haarcascade_lefteye_2splits.xml";
 string cascadeREyeName = "../../data/haarcascades/haarcascade_righteye_2splits.xml";
 
-inline void scaleRect(Rect& r, const double& sc) {
-    r.x *= sc;
-    r.y *= sc;
-    r.height *= sc;
-    r.width *= sc;
+inline Point rectCenterAbs(const Rect& r){ // absolute coordinates
+    int w=r.width+(r.width%2);
+    cout << __LINE__ << ": " << Point(r.x+(int)(w*0.5), r.y+(int)(r.height*0.5)) << Point2f(r.x+r.width*0.5, r.y+r.height*0.5) << endl;
+    return Point(r.x+(int)(w*0.5), r.y+(int)(r.height*0.5)); // BUG 13/04/2016 Где-то тут прокралась неточность
 }
-Point getGoldenPoint(Rect roi, Rect face){
-        static Point leftUp(roi.width/3.0, roi.height/3.0);
-    static Point leftDown(roi.width/3.0, 2.0*roi.height/3.0);
-    static Point rightUp(2.0*roi.width/3.0,roi.height/3.0);
-    static Point rightDown(2.0*roi.width/3.0,2.0*roi.height/3.0);
-    static Point center(roi.width/2,roi.height/3);
+inline Point topMiddleDec(const Rect& r) {return Point(cvRound((double)r.width*0.5) , cvRound((double)r.height/3.0));} // relative coordinates
+inline Point topLeftDec(const Rect& r) {return Point(cvRound((double)r.width/3.0) , cvRound((double)r.height/3.0));} // relative coordinates
+inline Point topRightDec(const Rect& r){return Point(cvRound((double)r.width*2.0/3.0) , cvRound((double)r.height/3.0));} // relative coordinates
+Point getGoldenPoint(const Rect& roi,const Rect& face){ // absolute coordinates
     Point target;
-    if(roi.width/3.0 - face.width < 0 ) /// если лицо крупное, то держать его в центре кадра
-        target = center;
-    else if(face.x+face.width/2.0 < center.x
-            && face.x < roi.x+leftUp.x)
-        target = leftUp;
-    else if(face.x+face.width > roi.x+rightUp.x) // Камера посередине не будет реагировать
-        target = rightUp;
+    if(cvRound((float)roi.width/3.0) - face.width < 0 ) /// если лицо крупное, то держать его в центре кадра
+        target = topMiddleDec(roi);
+    else if(face.x+cvRound((float)face.width/2.0) < topMiddleDec(roi).x
+            && face.x < roi.x+topLeftDec(roi).x)
+        target = topLeftDec(roi);
+    else if(face.x+face.width > roi.x+topRightDec(roi).x) // Камера посередине не будет реагировать
+        target = topRightDec(roi);
     else
-        target = center;
-    int x=(face.x+face.width/2.0-target.x);
-    int y=(face.y+face.height/3.0 - target.y);
-    return Point(x,y);
-}
-inline Rect middle(const Rect& a, const Rect& b){
-    Rect mid;
-    mid.x = (a.x + b.x)/2;
-    mid.y = (a.y + b.y)/2;
-    mid.width = (a.width + b.width)/2;
-    mid.height = (a.height + b.height)/2;
-    return mid;
+        target = topMiddleDec(roi);
+
+    Point result = rectCenterAbs(face) - target;/// Должна быть зависимость только от размеров ROI
+    return result;
 }
 /// PID - регулятор для позиционирования камеры
 class PIDController{
@@ -92,29 +81,41 @@ public:
     }
 };
 
-inline Point rcenter(const Rect& r){
-    return Point(cvRound(r.x+r.width*0.5) , cvRound(r.y+r.height*0.5));
+void scaleRect(Rect &r,const double &sc){ /// from center
+    double h = (double)r.height;
+    double w = (double)r.width;
+    double x = (double)r.x;
+    double y = (double)r.y;
+    double dx = w*((sc-1.0)*0.5);
+    double dy = h*((sc-1.0)*0.5);
+    w *= sc;
+    h *= sc;
+    x -= dx;
+    y -= dy;
+    r = Rect(cvRound(x),
+               cvRound(y),
+               cvRound(w),
+               cvRound(h));
+
 }
 
 void autoZoom(const Rect& face,
               Rect& roi,
-              float aspectRatio, int maxStep, const double& relation){
-       static PIDController pidZ(0.025,0.001,-0.09,maxStep);
-       int dh = pidZ.getU(face.height*relation - roi.height);
-       Point pb = rcenter(roi);
-       roi.height += dh;
-       roi.width = (roi.height*aspectRatio);
-       Point pa = rcenter(roi);
-       roi -= (pa-pb);
+              const float& aspectRatio,const int& maxStep, const double& relation){
+       static PIDController pidZ(0.01,0.05,-0.0,maxStep);
+       double scale = ((((double)face.height)/((double)roi.height))); // Это хорошая конфигурация!!!!!
+
+       cout << 1 <<"-"<< scale << "=" << (1-scale/5.0) << endl;
+       scaleRect(roi,(1.0-scale/5.0));
+//       cout << pb << pa << (pa-pb) << endl ;
 
 }
 void autoMove(const Rect& face,
                      Rect& roi,
-                     const int& maxWidth,
-                     const int& maxHeight)
+                     const int& maxStepX, const int& maxStepY)
 {
-    static PIDController pidX(0.1, 0.001, -0.09,(double)maxWidth/100.0);
-    static PIDController pidY(0.1, 0.001, -0.09,(double)maxWidth/100.0);
+    static PIDController pidX(0.1, 0.001, -0.09,maxStepX);
+    static PIDController pidY(0.1, 0.001, -0.09,maxStepY);
 
     Point p(getGoldenPoint(roi,face));
     roi.x += pidX.getU(p.x-roi.x);
@@ -287,26 +288,79 @@ int main( int argc, const char** argv )
     {
         cout << "Video capturing has been started ..." << endl;
 
-        const int previewHeight = 480;
-        const Size fullFrameSize = Size((int) capture.get(CV_CAP_PROP_FRAME_WIDTH),
-                  (int) capture.get(CV_CAP_PROP_FRAME_HEIGHT));
-        const Rect fullShot(Point(0,0),fullFrameSize);
-        float aspectRatio = (float)fullShot.width/(float)fullShot.height;
-        const int maxStep = fullShot.width*0.8;
-        const float frameRatio= (float)fullFrameSize.width / (float)fullFrameSize.height;
-        const Size roiSize = Size((int)(fullFrameSize.width/3.0),(int)(fullFrameSize.height/3.0));
-        const Size previewSmallSize = Size((int)(previewHeight*frameRatio),previewHeight);
+   //    MODEL    //
+        // frames
+        Mat fullFrame;
+        Mat smallImg;
+        Mat graySmall;
+        Mat result;
+
+        /// Face detection
         const double fx = 1 / scale;
-        const double ticksPerMsec=cvGetTickFrequency() * 1.0e3;
-        const float thickness = 3.0*(float)fullFrameSize.height/(float)previewSmallSize.height;
-        const int stabThresh = 15.0*(float)fullFrameSize.height/(float)previewSmallSize.height;
-        const int textOffset = thickness*2;
-        const int textThickness = thickness/2;
-        const int dotsRadius = thickness*2;
-        const double fontScale = thickness/5.0;
+        const int minNeighbors=1; // количество соседних лиц
+        const double scaleFactor=1.25;
+        const Size minfaceSize=Size(25,25);
 
+        bool foundFaces=false;
+        vector<Rect> facesFull,facesProf;
+
+        //Video characteristics
+        const long int videoLength = capture.get(CAP_PROP_FRAME_COUNT);
+        const float aspectRatio = (float)capture.get(CV_CAP_PROP_FRAME_WIDTH)/
+                                  (float)capture.get(CV_CAP_PROP_FRAME_HEIGHT);
+        const Rect fullShot(0,0,(int)capture.get(CV_CAP_PROP_FRAME_WIDTH),
+                                (int)capture.get(CV_CAP_PROP_FRAME_HEIGHT));
+        int fps;
+        int fourcc;
+        long int frameCounter=1;
+
+
+        const Size smallImgSize = Size((float)fullShot.width/scale, (float)fullShot.height/scale);
+        const Size maxRoiSize = smallImgSize;
+        const Size previewSize = smallImgSize;
+        const Size resultSize = Size(720*aspectRatio,720);
+
+        ///Zoom & movement params (driver)
+        const double onePerc =(double)smallImgSize.width/100.0; // onePercent
+        const int maxStepX = cvRound(0.75*onePerc);
+        const int maxStepY = cvRound(0.75*onePerc);
+        const int maxStepZ = cvRound(1*onePerc);
+        cout << " maxStepX:"<< maxStepX << " maxStepY:"<< maxStepY << " maxStepZ:"<< maxStepZ << endl;
+        //zooming
+        const int stopZoomThr = cvRound(2.5*onePerc);
+        const float zoomThr=FI;
+        const double face2shot = FI;
+        bool bZoom=false;
+        const unsigned int aimUpdateFreq=25;
+        Rect aim=Rect(Point(0,0),maxRoiSize);
+        Rect roi = Rect(Point(0,0),maxRoiSize);
+
+        //file writing
         stringstream outFileTitle;
+        VideoWriter previewVideo;
+        VideoWriter outputVideo;
 
+        ///Test items
+        const double ticksPerMsec=cvGetTickFrequency() * 1.0e3;
+        int64 oneIterEnd, oneIterStart,motDetStart,motDetEnd,faceDetStart,faceDetEnd,updateStart,updateEnd, timeStart;
+        double oneIterTime, motDetTime, faceDetTime,updateTime,timeEnd;
+        fstream logFile;
+
+   //    VIEW    //
+        Mat preview;
+
+        Rect roiAim=Rect(Point(0,0),maxRoiSize);
+        const Size previewSmallSize = Size((fullShot.width*fx),fullShot.height*fx);
+        //drawing
+        const float thickness = 0.5*previewSize.width/100.0;
+        const int dotsRadius = thickness*2;
+        const int textOffset = thickness*2;
+        const int textThickness = thickness/2.0;
+        const double fontScale = thickness/5;
+        string prevWindTitle = "Preview";
+
+
+/// SetUp
         if(isWebcam){
             time_t t = time(0);   // get time now
             struct tm * now = localtime( & t );
@@ -321,8 +375,7 @@ int main( int argc, const char** argv )
             outFileTitle << inputName.substr(inputName.find_last_of('/')+1)
             << __DATE__ <<" "<< __TIME__<<"_sc"<< scale;
         }
-        int fps;
-        int fourcc;
+
         if(isWebcam){
             fps = capture.get(CAP_PROP_FPS)/5.0;
             fourcc = VideoWriter::fourcc('M','J','P','G'); // codecs
@@ -331,26 +384,23 @@ int main( int argc, const char** argv )
             fourcc = capture.get(CV_CAP_PROP_FOURCC); // codecs
             fps = capture.get(CAP_PROP_FPS);
         }
-        long int videoLength = capture.get(CAP_PROP_FRAME_COUNT);
-        long int frameCounter=1;
-        VideoWriter outputVideo("results/closeUp_"+outFileTitle.str()+".avi",fourcc,
-                                 fps, roiSize, true);
-        if(!outputVideo.isOpened()){
+        if(!outputVideo.open("results/closeUp_"+outFileTitle.str()+".avi",fourcc,
+                                         fps, resultSize, true)){
             cout << "Could not open the output video ("
                  << "results/closeUp_"+outFileTitle.str()+".avi" <<") for writing"<<endl;
             return -1;
         }
-        VideoWriter previewVideo;
         if(recordPreview){
              if(!previewVideo.open("results/test_"+outFileTitle.str()+".avi",fourcc,
-                                   fps, previewSmallSize, true))
+                                   fps, previewSize, true))
              {
                  cout << "Could not open the output video ("
                       << "results/test_"+outFileTitle.str()+".avi" <<") for writing"<<endl;
                  return -1;
              }
         }
-        fstream logFile(("results/test_"+outFileTitle.str()+".csv").c_str(), fstream::out);
+
+        logFile.open(("results/test_"+outFileTitle.str()+".csv").c_str(), fstream::out);
         if(!logFile.is_open()){
             cout << "Error with opening the file:" << "results/test_"+outFileTitle.str()+".csv" << endl;
         }else{
@@ -364,138 +414,87 @@ int main( int argc, const char** argv )
                 << "roi.x, px\t"<<"roi.y, px"<<"\t" << endl;
         }
 
-
-        Mat previewSmall, previewFrame,gray,smallImg;
-        Mat frameTemp;
-        bool motionDetected=true;
-
-        Rect roi;
-        vector<Rect> facesFull,facesProf,eyesL,eyesR;
-        vector<Rect> faceBuf;
-        int64 oneIterEnd, oneIterStart,motDetStart,motDetEnd,faceDetStart,faceDetEnd,updateStart,updateEnd, timeStart;
-        vector<int64> tStamps;
-        vector<int> lines;
-        double oneIterTime, motDetTime, faceDetTime,updateTime,timeEnd;
-        string title = "Small preview";
-
-        const int minNeighbors=1; //количество соседей
-        const double scaleFactor=1.25;
-        const Size minfaceSize=Size(25,25);
+        //// Main cycle
         timeStart = cvGetTickCount();
-        Mat result;
-        bool foundFaces=false;
-        Rect aim=fullShot;
-        roi = fullShot;
-        unsigned int aimUpdateFreq=5;
-        float step=1.5;
-        double relation = FI;
-        bool bZoom=false;
-        if(scaleFactor<1.01)return -1;
-
-  ////////////////////////////////////////////////
         for(;;)
         {
-            oneIterStart = cvGetTickCount(); 
-            capture >> frame;
+            bool aimUpdated = false;
             cout <<"frame:"<< ++frameCounter << " ("<<(int)((100*(float)frameCounter)/(float)videoLength) <<"% of video)"<< endl;
-            if(frame.empty()) {
-                clog << "Frame is empty" << endl;
-                break;
-            }
-            previewFrame = frame.clone();
-
-            faceDetStart = cvGetTickCount();
-            cvtColor( frame, gray, COLOR_BGR2GRAY );
-            resize( gray, smallImg, Size(), fx, fx, INTER_LINEAR );
-
-            /* Поиск лиц в анфас */
-            cascadeFull.detectMultiScale(smallImg, facesFull,
-                scaleFactor, minNeighbors, 0|CASCADE_SCALE_IMAGE,minfaceSize);
-            /// Поиск лиц в профиль
-            cascadeProf.detectMultiScale( smallImg, facesProf,
-                scaleFactor, minNeighbors, 0|CASCADE_SCALE_IMAGE,minfaceSize);
-
-            for (size_t i=0; i<facesFull.size(); ++i) {
-                scaleRect(facesFull[i],scale);
-            }
-            for (size_t i=0; i<facesProf.size(); ++i) {
-                scaleRect(facesProf[i],scale);
-            }
-            foundFaces = !(facesFull.empty() && facesProf.empty());
-            //Отрисовка распознаных объектов на превью
-            if(showPreview || recordPreview){
-                drawRects(previewFrame,facesFull,"Full face",Scalar(255,0,0));
-                drawRects(previewFrame,facesProf,"Profile",Scalar(255,127,0));
-            }
-            faceDetEnd = cvGetTickCount();
-            updateStart = cvGetTickCount();
-            if(frameCounter%aimUpdateFreq == 0){
-                if(!facesProf.empty()) aim = facesProf[0];
-                if(!facesFull.empty()) aim = facesFull[0];
-                if(showPreview || recordPreview){
-                    rectangle(previewFrame,aim,Scalar(0,255,0),thickness);
-                    putText(previewFrame, "aim",aim.tl(),CV_FONT_NORMAL,1.0,Scalar(0,255,0),thickness);
+            oneIterStart = cvGetTickCount();
+            try{
+                capture >> fullFrame;
+                if(fullFrame.empty()) {
+                    clog << "Frame is empty" << endl;
+                    break;
                 }
-            }
 
+                faceDetStart = cvGetTickCount();
+                resize( fullFrame, smallImg, smallImgSize, 0, 0, INTER_LINEAR );
+                cvtColor( smallImg, graySmall, COLOR_BGR2GRAY );
+                preview = smallImg.clone();
+
+
+                /* Поиск лиц в анфас */
+                cascadeFull.detectMultiScale(graySmall, facesFull,
+                                             scaleFactor, minNeighbors, 0|CASCADE_SCALE_IMAGE,minfaceSize);
+                /// Поиск лиц в профиль
+                cascadeProf.detectMultiScale( graySmall, facesProf,
+                                              scaleFactor, minNeighbors, 0|CASCADE_SCALE_IMAGE,minfaceSize);
+
+                foundFaces = !(facesFull.empty() && facesProf.empty());
+
+                faceDetEnd = cvGetTickCount();
+                updateStart = cvGetTickCount();
+                if(frameCounter%aimUpdateFreq == 0){
+                    if(!facesProf.empty()) aim = facesProf[0];
+                    if(!facesFull.empty()) aim = facesFull[0];
+                    aimUpdated=true;
+                }
+            }catch(Exception &mvEx){
+                cout << "Detection block: "<< mvEx.msg << endl;
+            }
             /// Motion and zoom
-            float aimH = aim.height*relation;
-            if(( aimH>(float)roi.height*step || aimH<(float)roi.height/step) && !bZoom)bZoom=true;
-            if((abs(cvRound(aimH)-roi.height) < stabThresh) && bZoom)bZoom=false;
-            if(bZoom) autoZoom(aim,roi,aspectRatio,maxStep,relation);
+            try{
+                float aimH = aim.height*face2shot;
+                if(( aimH>(float)roi.height*zoomThr || aimH<(float)roi.height/zoomThr) && !bZoom)bZoom=true;
+                if((abs(cvRound(aimH)-roi.height) < stopZoomThr) && bZoom)bZoom=false;
+                if(bZoom) autoZoom(aim,roi,aspectRatio,maxStepZ,face2shot);
+                // \todo 13.04.2016 При зуммировании камера трясётся
+//                autoMove(aim,roi,maxStepX,maxStepY);
 
-            autoMove(aim,roi,fullFrameSize.width,fullFrameSize.height);
-
-            if(roi.area() > fullShot.area()) {
-                roi.height=fullShot.size().height;
-                roi.width=fullShot.size().width;
+                if(roi.height > maxRoiSize.height) {
+                    roi.height=maxRoiSize.height;
+                    roi.width=maxRoiSize.width;
+                }
+                if(roi.height < aim.height){
+                    roi.height=aim.height;
+                    roi.width=aim.height*aspectRatio;
+                }
+                if(roi.x<0) roi.x = 0;
+                if(maxRoiSize.width < roi.x+roi.width)
+                    roi.x = maxRoiSize.width-roi.width;
+                if(roi.y<0)roi.y = 0;
+                if(maxRoiSize.height < roi.y+roi.height)
+                    roi.y=maxRoiSize.height-roi.height;
+                /// end Motion and zoom
+                updateEnd = cvGetTickCount();
+            }catch(Exception &mvEx){
+                cout << "Motion and zoom block: "<< mvEx.msg << endl;
             }
-            if(roi.x<0) roi.x = 0;
-            else if(fullFrameSize.width < roi.x+roi.width)
-                roi.x = fullFrameSize.width-roi.width;
-            if(roi.y<0)roi.y = 0;
-            else if(fullFrameSize.height < roi.y+roi.height)
-                roi.y=fullFrameSize.height-roi.height;
-            /// end Motion and zoom
-            updateEnd = cvGetTickCount();
 
             motDetStart = cvGetTickCount();
             motDetEnd = cvGetTickCount();
 
-            resize(frame(roi), result , roiSize, 0,0, INTER_LINEAR );
-            outputVideo << result ;
-
-            if(showPreview || recordPreview){ // Отрисовка области интереса
-                if(bZoom)rectangle(previewFrame,roi,Scalar(127,127,127),stabThresh,LINE_AA);
-                rectangle(previewFrame,roi,Scalar(0,0,255),thickness);
-                drawGoldenRules(previewFrame,roi,Scalar(0,255,0),dotsRadius);
-                /// Вывести время в превью
-                time_t t = time(0);   // get time now
-                struct tm * now = localtime( & t );
-                stringstream timestring;
-                 timestring << (now->tm_year + 1900) << '.'
-                              << (now->tm_mon + 1) << '.'
-                              << now->tm_mday << " "
-                              << now->tm_hour <<":"
-                              << now->tm_min << ":"
-                              << now->tm_sec << "."
-                              << frameCounter<< " build:"
-                              << __DATE__ <<" "<< __TIME__ ;
-
-                resize( previewFrame, previewSmall, previewSmallSize, 0, 0, INTER_NEAREST );
-                putText(previewSmall,timestring.str(),Point(0,previewSmallSize.height-3),CV_FONT_NORMAL,0.7,Scalar(0,0,0),5);
-                putText(previewSmall,timestring.str(),Point(0,previewSmallSize.height-3),CV_FONT_NORMAL,0.7,Scalar(255,255,255));
-                if(recordPreview)
-                    previewVideo << previewSmall;
-                if(showPreview)
-                    imshow(title.c_str(),previewSmall);
+            try{
+                Rect roiFullSize = Rect(Point(roi.x*scale,roi.y*scale),Size(roi.width*scale,roi.height*scale));
+                resize(fullFrame(roiFullSize), result , resultSize, 0,0, INTER_LINEAR );
+                outputVideo << result ;
+            }catch(Exception &mvEx){
+                cout << "Result saving: "<< mvEx.msg << endl;
             }
 
-            int c = waitKey(10);
-            if( c == 27 || c == 'q' || c == 'Q' )break;
-    
             /// Запись статистики
-            oneIterEnd = cvGetTickCount(); 
+            oneIterEnd = cvGetTickCount();
             timeEnd = (double)(cvGetTickCount() - timeStart)/ticksPerMsec;
             faceDetTime = (double)(faceDetEnd - faceDetStart)/ticksPerMsec;
             updateTime =  (double)(updateEnd - updateStart)/ticksPerMsec;
@@ -504,18 +503,65 @@ int main( int argc, const char** argv )
             if(logFile.is_open()) {
                 logFile  << frameCounter << "\t"
                          << timeEnd << "\t"
-                    << faceDetTime << "\t" 
-                    << motDetTime << "\t" 
-                    << updateTime << "\t"
-                    << oneIterTime << "\t";
+                         << faceDetTime << "\t"
+                         << motDetTime << "\t"
+                         << updateTime << "\t"
+                         << oneIterTime << "\t";
                 if(!facesFull.empty())
                     logFile << facesFull[0].x << "\t"
-                                     << facesFull[0].y << "\t"; else logFile << "\t\t";
-                 logFile << roi.x << "\t"
-                                    << roi.y << "\t";
+                                              << facesFull[0].y << "\t"; else logFile << "\t\t";
+                logFile << roi.x << "\t"
+                        << roi.y << "\t";
                 logFile  << endl;
             }
+
+            int c = waitKey(10);
+            if( c == 27 || c == 'q' || c == 'Q' )break;
             oneIterEnd = faceDetEnd = motDetEnd = -1;
+
+            if(showPreview || recordPreview){ // Отрисовка области интереса
+                // Рисовать кадр захвата
+                if(bZoom)rectangle(preview,roi,Scalar(255,255,255),thickness+stopZoomThr);
+                rectangle(preview,roi,Scalar(0,0,255),thickness);
+                drawGoldenRules(preview,roi,Scalar(0,255,0),dotsRadius);
+                // Конечное положение кадра захвата
+
+//                if(aimUpdated){ /// BUG 12/04/2016 Цель перемещается не сразу
+
+//                    roiAim = Rect(getGoldenPoint(Rect(rectCenterAbs(aim),roi.size()),aim),Size(aim.height*face2shot*aspectRatio,aim.height*face2shot));
+//                    rectangle(preview,roiAim,Scalar(0,0,100),thickness/2);
+//                    drawGoldenRules(preview,roiAim,Scalar(0,100,0),dotsRadius/2);
+//                }
+                // Рисовать цель
+                rectangle(preview,aim,Scalar(0,255,0),thickness);
+                putText(preview, "aim",aim.tl(),CV_FONT_NORMAL,fontScale,Scalar(0,255,0),textThickness);
+                //Отрисовка распознаных объектов на превью
+                drawRects(preview,facesFull,"Full face",Scalar(255,0,0),fontScale,textThickness,textOffset,thickness);
+                drawRects(preview,facesProf,"Profile",Scalar(255,127,0),fontScale,textThickness,textOffset,thickness);
+
+                /// Вывести время в превью
+                time_t t = time(0);   // get time now
+                struct tm * now = localtime( & t );
+                stringstream timestring;
+                timestring << (now->tm_year + 1900) << '.'
+                           << (now->tm_mon + 1) << '.'
+                           << now->tm_mday << " "
+                           << now->tm_hour <<":"
+                           << now->tm_min << ":"
+                           << now->tm_sec << "."
+                           << frameCounter<< " build:"
+                           << __DATE__ <<" "<< __TIME__ ;
+                putText(preview,timestring.str(),Point(0,smallImgSize.height-3),CV_FONT_NORMAL,fontScale,Scalar(0,0,0),textThickness*5);
+                putText(preview,timestring.str(),Point(0,smallImgSize.height-3),CV_FONT_NORMAL,fontScale,Scalar(255,255,255),textThickness);
+
+                // Сохранение кадра
+                if(recordPreview)
+                    previewVideo << preview;
+                if(showPreview)
+                    imshow(prevWindTitle.c_str(),preview);
+            }
+
+
         }
         if(logFile.is_open())logFile.close();
         cout << "The results have been written to " << "''"+outFileTitle.str()+"''" << endl;
