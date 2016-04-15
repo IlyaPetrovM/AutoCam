@@ -31,7 +31,7 @@ string cascadeREyeName = "../../data/haarcascades/haarcascade_righteye_2splits.x
 
 inline Point rectCenterAbs(const Rect& r){ // absolute coordinates
     int w=r.width+(r.width%2);
-    cout << __LINE__ << ": " << Point(r.x+(int)(w*0.5), r.y+(int)(r.height*0.5)) << Point2f(r.x+r.width*0.5, r.y+r.height*0.5) << endl;
+//    cout << __LINE__ << ": " << Point(r.x+(int)(w*0.5), r.y+(int)(r.height*0.5)) << Point2f(r.x+r.width*0.5, r.y+r.height*0.5) << endl;
     return Point(r.x+(int)(w*0.5), r.y+(int)(r.height*0.5)); // BUG 13/04/2016 Где-то тут прокралась неточность
 }
 inline Point topMiddleDec(const Rect& r) {return Point(cvRound((double)r.width*0.5) , cvRound((double)r.height/3.0));} // relative coordinates
@@ -102,11 +102,11 @@ void scaleRect(Rect &r,const double &sc){ /// from center
 void autoZoom(const Rect& face,
               Rect& roi,
               const float& aspectRatio,const int& maxStep, const double& relation){
-       static PIDController pidZ(0.01,0.05,-0.0,maxStep);
-       double scale = ((((double)face.height)/((double)roi.height))); // Это хорошая конфигурация!!!!!
-
-       cout << 1 <<"-"<< scale << "=" << (1-scale/5.0) << endl;
-       scaleRect(roi,(1.0-scale/5.0));
+       static PIDController pidZ(0.01,0.00,-0.2,maxStep);
+       double err = (((double)face.height*relation)/((double)roi.height)); // Это хорошая конфигурация!!!!!
+       double scale = pidZ.getU(err);
+       cout << 1 <<"-"<< scale << "=" << (1-scale) << endl;
+       scaleRect(roi,(1-scale));
 //       cout << pb << pa << (pa-pb) << endl ;
 
 }
@@ -114,8 +114,8 @@ void autoMove(const Rect& face,
                      Rect& roi,
                      const int& maxStepX, const int& maxStepY)
 {
-    static PIDController pidX(0.1, 0.001, -0.09,maxStepX);
-    static PIDController pidY(0.1, 0.001, -0.09,maxStepY);
+    static PIDController pidX(0.1, 0.00, -0.2,maxStepX);
+    static PIDController pidY(0.1, 0.00, -0.2,maxStepY);
 
     Point p(getGoldenPoint(roi,face));
     roi.x += pidX.getU(p.x-roi.x);
@@ -458,9 +458,11 @@ int main( int argc, const char** argv )
                 float aimH = aim.height*face2shot;
                 if(( aimH>(float)roi.height*zoomThr || aimH<(float)roi.height/zoomThr) && !bZoom)bZoom=true;
                 if((abs(cvRound(aimH)-roi.height) < stopZoomThr) && bZoom)bZoom=false;
-                if(bZoom) autoZoom(aim,roi,aspectRatio,maxStepZ,face2shot);
+                if(bZoom){
+                    autoZoom(aim,roi,aspectRatio,maxStepZ,face2shot);
+                }
                 // \todo 13.04.2016 При зуммировании камера трясётся
-//                autoMove(aim,roi,maxStepX,maxStepY);
+                autoMove(aim,roi,maxStepX,maxStepY);
 
                 if(roi.height > maxRoiSize.height) {
                     roi.height=maxRoiSize.height;
