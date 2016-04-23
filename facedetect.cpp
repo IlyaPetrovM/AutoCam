@@ -29,15 +29,15 @@ string cascadeProfName = "../../data/haarcascades/haarcascade_profileface.xml";
 string cascadeLEyeName = "../../data/haarcascades/haarcascade_lefteye_2splits.xml";
 string cascadeREyeName = "../../data/haarcascades/haarcascade_righteye_2splits.xml";
 
-inline Point rectCenterAbs(const Rect& r){ // absolute coordinates
-    int w=r.width+(r.width%2);
-//    cout << __LINE__ << ": " << Point(r.x+(int)(w*0.5), r.y+(int)(r.height*0.5)) << Point2f(r.x+r.width*0.5, r.y+r.height*0.5) << endl;
+inline Point rectCenterAbs(const Rect2f& r){ // absolute coordinates
+    int w=r.width;
+    cout << __LINE__ << ": " << Point(r.x+(int)(w*0.5), r.y+(int)(r.height*0.5)) << Point2f(r.x+r.width*0.5, r.y+r.height*0.5) << endl;
     return Point(r.x+(int)(w*0.5), r.y+(int)(r.height*0.5)); // BUG 13/04/2016 Где-то тут прокралась неточность
 }
-inline Point topMiddleDec(const Rect& r) {return Point(cvRound((double)r.width*0.5) , cvRound((double)r.height/3.0));} // relative coordinates
-inline Point topLeftDec(const Rect& r) {return Point(cvRound((double)r.width/3.0) , cvRound((double)r.height/3.0));} // relative coordinates
-inline Point topRightDec(const Rect& r){return Point(cvRound((double)r.width*2.0/3.0) , cvRound((double)r.height/3.0));} // relative coordinates
-Point getGoldenPoint(const Rect& roi,const Rect& face){ // absolute coordinates
+inline Point topMiddleDec(const Rect2f& r) {return Point(cvRound((double)r.width*0.5) , cvRound((double)r.height/3.0));} // relative coordinates
+inline Point topLeftDec(const Rect2f& r) {return Point(cvRound((double)r.width/3.0) , cvRound((double)r.height/3.0));} // relative coordinates
+inline Point topRightDec(const Rect2f& r){return Point(cvRound((double)r.width*2.0/3.0) , cvRound((double)r.height/3.0));} // relative coordinates
+Point getGoldenPoint(const Rect2f& roi,const Rect& face){ // absolute coordinates
     Point target;
     if(cvRound((float)roi.width/3.0) - face.width < 0 ) /// если лицо крупное, то держать его в центре кадра
         target = topMiddleDec(roi);
@@ -80,42 +80,48 @@ public:
         return u;
     }
 };
+int gcd(int a,int b){
+    int c;
+    while (a != 0){
+        c = a;
+        a = b%a;
+        b = c;
+    }
+    return b;
+}
+Size getAspect(Size sz){
+    int g=gcd(sz.width,sz.height);
+    return Size(sz.width/g,sz.height/g);
+}
 
-void scaleRect(Rect &r,const double &sc){ /// from center
-    double h = (double)r.height;
-    double w = (double)r.width;
-    double x = (double)r.x;
-    double y = (double)r.y;
-    double dx = w*((sc-1.0)*0.5);
-    double dy = h*((sc-1.0)*0.5);
-    w *= sc;
-    h *= sc;
-    x -= dx;
-    y -= dy;
-    r = Rect(cvRound(x),
-               cvRound(y),
-               cvRound(w),
-               cvRound(h));
-
+inline void scaleRect(Rect2f &r,const Size& asp, const float &sc=1.0){ /// from center
+    r.height+=2*asp.height*sc;
+    r.width+=2*asp.width*sc;
+    r.x -= asp.width*sc;
+    r.y -= asp.height*sc;
 }
 
 void autoZoom(const Rect& face,
-              Rect& roi,
-              const float& aspectRatio,const int& maxStep, const double& relation){
-       static PIDController pidZ(0.01,0.00,-0.2,maxStep);
-       double err = (((double)face.height*relation)/((double)roi.height)); // Это хорошая конфигурация!!!!!
-       double scale = pidZ.getU(err);
-       cout << 1 <<"-"<< scale << "=" << (1-scale) << endl;
-       scaleRect(roi,(1-scale));
+              Rect2f& roi,
+              const Size& aspect,const float& maxStep, const double& relation){
+//       double scale = ((((double)face.height)/((double)roi.height))); // Это хорошая конфигурация!!!!!
+//       cout << 1 <<"-"<< scale << "=" << (1-scale/10.0) << endl;
+//       scaleRect(roi,(1.0-scale/10.0));
+    static float step=0.01;
+    if(maxStep>step)step+=0.01;else step -= 0.01;
+       if(roi.height > face.height*relation)
+           scaleRect(roi,aspect,-step);
+       else
+           scaleRect(roi,aspect,step);
 //       cout << pb << pa << (pa-pb) << endl ;
 
 }
 void autoMove(const Rect& face,
-                     Rect& roi,
+                     Rect2f& roi,
                      const int& maxStepX, const int& maxStepY)
 {
-    static PIDController pidX(0.1, 0.00, -0.2,maxStepX);
-    static PIDController pidY(0.1, 0.00, -0.2,maxStepY);
+    static PIDController pidX(0.1, 0.001, -0.09,maxStepX);
+    static PIDController pidY(0.1, 0.001, -0.09,maxStepY);
 
     Point p(getGoldenPoint(roi,face));
     roi.x += pidX.getU(p.x-roi.x);
@@ -142,7 +148,7 @@ void drawRects(Mat& img, const vector<Rect>& rects,
     }
 }
 
-inline void drawGoldenRules(Mat& img, const Rect& r,Scalar color=Scalar(0,255,0),const double& dotsRadius=1){
+inline void drawGoldenRules(Mat& img, const Rect2f& r,Scalar color=Scalar(0,255,0),const double& dotsRadius=1){
     //Отрисовка точек золотого сечения
     circle(img,Point(r.x + r.width/3.0,
                               r.y + r.height/3.0), 1,Scalar(0,255,0), dotsRadius);
@@ -174,9 +180,9 @@ inline void drawGoldenRules(Mat& img, const Rect& r,Scalar color=Scalar(0,255,0)
                 imshow("diff",diff);
             }
         }
-		grLast=gr.clone();
+        grLast=gr.clone();
         return motion;
-	}       
+    }
 int main( int argc, const char** argv )
 {
     VideoCapture capture;
@@ -308,7 +314,7 @@ int main( int argc, const char** argv )
         const long int videoLength = capture.get(CAP_PROP_FRAME_COUNT);
         const float aspectRatio = (float)capture.get(CV_CAP_PROP_FRAME_WIDTH)/
                                   (float)capture.get(CV_CAP_PROP_FRAME_HEIGHT);
-        const Rect fullShot(0,0,(int)capture.get(CV_CAP_PROP_FRAME_WIDTH),
+        const Rect2f fullShot(0,0,(int)capture.get(CV_CAP_PROP_FRAME_WIDTH),
                                 (int)capture.get(CV_CAP_PROP_FRAME_HEIGHT));
         int fps;
         int fourcc;
@@ -322,19 +328,22 @@ int main( int argc, const char** argv )
 
         ///Zoom & movement params (driver)
         const double onePerc =(double)smallImgSize.width/100.0; // onePercent
-        const int maxStepX = cvRound(0.75*onePerc);
-        const int maxStepY = cvRound(0.75*onePerc);
-        const int maxStepZ = cvRound(1*onePerc);
-        cout << " maxStepX:"<< maxStepX << " maxStepY:"<< maxStepY << " maxStepZ:"<< maxStepZ << endl;
+        const int maxStepX = cvRound(2.0*onePerc);
+        const int maxStepY = cvRound(2.0*onePerc);
+        const float maxScaleSpeed = 0.3;
+        cout << " maxStepX:"<< maxStepX << " maxStepY:"<< maxStepY << " maxStepZ:"<< maxScaleSpeed << endl;
         //zooming
-        const int stopZoomThr = cvRound(2.5*onePerc);
+        const int stopZoomThr = cvRound(10.0*onePerc);
         const float zoomThr=FI;
         const double face2shot = FI;
-        bool bZoom=false;
-        const unsigned int aimUpdateFreq=25;
+        const unsigned int aimUpdateFreq=10;
+        const Size aspect = getAspect(fullShot.size());
         Rect aim=Rect(Point(0,0),maxRoiSize);
-        Rect roi = Rect(Point(0,0),maxRoiSize);
-
+        Rect2f roi = Rect2f(Point(0,0),maxRoiSize);
+        double minZoomSpeed=0.01,maxZoomSpeed=0.2, zoomSpeedInc=(maxZoomSpeed-minZoomSpeed)/10.0, zoomSpeed=minZoomSpeed;
+        enum {STOP,START,PROC,END} zoomState;
+        double zoomDest = 1;
+        zoomState = STOP;
         //file writing
         stringstream outFileTitle;
         VideoWriter previewVideo;
@@ -349,7 +358,7 @@ int main( int argc, const char** argv )
    //    VIEW    //
         Mat preview;
 
-        Rect roiAim=Rect(Point(0,0),maxRoiSize);
+        Rect2f roiAim=Rect2f(Point(0,0),maxRoiSize);
         const Size previewSmallSize = Size((fullShot.width*fx),fullShot.height*fx);
         //drawing
         const float thickness = 0.5*previewSize.width/100.0;
@@ -358,8 +367,7 @@ int main( int argc, const char** argv )
         const int textThickness = thickness/2.0;
         const double fontScale = thickness/5;
         string prevWindTitle = "Preview";
-
-
+        cout << "Aspect:" << aspect << endl;
 /// SetUp
         if(isWebcam){
             time_t t = time(0);   // get time now
@@ -456,22 +464,55 @@ int main( int argc, const char** argv )
             /// Motion and zoom
             try{
                 float aimH = aim.height*face2shot;
-                if(( aimH>(float)roi.height*zoomThr || aimH<(float)roi.height/zoomThr) && !bZoom)bZoom=true;
-                if((abs(cvRound(aimH)-roi.height) < stopZoomThr) && bZoom)bZoom=false;
-                if(bZoom){
-                    autoZoom(aim,roi,aspectRatio,maxStepZ,face2shot);
+                cout << aim.height << " "<< cvRound(roi.height) << zoomState << endl;
+                switch (zoomState) {
+                case STOP:
+                    if(aimH>roi.height*zoomThr){
+                        zoomDest=1;
+                        zoomState=START;
+                    }
+                    if(aimH<roi.height/zoomThr){
+                        zoomDest=-1;
+                        zoomState=START;
+                    }
+                    break;
+                case START:
+                    zoomSpeed+=zoomSpeedInc;
+                    scaleRect(roi,aspect,zoomDest*zoomSpeed);
+                    if(zoomSpeed > maxZoomSpeed) {zoomState=PROC;zoomSpeed=maxZoomSpeed;}
+                    if(roi.height > maxRoiSize.height) {
+                        roi.height=maxRoiSize.height;
+                        roi.width=maxRoiSize.width;
+                        zoomState=END;
+                    }
+                    break;
+                case PROC:
+                    scaleRect(roi,aspect,zoomDest*zoomSpeed);
+                    if((abs(aimH-roi.height) < stopZoomThr) || cvRound(roi.height) <= aim.height)zoomState=END;
+                    if(roi.height > maxRoiSize.height) {
+                        roi.height=maxRoiSize.height;
+                        roi.width=maxRoiSize.width;
+                        zoomState=END;
+                    }
+                    break;
+                case END:
+                    zoomSpeed-=zoomSpeedInc;
+                    scaleRect(roi,aspect,zoomDest*zoomSpeed);
+                    if(zoomSpeed < minZoomSpeed) {zoomState=STOP; zoomSpeed=minZoomSpeed;}
+                    if(roi.height > maxRoiSize.height) {
+                        roi.height=maxRoiSize.height;
+                        roi.width=maxRoiSize.width;
+                        zoomState=STOP;
+                        zoomSpeed=minZoomSpeed;
+                    }
+                    break;
                 }
+
                 // \todo 13.04.2016 При зуммировании камера трясётся
                 autoMove(aim,roi,maxStepX,maxStepY);
 
-                if(roi.height > maxRoiSize.height) {
-                    roi.height=maxRoiSize.height;
-                    roi.width=maxRoiSize.width;
-                }
-                if(roi.height < aim.height){
-                    roi.height=aim.height;
-                    roi.width=aim.height*aspectRatio;
-                }
+
+
                 if(roi.x<0) roi.x = 0;
                 if(maxRoiSize.width < roi.x+roi.width)
                     roi.x = maxRoiSize.width-roi.width;
@@ -488,7 +529,7 @@ int main( int argc, const char** argv )
             motDetEnd = cvGetTickCount();
 
             try{
-                Rect roiFullSize = Rect(Point(roi.x*scale,roi.y*scale),Size(roi.width*scale,roi.height*scale));
+                Rect2f roiFullSize = Rect2f(Point(roi.x*scale,roi.y*scale),Size(roi.width*scale,roi.height*scale));
                 resize(fullFrame(roiFullSize), result , resultSize, 0,0, INTER_LINEAR );
                 outputVideo << result ;
             }catch(Exception &mvEx){
@@ -523,17 +564,11 @@ int main( int argc, const char** argv )
 
             if(showPreview || recordPreview){ // Отрисовка области интереса
                 // Рисовать кадр захвата
-                if(bZoom)rectangle(preview,roi,Scalar(255,255,255),thickness+stopZoomThr);
+                if(zoomState==START)rectangle(preview,roi,Scalar(100,255,100),thickness+stopZoomThr);
+                if(zoomState==PROC)rectangle(preview,roi,Scalar(255,255,255),thickness+stopZoomThr);
+                if(zoomState==END)rectangle(preview,roi,Scalar(100,100,255),thickness+stopZoomThr);
                 rectangle(preview,roi,Scalar(0,0,255),thickness);
                 drawGoldenRules(preview,roi,Scalar(0,255,0),dotsRadius);
-                // Конечное положение кадра захвата
-
-//                if(aimUpdated){ /// BUG 12/04/2016 Цель перемещается не сразу
-
-//                    roiAim = Rect(getGoldenPoint(Rect(rectCenterAbs(aim),roi.size()),aim),Size(aim.height*face2shot*aspectRatio,aim.height*face2shot));
-//                    rectangle(preview,roiAim,Scalar(0,0,100),thickness/2);
-//                    drawGoldenRules(preview,roiAim,Scalar(0,100,0),dotsRadius/2);
-//                }
                 // Рисовать цель
                 rectangle(preview,aim,Scalar(0,255,0),thickness);
                 putText(preview, "aim",aim.tl(),CV_FONT_NORMAL,fontScale,Scalar(0,255,0),textThickness);
@@ -617,7 +652,7 @@ void detectAndDraw( Mat& img, CascadeClassifier& cascade,
                     CascadeClassifier& nestedCascade,
                     double scale, bool tryflip)
 {
-	bool found_face=false;
+    bool found_face=false;
     double t = 0;
     vector<Rect> faces, faces2;
     Mat gray, smallImg;
@@ -660,9 +695,9 @@ void detectAndDraw( Mat& img, CascadeClassifier& cascade,
         }
     }
     if(faces.size()>0){
-    	found_face=true;
-    	// facesBuf=faces;
-    	// printf( "after flippping %d faces", faces.size() );
+        found_face=true;
+        // facesBuf=faces;
+        // printf( "after flippping %d faces", faces.size() );
     }
     t = (double)cvGetTickCount() - t;
     printf( "detection time = %g ms\n", t/((double)cvGetTickFrequency()*1000.) );
@@ -709,11 +744,11 @@ void detectAndDraw( Mat& img, CascadeClassifier& cascade,
             circle( img, center, radius, color, 3, 8, 0 );
         }
     }
-    imshow( "result", img );   
-	/*static Mat frameCloseUpLast;
-	static Mat motionCloseUp;
-	frameCloseUpLast = closeUpROI.clone();*/
-	//Выводим крупный план в отдельное окно
+    imshow( "result", img );
+    /*static Mat frameCloseUpLast;
+    static Mat motionCloseUp;
+    frameCloseUpLast = closeUpROI.clone();*/
+    //Выводим крупный план в отдельное окно
     for ( size_t i = 0; i < facesBuf.size(); i++ ){
         if(facesBuf[i].x+closeUpROI.width < img.cols) {
             closeUpROI.x=facesBuf[i].x;
@@ -727,11 +762,11 @@ void detectAndDraw( Mat& img, CascadeClassifier& cascade,
         }
         string title = "Face";
         std::string s;
-		std::stringstream out;
-		out << i;
-		title += out.str();
+        std::stringstream out;
+        out << i;
+        title += out.str();
 
-        imshow( title, img(closeUpROI) );  
+        imshow( title, img(closeUpROI) );
     }
     // return facesBuf;
 }
