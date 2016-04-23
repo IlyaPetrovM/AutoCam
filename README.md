@@ -1,7 +1,8 @@
 # Описание проекта
-При монтаже видео для массовых образовательных курсов возникает потребность использовать не только общий план рассказчика, но и крупный план. Для облегчения процесса съёмки и монтажа презентация записывается на одну камеру. В этой камере используется избыточное разрешение изображения (4К). Для публикации лекции в интернете достаточно гораздо меньшего качества видео. Таким образом, из исходного кадра можно вырезать более крупные планы без потери качества для конечного продукта. 
+In the area of production of mass educational courses the lecture recording are performed. When editing these videos there is a need to use the different shot types. To facilitate the process of shooting and editing a presentation is recorded by one camera. The ultra high resolution is used for these purposes. Fortunately for lecture publishing on the internet the full HD resolution is quite enough. In that way it is possible to cut the close-up shots without loss of quality. 
 
-Определить область, которую следует вырезать достаточно просто, если докладчик не перемещается в течение всей презентации. Однако, если в кадре появляется движение, то монтаж становится достаточно трудоёмким. В данной работе делается попытка автоматизировать вышеозначенный процесс монтажа.
+It is simply enough to determine the area that should be cut, if the speaker does not move during the entire presentation. But the editing becomes quite laborious, if the motion takes the place in shot. In this work attempt are made to automate mentioned process.
+
 
 
 Тестирование работы программы можно найти здесь:
