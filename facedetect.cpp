@@ -32,7 +32,6 @@ string cascadeREyeName = "../../data/haarcascades/haarcascade_righteye_2splits.x
 
 inline Point rectCenterAbs(const Rect2f& r){ // absolute coordinates
     int w=r.width;
-    cout << __LINE__ << ": " << Point(r.x+(int)(w*0.5), r.y+(int)(r.height*0.5)) << Point2f(r.x+r.width*0.5, r.y+r.height*0.5) << endl;
     return Point(r.x+(int)(w*0.5), r.y+(int)(r.height*0.5)); // BUG 13/04/2016 Где-то тут прокралась неточность
 }
 inline Point topMiddleDec(const Rect2f& r) {return Point(cvRound((double)r.width*0.5) , cvRound((double)r.height/3.0));} // relative coordinates
@@ -50,7 +49,7 @@ Point getGoldenPoint(const Rect2f& roi,const Rect& face){ // absolute coordinate
     else
         target = topMiddleDec(roi);
 
-    Point result = rectCenterAbs(face) - target;/// Должна быть зависимость только от размеров ROI
+    Point result = (face+topMiddleDec(face) - target).tl();/// Должна быть зависимость только от размеров ROI
     return result;
 }
 /// PID - регулятор для позиционирования камеры
@@ -149,7 +148,7 @@ public:
         speedInc=(speedMax-speedMin)/accelTime;
         switch (state) {
         case STOP:
-            if(abs(aim-cvRound(x))>precision){
+            if(abs(aim-cvRound(x))>2*precision){
                 if(aim>cvRound(x)) sign=1.0; else sign=-1.0;
                 state = START;
             }
@@ -161,7 +160,7 @@ public:
             break;
         case MOVE:
             x += sign*speed;
-            if(abs(aim-x)<precision) state=END;
+            if(abs(aim-cvRound(x))<precision) state=END;
             break;
         case END:
             speed-=speedInc;
@@ -179,20 +178,6 @@ public:
         return speed;
     }
 };
-
-DYNAMIC_STATES autoMove(const Rect& aim,
-                     Rect2f& roi){
-    static DYNAMIC_STATES state = STOP;
-    static double speedMin=0,speedMax=3;
-    static double s = roi.width/3;
-    static double t = s*2.0/speedMax;
-    static double speedInc=(speedMax-speedMin)/t, speed=speedMin;
-    cout <<"speedInc="<< speedInc <<" t=" <<t<< endl;
-    static double signX=1.0;
-
-    Point p(getGoldenPoint(roi,aim));
-
-}
 
 void drawRects(Mat& img, const vector<Rect>& rects,
                string t="rect", Scalar color=Scalar(255,0,0),
@@ -386,7 +371,7 @@ int main( int argc, const char** argv )
                                 (int)capture.get(CV_CAP_PROP_FRAME_HEIGHT));
         int fps;
         int fourcc;
-        long int frameCounter=1;
+        long int frameCounter=0;
 
 
         const Size smallImgSize = Size((float)fullShot.width/scale, (float)fullShot.height/scale);
@@ -415,6 +400,7 @@ int main( int argc, const char** argv )
         double minZoomSpeed=0.01,maxZoomSpeed=0.2, zoomSpeedInc=(maxZoomSpeed-minZoomSpeed)/10.0, zoomSpeed=minZoomSpeed;
         DYNAMIC_STATES zoomState = STOP;
         autoMotion moveX(0,3),moveY(0,3);
+        Point gp;
 
         double zoomSign = 1;
         //file writing
@@ -426,6 +412,8 @@ int main( int argc, const char** argv )
         const double ticksPerMsec=cvGetTickFrequency() * 1.0e3;
         int64 oneIterEnd, oneIterStart,motDetStart,motDetEnd,faceDetStart,faceDetEnd,updateStart,updateEnd, timeStart;
         double oneIterTime, motDetTime, faceDetTime,updateTime,timeEnd;
+        vector<int64> tmr;
+        vector<int> lines;
         fstream logFile;
 
    //    VIEW    //
@@ -481,15 +469,6 @@ int main( int argc, const char** argv )
         logFile.open(("results/test_"+outFileTitle.str()+".csv").c_str(), fstream::out);
         if(!logFile.is_open()){
             cout << "Error with opening the file:" << "results/test_"+outFileTitle.str()+".csv" << endl;
-        }else{
-            logFile << "frame\t"
-                    << "timestamp, ms\t"
-                << "faceDetTime, ms\t"
-                << "motDetTime, ms\t"
-                << "updateTime, ms\t"
-                << "oneIterTime, ms\t"
-                << "faces[0].x, px"<<"\t"<<"faces[0].y, px"<<"\t"
-                << "roi.x, px\t"<<"roi.y, px"<<"\t" << endl;
         }
 
         //// Main cycle
@@ -498,19 +477,20 @@ int main( int argc, const char** argv )
         {
             bool aimUpdated = false;
             cout <<"frame:"<< ++frameCounter << " ("<<(int)((100*(float)frameCounter)/(float)videoLength) <<"% of video)"<< endl;
-            oneIterStart = cvGetTickCount();
+            tmr.push_back(cvGetTickCount());if(frameCounter<2)lines.push_back(__LINE__);
             try{
                 capture >> fullFrame;
                 if(fullFrame.empty()) {
                     clog << "Frame is empty" << endl;
                     break;
                 }
+                tmr.push_back(cvGetTickCount());if(frameCounter<2)lines.push_back(__LINE__);
 
                 faceDetStart = cvGetTickCount();
                 resize( fullFrame, smallImg, smallImgSize, 0, 0, INTER_LINEAR );
                 cvtColor( smallImg, graySmall, COLOR_BGR2GRAY );
                 preview = smallImg.clone();
-
+                tmr.push_back(cvGetTickCount());if(frameCounter<2)lines.push_back(__LINE__);
 
                 /* Поиск лиц в анфас */
                 cascadeFull.detectMultiScale(graySmall, facesFull,
@@ -518,7 +498,7 @@ int main( int argc, const char** argv )
                 /// Поиск лиц в профиль
                 cascadeProf.detectMultiScale( graySmall, facesProf,
                                               scaleFactor, minNeighbors, 0|CASCADE_SCALE_IMAGE,minfaceSize);
-
+                tmr.push_back(cvGetTickCount());if(frameCounter<2)lines.push_back(__LINE__);
                 foundFaces = !(facesFull.empty() && facesProf.empty());
 
                 faceDetEnd = cvGetTickCount();
@@ -532,6 +512,7 @@ int main( int argc, const char** argv )
                 cout << "Detection block: "<< mvEx.msg << endl;
             }
             /// Motion and zoom
+            tmr.push_back(cvGetTickCount());if(frameCounter<2)lines.push_back(__LINE__);
             try{
                 if(bZoom){
                 float aimH = aim.height*face2shot;
@@ -579,13 +560,14 @@ int main( int argc, const char** argv )
                     break;
                 }
                 }
+                tmr.push_back(cvGetTickCount());if(frameCounter<2)lines.push_back(__LINE__);
 
                 if(bMove) {
-                    Point gp = getGoldenPoint(roi,aim);
-                    moveX.update(roi.x,gp.x,roi.width/3.0);
+                    gp = getGoldenPoint(roi,aim);
+                    moveX.update(roi.x,gp.x,roi.width/15.0);
                     moveY.update(roi.y,gp.y,roi.height/3.0);
                 }
-
+                tmr.push_back(cvGetTickCount());if(frameCounter<2)lines.push_back(__LINE__);
 
 
 
@@ -603,7 +585,7 @@ int main( int argc, const char** argv )
 
             motDetStart = cvGetTickCount();
             motDetEnd = cvGetTickCount();
-
+            tmr.push_back(cvGetTickCount());if(frameCounter<2)lines.push_back(__LINE__);
             try{
                 Rect2f roiFullSize = Rect2f(Point(roi.x*scale,roi.y*scale),Size(roi.width*scale,roi.height*scale));
                 resize(fullFrame(roiFullSize), result , resultSize, 0,0, INTER_LINEAR );
@@ -611,28 +593,9 @@ int main( int argc, const char** argv )
             }catch(Exception &mvEx){
                 cout << "Result saving: "<< mvEx.msg << endl;
             }
+            tmr.push_back(cvGetTickCount());if(frameCounter<2)lines.push_back(__LINE__);
 
-            /// Запись статистики
-            oneIterEnd = cvGetTickCount();
-            timeEnd = (double)(cvGetTickCount() - timeStart)/ticksPerMsec;
-            faceDetTime = (double)(faceDetEnd - faceDetStart)/ticksPerMsec;
-            updateTime =  (double)(updateEnd - updateStart)/ticksPerMsec;
-            motDetTime  = (double)(motDetEnd - motDetStart)/ticksPerMsec;
-            oneIterTime = (double)(oneIterEnd - oneIterStart)/ticksPerMsec;
-            if(logFile.is_open()) {
-                logFile  << frameCounter << " if(speed>speedMax) state=MOVE;\t"
-                         << timeEnd << "\t"
-                         << faceDetTime << "\t"
-                         << motDetTime << "\t"
-                         << updateTime << "\t"
-                         << oneIterTime << "\t";
-                if(!facesFull.empty())
-                    logFile << facesFull[0].x << "\t"
-                                              << facesFull[0].y << "\t"; else logFile << "\t\t";
-                logFile << roi.x << "\t"
-                        << roi.y << "\t";
-                logFile  << endl;
-            }
+
 
             int c = waitKey(10);
             if( c == 27 || c == 'q' || c == 'Q' )break;
@@ -708,15 +671,46 @@ int main( int argc, const char** argv )
                            << __DATE__ <<" "<< __TIME__ ;
                 putText(preview,timestring.str(),Point(0,smallImgSize.height-3),CV_FONT_NORMAL,fontScale,Scalar(0,0,0),textThickness*5);
                 putText(preview,timestring.str(),Point(0,smallImgSize.height-3),CV_FONT_NORMAL,fontScale,Scalar(255,255,255),textThickness);
-
+                tmr.push_back(cvGetTickCount());if(frameCounter<2)lines.push_back(__LINE__);
                 // Сохранение кадра
                 if(recordPreview)
                     previewVideo << preview;
                 if(showPreview)
                     imshow(prevWindTitle.c_str(),preview);
+                tmr.push_back(cvGetTickCount());if(frameCounter<2)lines.push_back(__LINE__);
             }
 
-
+            /// Запись статистики
+            if(logFile.is_open()) {
+                if(frameCounter<2){
+                    logFile << "frame\t";
+                    for (int i = 0; i < lines.size()-1; ++i) {
+                        logFile << lines[i] << "-" << lines[i+1] << "\t";
+                    }
+                    logFile << "facesFull.x, px"<<"\t"
+                            <<"facesFull.y, px"<<"\t"
+                            << "faceProf.x, px"<<"\t"
+                            <<"faceProf.y, px"<<"\t"
+                    << "roi.x, px\t"<<"roi.y, px"<<"\t"
+                    << "roi.width, px\t"<<"roi.height, px"<< endl;
+                }
+                logFile  << frameCounter <<"\t";
+                for (int i = 0; i < tmr.size()-1; ++i) {
+                    logFile << (double)(tmr[i+1]-tmr[i])/ticksPerMsec <<"\t";
+                }
+                if(!facesFull.empty())
+                    logFile << facesFull[0].x << "\t"
+                            << facesFull[0].y << "\t"; else logFile << "\t\t";
+                if(!facesProf.empty())
+                    logFile << facesProf[0].x << "\t"
+                            << facesProf[0].y << "\t"; else logFile << "\t\t";
+                logFile << roi.x << "\t"
+                        << roi.y << "\t"
+                        << roi.width << "\t"
+                        << roi.height << endl;
+            }
+            tmr.clear();
+            lines.clear();
         }
         if(logFile.is_open())logFile.close();
         cout << "The results have been written to " << "''"+outFileTitle.str()+"''" << endl;
