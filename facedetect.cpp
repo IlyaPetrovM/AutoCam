@@ -13,6 +13,7 @@
 using namespace std;
 using namespace cv;
 const double FI=1.61803398;
+typedef enum {STOP,START,MOVE,END} DYNAMIC_STATES;
 static void help()
 {
     cout << "Build date:" << __DATE__ << " " << __TIME__
@@ -116,6 +117,7 @@ void autoZoom(const Rect& face,
 //       cout << pb << pa << (pa-pb) << endl ;
 
 }
+
 void autoMove(const Rect& face,
                      Rect2f& roi,
                      const int& maxStepX, const int& maxStepY)
@@ -126,6 +128,70 @@ void autoMove(const Rect& face,
     Point p(getGoldenPoint(roi,face));
     roi.x += pidX.getU(p.x-roi.x);
     roi.y += pidY.getU(p.y-roi.y);
+}
+class autoMotion{
+     DYNAMIC_STATES state;
+     double speedMin;
+     double speedMax;
+     double speedInc;
+     double accelTime;
+     double speed;
+     float sign;
+public:
+    autoMotion(double spdMin,double spdMax){
+        state = STOP;
+        speedMin=spdMin;
+        speedMax=spdMax;
+        speed=spdMin;
+    }
+    float update(float& x,const int& aim, const double& precision){
+        accelTime = precision*2.0/speedMax;
+        speedInc=(speedMax-speedMin)/accelTime;
+        switch (state) {
+        case STOP:
+            if(abs(aim-cvRound(x))>precision){
+                if(aim>cvRound(x)) sign=1.0; else sign=-1.0;
+                state = START;
+            }
+            break;
+        case START:
+            speed+=speedInc;
+            x += sign*speed;
+            if(speed>speedMax) {state=MOVE;speed=speedMax;}
+            break;
+        case MOVE:
+            x += sign*speed;
+            if(abs(aim-x)<precision) state=END;
+            break;
+        case END:
+            speed-=speedInc;
+            x += sign*speed;
+            if(speed<speedMin) {state=STOP; speed=speedMin;}
+            break;
+        }
+        return speed;
+    }
+    DYNAMIC_STATES getState(){
+         return state;
+    }
+    float getSign(){ return sign;}
+    double getSpeed(){
+        return speed;
+    }
+};
+
+DYNAMIC_STATES autoMove(const Rect& aim,
+                     Rect2f& roi){
+    static DYNAMIC_STATES state = STOP;
+    static double speedMin=0,speedMax=3;
+    static double s = roi.width/3;
+    static double t = s*2.0/speedMax;
+    static double speedInc=(speedMax-speedMin)/t, speed=speedMin;
+    cout <<"speedInc="<< speedInc <<" t=" <<t<< endl;
+    static double signX=1.0;
+
+    Point p(getGoldenPoint(roi,aim));
+
 }
 
 void drawRects(Mat& img, const vector<Rect>& rects,
@@ -160,29 +226,31 @@ inline void drawGoldenRules(Mat& img, const Rect2f& r,Scalar color=Scalar(0,255,
                               r.y + 2.0*r.height/3.0),1,Scalar(0,255,0),dotsRadius);
 }
 
-    int detectMotion(Mat img, int thresh=50, int blur=21, bool showPrev=false){
-        static Mat diff,gr, grLast;
-        int motion=0;
-        cvtColor( img, gr, COLOR_BGR2GRAY );
-        if (!grLast.empty())
-        {
-            GaussianBlur(gr, gr, Size(blur,blur), 0,0);
-            absdiff(gr, grLast, diff);
-            threshold(diff, diff, thresh, 255, cv::THRESH_BINARY);
-            motion=(int)mean(diff)[0]; // Движение в кадрике обнаружено
 
-            if(showPrev){
-                stringstream motion;
-                motion<<"Motion "<<(int)mean(diff)[0];
-                resize( diff, diff, Size(240*diff.cols/diff.rows,240), 0, 0, INTER_NEAREST );
-                putText(diff, motion.str(),
-                        Point(0,diff.rows),CV_FONT_NORMAL, 0.5, Scalar(255, 0,0));
-                imshow("diff",diff);
-            }
+
+int detectMotion(Mat img, int thresh=50, int blur=21, bool showPrev=false){
+    static Mat diff,gr, grLast;
+    int motion=0;
+    cvtColor( img, gr, COLOR_BGR2GRAY );
+    if (!grLast.empty())
+    {
+        GaussianBlur(gr, gr, Size(blur,blur), 0,0);
+        absdiff(gr, grLast, diff);
+        threshold(diff, diff, thresh, 255, cv::THRESH_BINARY);
+        motion=(int)mean(diff)[0]; // Движение в кадрике обнаружено
+
+        if(showPrev){
+            stringstream motion;
+            motion<<"Motion "<<(int)mean(diff)[0];
+            resize( diff, diff, Size(240*diff.cols/diff.rows,240), 0, 0, INTER_NEAREST );
+            putText(diff, motion.str(),
+                    Point(0,diff.rows),CV_FONT_NORMAL, 0.5, Scalar(255, 0,0));
+            imshow("diff",diff);
         }
-        grLast=gr.clone();
-        return motion;
     }
+    grLast=gr.clone();
+    return motion;
+}
 int main( int argc, const char** argv )
 {
     VideoCapture capture;
@@ -338,12 +406,16 @@ int main( int argc, const char** argv )
         const double face2shot = FI;
         const unsigned int aimUpdateFreq=10;
         const Size aspect = getAspect(fullShot.size());
-        Rect aim=Rect(Point(0,0),maxRoiSize);
-        Rect2f roi = Rect2f(Point(0,0),maxRoiSize);
+        Rect aim=Rect(Point(0,0),maxRoiSize/3);
+        Rect2f roi = Rect2f(Point(0,0),maxRoiSize/3);
+        const bool bZoom = false;
+        const bool bMove = true;
         double minZoomSpeed=0.01,maxZoomSpeed=0.2, zoomSpeedInc=(maxZoomSpeed-minZoomSpeed)/10.0, zoomSpeed=minZoomSpeed;
-        enum {STOP,START,PROC,END} zoomState;
-        double zoomDest = 1;
-        zoomState = STOP;
+        DYNAMIC_STATES zoomState = STOP;
+        DYNAMIC_STATES motionStateX;
+        autoMotion moveX(0,3),moveY(0,3);
+
+        double zoomSign = 1;
         //file writing
         stringstream outFileTitle;
         VideoWriter previewVideo;
@@ -358,8 +430,6 @@ int main( int argc, const char** argv )
    //    VIEW    //
         Mat preview;
 
-        Rect2f roiAim=Rect2f(Point(0,0),maxRoiSize);
-        const Size previewSmallSize = Size((fullShot.width*fx),fullShot.height*fx);
         //drawing
         const float thickness = 0.5*previewSize.width/100.0;
         const int dotsRadius = thickness*2;
@@ -407,7 +477,6 @@ int main( int argc, const char** argv )
                  return -1;
              }
         }
-
         logFile.open(("results/test_"+outFileTitle.str()+".csv").c_str(), fstream::out);
         if(!logFile.is_open()){
             cout << "Error with opening the file:" << "results/test_"+outFileTitle.str()+".csv" << endl;
@@ -463,31 +532,32 @@ int main( int argc, const char** argv )
             }
             /// Motion and zoom
             try{
+                if(bZoom){
                 float aimH = aim.height*face2shot;
                 cout << aim.height << " "<< cvRound(roi.height) << zoomState << endl;
                 switch (zoomState) {
                 case STOP:
                     if(aimH>roi.height*zoomThr){
-                        zoomDest=1;
+                        zoomSign=1;
                         zoomState=START;
                     }
                     if(aimH<roi.height/zoomThr){
-                        zoomDest=-1;
+                        zoomSign=-1;
                         zoomState=START;
                     }
                     break;
                 case START:
                     zoomSpeed+=zoomSpeedInc;
-                    scaleRect(roi,aspect,zoomDest*zoomSpeed);
-                    if(zoomSpeed > maxZoomSpeed) {zoomState=PROC;zoomSpeed=maxZoomSpeed;}
+                    scaleRect(roi,aspect,zoomSign*zoomSpeed);
+                    if(zoomSpeed > maxZoomSpeed) {zoomState=MOVE;zoomSpeed=maxZoomSpeed;}
                     if(roi.height > maxRoiSize.height) {
                         roi.height=maxRoiSize.height;
                         roi.width=maxRoiSize.width;
                         zoomState=END;
                     }
                     break;
-                case PROC:
-                    scaleRect(roi,aspect,zoomDest*zoomSpeed);
+                case MOVE:
+                    scaleRect(roi,aspect,zoomSign*zoomSpeed);
                     if((abs(aimH-roi.height) < stopZoomThr) || cvRound(roi.height) <= aim.height)zoomState=END;
                     if(roi.height > maxRoiSize.height) {
                         roi.height=maxRoiSize.height;
@@ -497,7 +567,7 @@ int main( int argc, const char** argv )
                     break;
                 case END:
                     zoomSpeed-=zoomSpeedInc;
-                    scaleRect(roi,aspect,zoomDest*zoomSpeed);
+                    scaleRect(roi,aspect,zoomSign*zoomSpeed);
                     if(zoomSpeed < minZoomSpeed) {zoomState=STOP; zoomSpeed=minZoomSpeed;}
                     if(roi.height > maxRoiSize.height) {
                         roi.height=maxRoiSize.height;
@@ -507,9 +577,14 @@ int main( int argc, const char** argv )
                     }
                     break;
                 }
+                }
 
-                // \todo 13.04.2016 При зуммировании камера трясётся
-                autoMove(aim,roi,maxStepX,maxStepY);
+                if(bMove) {
+                    Point gp = getGoldenPoint(roi,aim);
+                    moveX.update(roi.x,gp.x,roi.width/3.0);
+                    moveY.update(roi.y,gp.y,roi.height/3.0);
+                }
+
 
 
 
@@ -544,7 +619,7 @@ int main( int argc, const char** argv )
             motDetTime  = (double)(motDetEnd - motDetStart)/ticksPerMsec;
             oneIterTime = (double)(oneIterEnd - oneIterStart)/ticksPerMsec;
             if(logFile.is_open()) {
-                logFile  << frameCounter << "\t"
+                logFile  << frameCounter << " if(speed>speedMax) state=MOVE;\t"
                          << timeEnd << "\t"
                          << faceDetTime << "\t"
                          << motDetTime << "\t"
@@ -565,9 +640,51 @@ int main( int argc, const char** argv )
             if(showPreview || recordPreview){ // Отрисовка области интереса
                 // Рисовать кадр захвата
                 if(zoomState==START)rectangle(preview,roi,Scalar(100,255,100),thickness+stopZoomThr);
-                if(zoomState==PROC)rectangle(preview,roi,Scalar(255,255,255),thickness+stopZoomThr);
+                if(zoomState==MOVE)rectangle(preview,roi,Scalar(255,255,255),thickness+stopZoomThr);
                 if(zoomState==END)rectangle(preview,roi,Scalar(100,100,255),thickness+stopZoomThr);
                 rectangle(preview,roi,Scalar(0,0,255),thickness);
+                Scalar colorX;
+                switch (moveX.getState()){
+                case START:
+                    colorX = Scalar(127,255,127);break;
+                case MOVE:
+                    colorX = Scalar(255,255,255);break;
+                case END:
+                    colorX = Scalar(127,127,255);break;
+                }
+                Scalar colorY;
+                switch (moveY.getState()){
+                case START:
+                    colorY = Scalar(127,255,127);break;
+                case MOVE:
+                    colorY = Scalar(255,255,255);break;
+                case END:
+                    colorY = Scalar(127,127,255);break;
+                }
+                if(moveX.getState()!=STOP){
+                    if(moveX.getSign()<0)
+                        arrowedLine(preview,
+                                    Point(roi.x,roi.y+roi.height/2),
+                                    Point(roi.x-moveX.getSpeed()*2,roi.y+roi.height/2),
+                                    colorX,thickness,8,0,1);
+                    else
+                        arrowedLine(preview,
+                                    Point(roi.x+roi.width,roi.y+roi.height/2),
+                                    Point(roi.x+roi.width+moveX.getSpeed()*2,roi.y+roi.height/2),
+                                    colorX,thickness,8,0,1);
+                }
+                if(moveY.getState()!=STOP){
+                    if(moveY.getSign()<0)
+                        arrowedLine(preview,
+                                    Point(roi.x+roi.width/2,roi.y),
+                                    Point(roi.x+roi.width/2,roi.y-moveY.getSpeed()*2),
+                                    colorY,thickness,8,0,1);
+                    else
+                        arrowedLine(preview,
+                                    Point(roi.x+roi.width/2,roi.br().y),
+                                    Point(roi.x+roi.width/2,roi.br().y+moveY.getSpeed()*2),
+                                    colorY,thickness,8,0,1);
+                }
                 drawGoldenRules(preview,roi,Scalar(0,255,0),dotsRadius);
                 // Рисовать цель
                 rectangle(preview,aim,Scalar(0,255,0),thickness);
