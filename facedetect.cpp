@@ -406,13 +406,14 @@ int main( int argc, const char** argv )
         const double face2shot = FI;
         const unsigned int aimUpdateFreq=10;
         const Size aspect = getAspect(fullShot.size());
-        Rect aim=Rect(Point(0,0),maxRoiSize/3);
-        Rect2f roi = Rect2f(Point(0,0),maxRoiSize/3);
-        const bool bZoom = false;
+
+        Rect aim=Rect(Point(0,0),maxRoiSize);
+        Rect2f roi = Rect2f(Point(0,0),maxRoiSize);
+
+        const bool bZoom = true;
         const bool bMove = true;
         double minZoomSpeed=0.01,maxZoomSpeed=0.2, zoomSpeedInc=(maxZoomSpeed-minZoomSpeed)/10.0, zoomSpeed=minZoomSpeed;
         DYNAMIC_STATES zoomState = STOP;
-        DYNAMIC_STATES motionStateX;
         autoMotion moveX(0,3),moveY(0,3);
 
         double zoomSign = 1;
