@@ -381,16 +381,17 @@ int main( int argc, const char** argv )
 
         ///Zoom & movement params (driver)
         const double onePerc =(double)smallImgSize.width/100.0; // onePercent
-        const float maxStepX = (2.0*onePerc);
-        const float maxStepY = (2.0*onePerc);
-        const float maxScaleSpeed = 0.3;
+        float maxStepX = (0.9);
+        float maxStepY = (0.9);
+        float maxScaleSpeed = 0.3;
         Point gp;
         cout << " maxStepX:"<< maxStepX << " maxStepY:"<< maxStepY << " maxStepZ:"<< maxScaleSpeed << endl;
         //zooming
         const int stopZoomThr = cvRound(10.0*onePerc);
         const float zoomThr=FI;
         const double face2shot = FI;
-        const unsigned int aimUpdateFreq=10;
+        const unsigned int aimUpdateFreq=9; // каждые Н кадров
+        const unsigned int faceDetectFreq=1;
         const Size aspect = getAspect(fullShot.size());
 
         Rect aim=Rect(Point(0,0),maxRoiSize);
@@ -400,7 +401,7 @@ int main( int argc, const char** argv )
         const bool bMove = true;
         double minZoomSpeed=0.01,maxZoomSpeed=0.2, zoomSpeedInc=(maxZoomSpeed-minZoomSpeed)/10.0, zoomSpeed=minZoomSpeed;
         DYNAMIC_STATES zoomState = STOP;
-        autoMotion moveX(0,3),moveY(0,3);
+        autoMotion moveX(0,maxStepX*onePerc),moveY(0,maxStepY*onePerc);
         double zoomSign = 1;
 
         //file writing
@@ -410,7 +411,6 @@ int main( int argc, const char** argv )
 
         ///Test items
         const double ticksPerMsec=cvGetTickFrequency() * 1.0e3;
-        int64 oneIterEnd, oneIterStart,motDetStart,motDetEnd,faceDetStart,faceDetEnd,updateStart,updateEnd, timeStart;
         vector<int64> tmr;
         vector<int> lines;
         fstream logFile;
@@ -471,11 +471,9 @@ int main( int argc, const char** argv )
         }
 
         //// Main cycle
-        timeStart = cvGetTickCount();
         for(;;)
         {
             bool aimUpdated = false;
-            cout <<"frame:"<< ++frameCounter << " ("<<(int)((100*(float)frameCounter)/(float)videoLength) <<"% of video)"<< endl;
             tmr.push_back(cvGetTickCount());if(frameCounter<2)lines.push_back(__LINE__);
             try{
                 capture >> fullFrame;
@@ -483,25 +481,24 @@ int main( int argc, const char** argv )
                     clog << "Frame is empty" << endl;
                     break;
                 }
+                cout <<"frame:"<< ++frameCounter << " ("<<(int)((100*(float)frameCounter)/(float)videoLength) <<"% of video)"<< endl;
+
+                tmr.push_back(cvGetTickCount());if(frameCounter<2)lines.push_back(__LINE__);
+                if(frameCounter%faceDetectFreq==0){
+                    resize( fullFrame, smallImg, smallImgSize, 0, 0, INTER_LINEAR );
+                    cvtColor( smallImg, graySmall, COLOR_BGR2GRAY );
+
+                    /* Поиск лиц в анфас */
+                    cascadeFull.detectMultiScale(graySmall, facesFull,
+                                                 scaleFactor, minNeighbors, 0|CASCADE_SCALE_IMAGE,minfaceSize);
+                    /// Поиск лиц в профиль
+                    cascadeProf.detectMultiScale( graySmall, facesProf,
+                                                  scaleFactor, minNeighbors, 0|CASCADE_SCALE_IMAGE,minfaceSize);
+                    tmr.push_back(cvGetTickCount());if(frameCounter<2)lines.push_back(__LINE__);
+                    foundFaces = !(facesFull.empty() && facesProf.empty());
+                }else foundFaces = false;
                 tmr.push_back(cvGetTickCount());if(frameCounter<2)lines.push_back(__LINE__);
 
-                faceDetStart = cvGetTickCount();
-                resize( fullFrame, smallImg, smallImgSize, 0, 0, INTER_LINEAR );
-                cvtColor( smallImg, graySmall, COLOR_BGR2GRAY );
-                preview = smallImg.clone();
-                tmr.push_back(cvGetTickCount());if(frameCounter<2)lines.push_back(__LINE__);
-
-                /* Поиск лиц в анфас */
-                cascadeFull.detectMultiScale(graySmall, facesFull,
-                                             scaleFactor, minNeighbors, 0|CASCADE_SCALE_IMAGE,minfaceSize);
-                /// Поиск лиц в профиль
-                cascadeProf.detectMultiScale( graySmall, facesProf,
-                                              scaleFactor, minNeighbors, 0|CASCADE_SCALE_IMAGE,minfaceSize);
-                tmr.push_back(cvGetTickCount());if(frameCounter<2)lines.push_back(__LINE__);
-                foundFaces = !(facesFull.empty() && facesProf.empty());
-
-                faceDetEnd = cvGetTickCount();
-                updateStart = cvGetTickCount();
                 if(frameCounter%aimUpdateFreq == 0){
                     if(!facesProf.empty()) aim = facesProf[0];
                     if(!facesFull.empty()) aim = facesFull[0];
@@ -515,7 +512,6 @@ int main( int argc, const char** argv )
             try{
                 if(bZoom){
                 float aimH = aim.height*face2shot;
-                cout << aim.height << " "<< cvRound(roi.height) << zoomState << endl;
                 switch (zoomState) {
                 case STOP:
                     if(aimH>roi.height*zoomThr){
@@ -568,8 +564,6 @@ int main( int argc, const char** argv )
                 }
                 tmr.push_back(cvGetTickCount());if(frameCounter<2)lines.push_back(__LINE__);
 
-
-
                 if(roi.x<0) roi.x = 0;
                 if(maxRoiSize.width < roi.x+roi.width)
                     roi.x = maxRoiSize.width-roi.width;
@@ -577,13 +571,10 @@ int main( int argc, const char** argv )
                 if(maxRoiSize.height < roi.y+roi.height)
                     roi.y=maxRoiSize.height-roi.height;
                 /// end Motion and zoom
-                updateEnd = cvGetTickCount();
             }catch(Exception &mvEx){
                 cout << "Motion and zoom block: "<< mvEx.msg << endl;
             }
 
-            motDetStart = cvGetTickCount();
-            motDetEnd = cvGetTickCount();
             tmr.push_back(cvGetTickCount());if(frameCounter<2)lines.push_back(__LINE__);
             try{
                 Rect2f roiFullSize = Rect2f(Point(roi.x*scale,roi.y*scale),Size(roi.width*scale,roi.height*scale));
@@ -600,6 +591,7 @@ int main( int argc, const char** argv )
             if( c == 27 || c == 'q' || c == 'Q' )break;
 
             if(showPreview || recordPreview){ // Отрисовка области интереса
+                resize(fullFrame, preview, smallImgSize, 0, 0, INTER_NEAREST );
                 // Рисовать кадр захвата
                 if(zoomState==START)rectangle(preview,roi,Scalar(100,255,100),thickness+stopZoomThr);
                 if(zoomState==MOVE)rectangle(preview,roi,Scalar(255,255,255),thickness+stopZoomThr);
