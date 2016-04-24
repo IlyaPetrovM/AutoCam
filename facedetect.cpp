@@ -381,9 +381,10 @@ int main( int argc, const char** argv )
 
         ///Zoom & movement params (driver)
         const double onePerc =(double)smallImgSize.width/100.0; // onePercent
-        const int maxStepX = cvRound(2.0*onePerc);
-        const int maxStepY = cvRound(2.0*onePerc);
+        const float maxStepX = (2.0*onePerc);
+        const float maxStepY = (2.0*onePerc);
         const float maxScaleSpeed = 0.3;
+        Point gp;
         cout << " maxStepX:"<< maxStepX << " maxStepY:"<< maxStepY << " maxStepZ:"<< maxScaleSpeed << endl;
         //zooming
         const int stopZoomThr = cvRound(10.0*onePerc);
@@ -400,9 +401,8 @@ int main( int argc, const char** argv )
         double minZoomSpeed=0.01,maxZoomSpeed=0.2, zoomSpeedInc=(maxZoomSpeed-minZoomSpeed)/10.0, zoomSpeed=minZoomSpeed;
         DYNAMIC_STATES zoomState = STOP;
         autoMotion moveX(0,3),moveY(0,3);
-        Point gp;
-
         double zoomSign = 1;
+
         //file writing
         stringstream outFileTitle;
         VideoWriter previewVideo;
@@ -411,7 +411,6 @@ int main( int argc, const char** argv )
         ///Test items
         const double ticksPerMsec=cvGetTickFrequency() * 1.0e3;
         int64 oneIterEnd, oneIterStart,motDetStart,motDetEnd,faceDetStart,faceDetEnd,updateStart,updateEnd, timeStart;
-        double oneIterTime, motDetTime, faceDetTime,updateTime,timeEnd;
         vector<int64> tmr;
         vector<int> lines;
         fstream logFile;
@@ -599,7 +598,6 @@ int main( int argc, const char** argv )
 
             int c = waitKey(10);
             if( c == 27 || c == 'q' || c == 'Q' )break;
-            oneIterEnd = faceDetEnd = motDetEnd = -1;
 
             if(showPreview || recordPreview){ // Отрисовка области интереса
                 // Рисовать кадр захвата
@@ -689,10 +687,20 @@ int main( int argc, const char** argv )
                     }
                     logFile << "facesFull.x, px"<<"\t"
                             <<"facesFull.y, px"<<"\t"
-                            << "faceProf.x, px"<<"\t"
-                            <<"faceProf.y, px"<<"\t"
-                    << "roi.x, px\t"<<"roi.y, px"<<"\t"
-                    << "roi.width, px\t"<<"roi.height, px"<< endl;
+                           << "facesFull.width, px"<<"\t"
+                           <<"facesFull.height, px"<<"\t"
+                          << "faceProf.x, px"<<"\t"
+                          <<"faceProf.y, px"<<"\t"
+                         << "facesProf.width, px"<<"\t"
+                         <<"facesProf.height, px"<<"\t"
+                        << "aim.x, px"<<"\t"
+                        <<"aim.y, px"<<"\t"
+                       << "aim.width, px"<<"\t"
+                       <<"aim.height, px"<<"\t"
+                      << "roi.x, px\t"
+                      <<"roi.y, px"<<"\t"
+                     << "roi.width, px\t"
+                     <<"roi.height, px"<< endl;
                 }
                 logFile  << frameCounter <<"\t";
                 for (int i = 0; i < tmr.size()-1; ++i) {
@@ -700,10 +708,21 @@ int main( int argc, const char** argv )
                 }
                 if(!facesFull.empty())
                     logFile << facesFull[0].x << "\t"
-                            << facesFull[0].y << "\t"; else logFile << "\t\t";
+                            << facesFull[0].y << "\t"
+                            << facesFull[0].width << "\t"
+                            << facesFull[0].height << "\t";
+                else logFile << "\t\t\t\t";
                 if(!facesProf.empty())
                     logFile << facesProf[0].x << "\t"
-                            << facesProf[0].y << "\t"; else logFile << "\t\t";
+                            << facesProf[0].y << "\t"
+                            << facesProf[0].width << "\t"
+                            << facesProf[0].height << "\t";
+                else logFile << "\t\t\t\t";
+
+                logFile << aim.x << "\t"
+                        << aim.y << "\t"
+                        << aim.width << "\t"
+                        << aim.height << "\t";
                 logFile << roi.x << "\t"
                         << roi.y << "\t"
                         << roi.width << "\t"
