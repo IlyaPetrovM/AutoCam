@@ -236,6 +236,22 @@ int detectMotion(Mat img, int thresh=50, int blur=21, bool showPrev=false){
     grLast=gr.clone();
     return motion;
 }
+Rect median(const vector<Rect>& r){
+    static vector<int> x,y,h;
+    x.resize(r.size());
+    y.resize(r.size());
+    h.resize(r.size());
+    for (int i = 0; i < r.size(); ++i) {
+        x[i]=r[i].x;
+        y[i]=r[i].y;
+        h[i]=r[i].height;
+    }
+    sort(x.begin(),x.end());
+    sort(y.begin(),y.end());
+    sort(h.begin(),h.end());
+    return Rect(x[x.size()/2],y[y.size()/2],h[h.size()/2],h[h.size()/2]);
+}
+
 int main( int argc, const char** argv )
 {
     VideoCapture capture;
@@ -361,7 +377,7 @@ int main( int argc, const char** argv )
         const Size minfaceSize=Size(25,25);
 
         bool foundFaces=false;
-        vector<Rect> facesFull,facesProf;
+        vector<Rect> facesFull,facesProf,faceBuf;
 
         //Video characteristics
         const long int videoLength = capture.get(CAP_PROP_FRAME_COUNT);
@@ -473,7 +489,6 @@ int main( int argc, const char** argv )
         //// Main cycle
         for(;;)
         {
-            bool aimUpdated = false;
             tmr.push_back(cvGetTickCount());if(frameCounter<2)lines.push_back(__LINE__);
             try{
                 capture >> fullFrame;
@@ -499,10 +514,15 @@ int main( int argc, const char** argv )
                 }else foundFaces = false;
                 tmr.push_back(cvGetTickCount());if(frameCounter<2)lines.push_back(__LINE__);
 
+                if(foundFaces){
+                    if(!facesFull.empty())faceBuf.push_back(facesFull[0]);
+                    if(!facesProf.empty())faceBuf.push_back(facesProf[0]);
+                }
                 if(frameCounter%aimUpdateFreq == 0){
-                    if(!facesProf.empty()) aim = facesProf[0];
-                    if(!facesFull.empty()) aim = facesFull[0];
-                    aimUpdated=true;
+                    if(!faceBuf.empty()) {
+                        aim = median(faceBuf);
+                        faceBuf.clear();
+                    }
                 }
             }catch(Exception &mvEx){
                 cout << "Detection block: "<< mvEx.msg << endl;
