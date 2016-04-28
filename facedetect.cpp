@@ -32,7 +32,7 @@ string cascadeREyeName = "../../data/haarcascades/haarcascade_righteye_2splits.x
 
 inline Point rectCenterAbs(const Rect2f& r){ // absolute coordinates
     int w=r.width;
-    return Point(r.x+(int)(w*0.5), r.y+(int)(r.height*0.5)); // BUG 13/04/2016 Где-то тут прокралась неточность
+    return Point(r.x+(int)(w*0.5), r.y+(int)(r.height*0.5));
 }
 inline Point topMiddleDec(const Rect2f& r) {return Point(cvRound((double)r.width*0.5) , cvRound((double)r.height/3.0));} // relative coordinates
 inline Point topLeftDec(const Rect2f& r) {return Point(cvRound((double)r.width/3.0) , cvRound((double)r.height/3.0));} // relative coordinates
@@ -104,17 +104,12 @@ inline void scaleRect(Rect2f &r,const Size& asp, const float &sc=1.0){ /// from 
 void autoZoom(const Rect& face,
               Rect2f& roi,
               const Size& aspect,const float& maxStep, const double& relation){
-//       double scale = ((((double)face.height)/((double)roi.height))); // Это хорошая конфигурация!!!!!
-//       cout << 1 <<"-"<< scale << "=" << (1-scale/10.0) << endl;
-//       scaleRect(roi,(1.0-scale/10.0));
     static float step=0.01;
     if(maxStep>step)step+=0.01;else step -= 0.01;
        if(roi.height > face.height*relation)
            scaleRect(roi,aspect,-step);
        else
            scaleRect(roi,aspect,step);
-//       cout << pb << pa << (pa-pb) << endl ;
-
 }
 
 void autoMove(const Rect& face,
@@ -176,6 +171,29 @@ public:
     float getSign(){ return sign;}
     double getSpeed(){
         return speed;
+    }
+};
+
+class FaceSeqFilter
+{
+    Rect facePrev;
+    bool noPrevFace;
+    int area;
+public:
+    FaceSeqFilter()
+        : noPrevFace(true){}
+    bool isNear(const Rect faceCur){ // returns true if previous face detection was nearby the current
+        if(!noPrevFace) {
+            area = (facePrev & faceCur).area();
+            if(area>0){facePrev = faceCur;}
+            cout <<"area=" << area << endl;
+            return area>0;
+        }
+        else{
+            noPrevFace=false;
+            facePrev=faceCur;
+            return true;
+        }
     }
 };
 
@@ -372,9 +390,11 @@ int main( int argc, const char** argv )
 
         /// Face detection
         const double fx = 1 / scale;
-        const int minNeighbors=1; // количество соседних лиц
-        const double scaleFactor=1.25;
-        const Size minfaceSize=Size(25,25);
+        const int minNeighbors=1; // количество соседних лиц // \todo 26\04\2016 Вводить из командной строки
+        const double scaleFactor=1.25; // \todo 26\04\2016 Вводить из командной строки
+        const Size minfaceSize=Size(25,25); // \todo 26\04\2016 Вводить из командной строки
+
+        FaceSeqFilter fltrFull,fltrProf;
 
         bool foundFaces=false;
         vector<Rect> facesFull,facesProf,faceBuf;
@@ -393,21 +413,21 @@ int main( int argc, const char** argv )
         const Size smallImgSize = Size((float)fullShot.width/scale, (float)fullShot.height/scale);
         const Size maxRoiSize = smallImgSize;
         const Size previewSize = smallImgSize;
-        const Size resultSize = Size(720*aspectRatio,720);
+        const Size resultSize = Size(720*aspectRatio,720); // \todo 26\04\2016 Вводить из командной строки
 
         ///Zoom & movement params (driver)
         const double onePerc =(double)smallImgSize.width/100.0; // onePercent
-        float maxStepX = (0.9);
-        float maxStepY = (0.9);
-        float maxScaleSpeed = 0.3;
+        float maxStepX = (0.9); // \todo 26\04\2016 Вводить из командной строки
+        float maxStepY = (0.9);// \todo 26\04\2016 Вводить из командной строки
+        float maxScaleSpeed = 0.3;// \todo 26\04\2016 Вводить из командной строки
         Point gp;
         cout << " maxStepX:"<< maxStepX << " maxStepY:"<< maxStepY << " maxStepZ:"<< maxScaleSpeed << endl;
         //zooming
-        const int stopZoomThr = cvRound(10.0*onePerc);
-        const float zoomThr=FI;
-        const double face2shot = FI;
-        const unsigned int aimUpdateFreq=9; // каждые Н кадров
-        const unsigned int faceDetectFreq=1;
+        const int stopZoomThr = cvRound(10.0*onePerc); // \todo 26\04\2016 Вводить из командной строки
+        const float zoomThr=FI; // \todo 26\04\2016 Вводить из командной строки
+        const double face2shot = FI; // \todo 26\04\2016 Вводить из командной строки
+        const unsigned int aimUpdateFreq=9; // каждые Н кадров // \todo 26\04\2016 Вводить из командной строки
+        const unsigned int faceDetectFreq=1; // \todo 26\04\2016 Вводить из командной строки
         const Size aspect = getAspect(fullShot.size());
 
         Rect aim=Rect(Point(0,0),maxRoiSize);
@@ -415,7 +435,10 @@ int main( int argc, const char** argv )
 
         const bool bZoom = true;
         const bool bMove = true;
-        double minZoomSpeed=0.01,maxZoomSpeed=0.2, zoomSpeedInc=(maxZoomSpeed-minZoomSpeed)/10.0, zoomSpeed=minZoomSpeed;
+        double minZoomSpeed=0.01, // \todo 26\04\2016 Вводить из командной строки
+                maxZoomSpeed=0.2, // \todo 26\04\2016 Вводить из командной строки
+                zoomSpeedInc=(maxZoomSpeed-minZoomSpeed)/10.0, // \todo 26\04\2016 Вводить из командной строки
+                zoomSpeed=minZoomSpeed;
         DYNAMIC_STATES zoomState = STOP;
         autoMotion moveX(0,maxStepX*onePerc),moveY(0,maxStepY*onePerc);
         double zoomSign = 1;
@@ -485,10 +508,11 @@ int main( int argc, const char** argv )
         if(!logFile.is_open()){
             cout << "Error with opening the file:" << "results/test_"+outFileTitle.str()+".csv" << endl;
         }
-
         //// Main cycle
         for(;;)
         {
+            // \todo 26\04\2016 Создать фильтр для прямоугольников лиц
+
             tmr.push_back(cvGetTickCount());if(frameCounter<2)lines.push_back(__LINE__);
             try{
                 capture >> fullFrame;
@@ -496,7 +520,7 @@ int main( int argc, const char** argv )
                     clog << "Frame is empty" << endl;
                     break;
                 }
-                cout <<"frame:"<< ++frameCounter << " ("<<(int)((100*(float)frameCounter)/(float)videoLength) <<"% of video)"<< endl;
+
 
                 tmr.push_back(cvGetTickCount());if(frameCounter<2)lines.push_back(__LINE__);
                 if(frameCounter%faceDetectFreq==0){
@@ -509,6 +533,8 @@ int main( int argc, const char** argv )
                     /// Поиск лиц в профиль
                     cascadeProf.detectMultiScale( graySmall, facesProf,
                                                   scaleFactor, minNeighbors, 0|CASCADE_SCALE_IMAGE,minfaceSize);
+                    if(!facesFull.empty() && !fltrFull.isNear(facesFull[0])) facesFull.clear();
+                    if(!facesProf.empty() && !fltrProf.isNear(facesProf[0])) facesProf.clear();
                     tmr.push_back(cvGetTickCount());if(frameCounter<2)lines.push_back(__LINE__);
                     foundFaces = !(facesFull.empty() && facesProf.empty());
                 }else foundFaces = false;
@@ -607,11 +633,11 @@ int main( int argc, const char** argv )
 
 
 
-            int c = waitKey(10);
-            if( c == 27 || c == 'q' || c == 'Q' )break;
+
 
             if(showPreview || recordPreview){ // Отрисовка области интереса
                 resize(fullFrame, preview, smallImgSize, 0, 0, INTER_NEAREST );
+
                 // Рисовать кадр захвата
                 if(zoomState==START)rectangle(preview,roi,Scalar(100,255,100),thickness+stopZoomThr);
                 if(zoomState==MOVE)rectangle(preview,roi,Scalar(255,255,255),thickness+stopZoomThr);
@@ -671,25 +697,35 @@ int main( int argc, const char** argv )
                 time_t t = time(0);   // get time now
                 struct tm * now = localtime( & t );
                 stringstream timestring;
-                timestring << (now->tm_year + 1900) << '.'
+                timestring
+                           << __DATE__ <<" "<< __TIME__
+                           "|"<< (now->tm_year + 1900) << '.'
                            << (now->tm_mon + 1) << '.'
                            << now->tm_mday << " "
                            << now->tm_hour <<":"
                            << now->tm_min << ":"
-                           << now->tm_sec << "."
-                           << frameCounter<< " build:"
-                           << __DATE__ <<" "<< __TIME__ ;
-                putText(preview,timestring.str(),Point(0,smallImgSize.height-3),CV_FONT_NORMAL,fontScale,Scalar(0,0,0),textThickness*5);
-                putText(preview,timestring.str(),Point(0,smallImgSize.height-3),CV_FONT_NORMAL,fontScale,Scalar(255,255,255),textThickness);
+                           << now->tm_sec;
+//                           << frameCounter;
+                putText(preview,timestring.str(),Point(0,smallImgSize.height-3),CV_FONT_NORMAL,fontScale*1.35,Scalar(0,0,0),textThickness*100);
+                putText(preview,timestring.str(),Point(0,smallImgSize.height-3),CV_FONT_NORMAL,fontScale*1.35,Scalar(255,255,255),textThickness*2);
+                stringstream frame;
+                frame << frameCounter;
+                putText(preview,(frame.str()),Point(0,fontScale*20),CV_FONT_NORMAL,fontScale*1.45,Scalar(0,0,0,100),textThickness*10);
+                putText(preview,(frame.str()),Point(0,fontScale*20),CV_FONT_NORMAL,fontScale*1.45,Scalar(255,255,255),textThickness*5);
                 tmr.push_back(cvGetTickCount());if(frameCounter<2)lines.push_back(__LINE__);
                 // Сохранение кадра
                 if(recordPreview)
                     previewVideo << preview;
                 if(showPreview)
                     imshow(prevWindTitle.c_str(),preview);
-                tmr.push_back(cvGetTickCount());if(frameCounter<2)lines.push_back(__LINE__);
             }
+            tmr.push_back(cvGetTickCount());if(frameCounter<2)lines.push_back(__LINE__);
 
+            cout <<"frame:"<< ++frameCounter
+                << " fps:" << (int)(1000*(float)ticksPerMsec/(float)(tmr[tmr.size()-1]-tmr[0]))
+                << " ("<< (int)((100*(float)frameCounter)/(float)videoLength) <<"% of video)"
+                << endl;
+            if( waitKey(1) == 27 )break;
             /// Запись статистики
             if(logFile.is_open()) {
                 if(frameCounter<2){
@@ -740,6 +776,7 @@ int main( int argc, const char** argv )
                         << roi.width << "\t"
                         << roi.height << endl;
             }
+
             tmr.clear();
             lines.clear();
         }
