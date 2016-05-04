@@ -174,26 +174,46 @@ public:
     }
 };
 
-class FaceSeqFilter
+class FaceFilter
 {
     Rect facePrev;
-    bool noPrevFace;
+    bool hasPrevFace;
     int area;
 public:
-    FaceSeqFilter()
-        : noPrevFace(true){}
-    bool isNear(const Rect faceCur){ // returns true if previous face detection was nearby the current
-        if(!noPrevFace) {
-            area = (facePrev & faceCur).area();
-            if(area>0){facePrev = faceCur;}
-            cout <<"area=" << area << endl;
-            return area>0;
+    FaceFilter()
+        : hasPrevFace(false){}
+    int isNear(const Rect faceCur){ // returns true if previous face detection was nearby the current
+        if(hasPrevFace) {
+            if(isNear(faceCur,facePrev)){
+                facePrev = faceCur;
+                return true;
+            }else return false;
         }
         else{
-            noPrevFace=false;
+            hasPrevFace=false;
             facePrev=faceCur;
             return true;
         }
+    }
+    static int isNear(const Rect face1, const Rect face2 ){ // returns true if previous face detection was nearby the current
+        return (face1 & face2).area();
+    }
+};
+class FaceFilterArray{
+    Rect facePrev;
+    bool hasPrevFace;
+public:
+    FaceFilterArray() {
+    }
+    void filter(vector<Rect>& faces){
+        if(hasPrevFace)
+            for (int i = 0; i < faces.size(); ++i) {
+                if((facePrev & faces[i]).area()<=0)faces.erase(faces.begin()+i);
+            }
+    }
+    inline void setFacePrev(const Rect fp){
+        facePrev=fp;
+        hasPrevFace=true;
     }
 };
 
@@ -394,7 +414,7 @@ int main( int argc, const char** argv )
         const double scaleFactor=1.25; // \todo 26\04\2016 Вводить из командной строки
         const Size minfaceSize=Size(25,25); // \todo 26\04\2016 Вводить из командной строки
 
-        FaceSeqFilter fltrFull,fltrProf;
+        FaceFilterArray filt;
 
         bool foundFaces=false;
         vector<Rect> facesFull,facesProf,faceBuf;
@@ -511,7 +531,6 @@ int main( int argc, const char** argv )
         //// Main cycle
         for(;;)
         {
-            // \todo 26\04\2016 Создать фильтр для прямоугольников лиц
 
             tmr.push_back(cvGetTickCount());if(frameCounter<2)lines.push_back(__LINE__);
             try{
@@ -526,6 +545,7 @@ int main( int argc, const char** argv )
                 if(frameCounter%faceDetectFreq==0){
                     resize( fullFrame, smallImg, smallImgSize, 0, 0, INTER_LINEAR );
                     cvtColor( smallImg, graySmall, COLOR_BGR2GRAY );
+                /// \todo 04/05/2016 Искать лица только в некоторой области вокруг уже обнаруженного лица
 
                     /* Поиск лиц в анфас */
                     cascadeFull.detectMultiScale(graySmall, facesFull,
@@ -533,16 +553,16 @@ int main( int argc, const char** argv )
                     /// Поиск лиц в профиль
                     cascadeProf.detectMultiScale( graySmall, facesProf,
                                                   scaleFactor, minNeighbors, 0|CASCADE_SCALE_IMAGE,minfaceSize);
-                    if(!facesFull.empty() && !fltrFull.isNear(facesFull[0])) facesFull.clear();
-                    if(!facesProf.empty() && !fltrProf.isNear(facesProf[0])) facesProf.clear();
                     tmr.push_back(cvGetTickCount());if(frameCounter<2)lines.push_back(__LINE__);
                     foundFaces = !(facesFull.empty() && facesProf.empty());
                 }else foundFaces = false;
                 tmr.push_back(cvGetTickCount());if(frameCounter<2)lines.push_back(__LINE__);
 
+                    // \todo 26\04\2016 Создать фильтр для прямоугольников лиц
+
                 if(foundFaces){
-                    if(!facesFull.empty())faceBuf.push_back(facesFull[0]);
-                    if(!facesProf.empty())faceBuf.push_back(facesProf[0]);
+                    if(!facesFull.empty() && ((facesFull[0]&aim).area()>0))faceBuf.push_back(facesFull[0]);
+                    if(!facesProf.empty() && ((facesProf[0]&aim).area()>0))faceBuf.push_back(facesProf[0]);
                 }
                 if(frameCounter%aimUpdateFreq == 0){
                     if(!faceBuf.empty()) {
