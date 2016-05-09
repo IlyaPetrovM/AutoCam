@@ -17,7 +17,7 @@ typedef enum {STOP,START,MOVE,END} DYNAMIC_STATES;
 static void help()
 {
     cout << "Build date:" << __DATE__ << " " << __TIME__
-            "During execution:\n\tHit any key to quit.\n"
+            "\n\tDuring execution:\n\tHit any key to quit.\n"
             "\tUsing OpenCV version " << CV_VERSION << "\n" << endl;
 }
 
@@ -137,7 +137,7 @@ public:
     }
     float update(float& x,const int& aim, const double& precision, const bool outOfRoi){
 
-        switch (state) {/// \todo
+        switch (state) {/// \todo test this code!!
         case STOP:
             if(outOfRoi && abs(aim-cvRound(x))>2*precision){
                 if(aim>cvRound(x)) sign=1.0; else sign=-1.0;
@@ -297,41 +297,99 @@ Rect median(const vector<Rect>& r){
     return Rect(x[x.size()/2],y[y.size()/2],h[h.size()/2],h[h.size()/2]);
 }
 
+/**
+ * @class Arg
+ * @p Этот класс предназначен для ввода параметров программы различных типов
+ */
+template <typename T>
+class Arg
+{
+    T val;
+    T *valDef;
+    string *opt;
+    string *format;
+    T *gt;
+    T *lt;
+public:
+    Arg(T defVal, string opt_, string format_,  T* greater=NULL, T* less=NULL)
+        : val(defVal) {
+        opt = new string(opt_);
+        format = new string(format_);
+        valDef = new T(defVal);
+        if(greater) gt = new T(*greater); else gt=NULL;
+        if(less)    lt = new T(*less);    else lt=NULL;
+        cout << "\t" << *opt << "[" << val << "]" << endl;
+    }
+    bool input(const char* argv){
+        if(exists(argv))
+        {
+            if(sscanf( argv + opt->length(), format->c_str(), &val)){
+                if((gt!=NULL && *gt>val))
+                    val=*valDef;
+                else if((lt!=NULL && *lt<val))
+                    val=*valDef;
+                cout << " and " << val << " assigned."<<endl;
+                delete format, opt;
+                delete valDef;
+                return true;
+            }
+        }
+        return false;
+    }
+    operator T(){
+        return val;
+    }
+    bool exists(const char* argv){
+        return (opt->compare(0,opt->length(),argv,opt->length())==0);
+    }
+};
+
 int main( int argc, const char** argv )
 {
-    VideoCapture capture;
+    string inputName;
 
-    int aimUpdateFreq=1;
-    const string aimUpdateFreqOpt="--aimUpdateFreq=";
-    int faceDetectFreq=1;
-    const string faceDetectFreqOpt="--faceDetectFreq=";
-    int resultHeight=480;
-    const string resultHeightOpt="--resultHeight=";
+    cout << "Availible parameters: " << endl;
+    /// Параметры детектора лиц
 
-    const string scaleOpt = "--scale=";
-    size_t scaleOptLen = scaleOpt.length();
-    const string cascadeOpt = "--cascade=";
-    size_t cascadeOptLen = cascadeOpt.length();
+    Arg<double> scale(3,"--scale=","%lf", new double(1));
     const string nestedCascadeOpt = "--nested-cascade";
     size_t nestedCascadeOptLen = nestedCascadeOpt.length();
-    const string tryFlipOpt = "--try-flip";
-    const string showPrevOpt =  "--show-preview";
-    const string recPrevOpt = "--record-preview";
-    const string roiSizeOpt = "--roiSize";
-    size_t tryFlipOptLen = tryFlipOpt.length();
-    string inputName;
-    bool tryflip = false;
-    bool showPreview = false;
-    bool recordPreview = false;
+    const string cascadeOpt = "--cascade=";
+    size_t cascadeOptLen = cascadeOpt.length();
+    Arg<int>minNeighbors(1,"--minNeighbors=","%d",new int(1)); // количество соседних лиц
+    Arg<double> scaleFactor(1.1,"--scaleFactor=","%lf", new double(1.1));
+    Arg<int> minFaceHeight(25,"--minFaceHeight=","%d", new int(1));
+
+    Arg<int> aimUpdateFreq(15,"--aimUpdateFreq=","%d",new int(1));
+    Arg<int> faceDetectFreq(1,"--faceDetectFreq=","%d", new int(1));
+
+    Arg<int> resultHeight(480,"--resultHeight=","%d", new int(1));
+
+
+    Arg<int> showPreview(0,"--showPreview=","%d",new int(0));
+    Arg<int> recordPreview(0,"--recordPreview=","%d",new int(0));
+
+    /// Перемещение виртуальной камеры
+    Arg<float>maxStepX(1,"--maxStepX=","%f",new float(0.2));
+    Arg<float>maxStepY(1,"--maxStepY=","%f",new float(0.2));
+
+    Arg<float> zoomStopThr_ (10.0,"--zoomStopThr=","%f",new float(1));
+    Arg<float> zoomThr(FI,"--zoomThr=","%f",new float(1));
+    Arg<double> face2shot(FI,"--face2shot=","%lf",new double(0.1));
+
+    Arg<double> zoomSpeedMin(0.01,"--zoomSpeedMin=","%lf",new double(0.001));
+    Arg<double> zoomSpeedMax(0.2,"--zoomSpeedMax=","%lf",new double(0.001));
+    Arg<double> zoomSpeedInc_(10.0,"--zoomSpeedInc=","%lf",new double(0.001));
+
     help();
 
-    CascadeClassifier cascadeFull,cascadeProf, cascadeEyeL,cascadeEyeR; // Cascades for Full face and Profile face
-    double scale = 1;
+    CascadeClassifier cascadeFull,cascadeProf; // Cascades for Full face and Profile face
 
     /// Чтение аргументов программы
     for( int i = 1; i < argc; i++ )
     {
-        cout << "Processing " << i << " " <<  argv[i] << endl;
+        cout << "Processing " << i << " " <<  argv[i];
+
         if( cascadeOpt.compare( 0, cascadeOptLen, argv[i], cascadeOptLen ) == 0 )
         {
             cascadeFullName.assign( argv[i] + cascadeOptLen );
@@ -344,52 +402,33 @@ int main( int argc, const char** argv )
                 cascadeLEyeName.assign( argv[i] + nestedCascadeOpt.length() + 1 );
 
         }
-        else if( scaleOpt.compare( 0, scaleOptLen, argv[i], scaleOptLen ) == 0 )
-        {
-            if( !sscanf( argv[i] + scaleOpt.length(), "%lf", &scale ) || scale < 1 )
-                scale = 1;
-            cout << " from which we read scale = " << scale << endl;
-        }
-        else if(aimUpdateFreqOpt.compare(0,aimUpdateFreqOpt.length(),argv[i],aimUpdateFreqOpt.length())==0){
-            if(!sscanf( argv[i]+aimUpdateFreqOpt.length(),"%d",&aimUpdateFreq))
-                aimUpdateFreq=1;
-            cout << "Aim Update Frequence: "<<aimUpdateFreq<<endl;
-        }
-        else if(faceDetectFreqOpt.compare(0,faceDetectFreqOpt.length(),argv[i],faceDetectFreqOpt.length())==0){
-            if(!sscanf( argv[i]+faceDetectFreqOpt.length(),"%d",&faceDetectFreq) || faceDetectFreq < 1)
-                faceDetectFreq=1;
-            cout << "faceDetectFreq: "<<faceDetectFreq<<endl;
-        }
-        else if(resultHeightOpt.compare(0,resultHeightOpt.length(),argv[i],resultHeightOpt.length())==0){
-            if(!sscanf( argv[i]+resultHeightOpt.length(),"%d",&resultHeight) || resultHeight<=0)
-                resultHeight=480;
-            cout << "resultHeight:"<<resultHeight<<endl;
-        }
-        else if( tryFlipOpt.compare( 0, tryFlipOptLen, argv[i], tryFlipOptLen ) == 0 )
-        {
-            tryflip = true;
-            cout << " will try to flip image horizontally to detect assymetric objects\n";
-        }
-        else if( string::npos!=recPrevOpt.find(argv[i]))
-        {
-            recordPreview = true;
-            cout << "Record preview." << endl;
-        }
-        else if( string::npos!=showPrevOpt.find(argv[i]))
-        {
-            showPreview = true;
-            cout << "Show preview."<< endl;
-        }
-        else if( argv[i][0] == '-' )
+        else if(scale.input(argv[i]));
+        else if(minNeighbors.input(argv[i]));
+        else if(scaleFactor.input(argv[i]));
+        else if(minFaceHeight.input((argv[i])));
+
+        else if(aimUpdateFreq.input(argv[i]));
+        else if(faceDetectFreq.input(argv[i]));
+
+        else if(resultHeight.input(argv[i]));
+        else if(showPreview.input(argv[i]));
+        else if(recordPreview.input(argv[i]));
+        else if(maxStepX.input(argv[i]));
+        else if(maxStepY.input(argv[i]));
+        else if(zoomStopThr_.input(argv[i]));
+
+        else if(zoomThr.input(argv[i]));
+        else if(face2shot.input(argv[i]));
+        else if(zoomSpeedMin.input(argv[i]));
+        else if(zoomSpeedMax.input(argv[i]));
+        else if(zoomSpeedInc_.input(argv[i]));
+
+        else if(argv[i][0] == '-' )
         {
             cerr << "WARNING: UnkoneIterEndn option %s" << argv[i] << endl;
         }
         else inputName.assign( argv[i] );
     }
-    if( !cascadeEyeL.load( cascadeLEyeName ) )
-        cerr << "WARNING: Could not load classifier cascade for nested objects" << endl;
-    if( !cascadeEyeR.load( cascadeREyeName ) )
-        cerr << "WARNING: Could not load classifier cascade for nested objects" << endl;
     if( !cascadeFull.load( cascadeFullName ) )
     {
         cerr << "ERROR: Could not load classifier cascade" << endl;
@@ -403,6 +442,7 @@ int main( int argc, const char** argv )
         return -1;
     }
     bool isWebcam=false;
+    VideoCapture capture;
     if( inputName.empty() || (isdigit(inputName.c_str()[0]) && inputName.c_str()[1] == '\0') )
     {
         isWebcam=true;
@@ -417,7 +457,7 @@ int main( int argc, const char** argv )
         else
             cout << "Could not capture file " <<  inputName << endl;
     }
-cout << __LINE__ <<endl;
+
     if( capture.isOpened() )
     {
         cout << __LINE__ <<endl;
@@ -432,9 +472,6 @@ cout << __LINE__ <<endl;
 
         /// Face detection
         const double fx = 1 / scale;
-        const int minNeighbors=1; // количество соседних лиц // \todo 26\04\2016 Вводить из командной строки
-        const double scaleFactor=1.25; // \todo 26\04\2016 Вводить из командной строки
-        int minFaceHeight=25; // \todo 26\04\2016 Вводить из командной строки
         const Size minfaceSize=Size(minFaceHeight,minFaceHeight);
 
         FaceFilterArray filt;
@@ -460,15 +497,11 @@ cout << __LINE__ <<endl;
 cout << __LINE__ <<endl;
         ///Zoom & movement params (driver)
         const double onePerc =(double)smallImgSize.width/100.0; // onePercent
-        float maxStepX = (0.9); // \todo 26\04\2016 Вводить из командной строки
-        float maxStepY = (0.9);// \todo 26\04\2016 Вводить из командной строки
-        float maxScaleSpeed = 0.3;// \todo 26\04\2016 Вводить из командной строки
+
         Point gp;
-        cout << " maxStepX:"<< maxStepX << " maxStepY:"<< maxStepY << " maxStepZ:"<< maxScaleSpeed << endl;
         //zooming
-        const int stopZoomThr = cvRound(10.0*onePerc); // \todo 26\04\2016 Вводить из командной строки
-        const float zoomThr=FI; // \todo 26\04\2016 Вводить из командной строки
-        const double face2shot = FI; // \todo 26\04\2016 Вводить из командной строки
+
+        const int zoomStopThr = cvRound(zoomStopThr_*onePerc);
 
         const Size aspect = getAspect(fullShot.size());
 
@@ -477,10 +510,9 @@ cout << __LINE__ <<endl;
 
         const bool bZoom = true;
         const bool bMove = true;
-        double minZoomSpeed=0.01, // \todo 26\04\2016 Вводить из командной строки
-                maxZoomSpeed=0.2, // \todo 26\04\2016 Вводить из командной строки
-                zoomSpeedInc=(maxZoomSpeed-minZoomSpeed)/10.0, // \todo 26\04\2016 Вводить из командной строки
-                zoomSpeed=minZoomSpeed;
+
+        double zoomSpeedInc=(zoomSpeedMax-zoomSpeedMin)/zoomSpeedInc_;
+        double zoomSpeed=zoomSpeedMin;
         DYNAMIC_STATES zoomState = STOP;
         autoMotion moveX(0,maxStepX*onePerc),moveY(0,maxStepY*onePerc);
         double zoomSign = 1;
@@ -612,7 +644,7 @@ cout << __LINE__ <<endl;
                 case START:
                     zoomSpeed+=zoomSpeedInc;
                     scaleRect(roi,aspect,zoomSign*zoomSpeed);
-                    if(zoomSpeed > maxZoomSpeed) {zoomState=MOVE;zoomSpeed=maxZoomSpeed;}
+                    if(zoomSpeed > zoomSpeedMax) {zoomState=MOVE;zoomSpeed=zoomSpeedMax;}
                     if(roi.height > maxRoiSize.height) {
                         roi.height=maxRoiSize.height;
                         roi.width=maxRoiSize.width;
@@ -621,7 +653,7 @@ cout << __LINE__ <<endl;
                     break;
                 case MOVE:
                     scaleRect(roi,aspect,zoomSign*zoomSpeed);
-                    if((abs(aimH-roi.height) < stopZoomThr) || cvRound(roi.height) <= aim.height)zoomState=END;
+                    if((abs(aimH-roi.height) < zoomStopThr) || cvRound(roi.height) <= aim.height)zoomState=END;
                     if(roi.height > maxRoiSize.height) {
                         roi.height=maxRoiSize.height;
                         roi.width=maxRoiSize.width;
@@ -631,12 +663,12 @@ cout << __LINE__ <<endl;
                 case END:
                     zoomSpeed-=zoomSpeedInc;
                     scaleRect(roi,aspect,zoomSign*zoomSpeed);
-                    if(zoomSpeed < minZoomSpeed) {zoomState=STOP; zoomSpeed=minZoomSpeed;}
+                    if(zoomSpeed < zoomSpeedMin) {zoomState=STOP; zoomSpeed=zoomSpeedMin;}
                     if(roi.height > maxRoiSize.height) {
                         roi.height=maxRoiSize.height;
                         roi.width=maxRoiSize.width;
                         zoomState=STOP;
-                        zoomSpeed=minZoomSpeed;
+                        zoomSpeed=zoomSpeedMin;
                     }
                     break;
                 }
@@ -680,9 +712,9 @@ cout << __LINE__ <<endl;
                 resize(fullFrame, preview, smallImgSize, 0, 0, INTER_NEAREST );
 
                 // Рисовать кадр захвата
-                if(zoomState==START)rectangle(preview,roi,Scalar(100,255,100),thickness+stopZoomThr);
-                if(zoomState==MOVE)rectangle(preview,roi,Scalar(255,255,255),thickness+stopZoomThr);
-                if(zoomState==END)rectangle(preview,roi,Scalar(100,100,255),thickness+stopZoomThr);
+                if(zoomState==START)rectangle(preview,roi,Scalar(100,255,100),thickness+zoomStopThr);
+                if(zoomState==MOVE)rectangle(preview,roi,Scalar(255,255,255),thickness+zoomStopThr);
+                if(zoomState==END)rectangle(preview,roi,Scalar(100,100,255),thickness+zoomStopThr);
                 rectangle(preview,roi,Scalar(0,0,255),thickness);
                 Scalar colorX;
                 switch (moveX.getState()){
