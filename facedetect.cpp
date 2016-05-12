@@ -13,7 +13,7 @@
 using namespace std;
 using namespace cv;
 const double FI=1.61803398;
-typedef enum {STOP,START,MOVE,END} DYNAMIC_STATES;
+typedef enum {STOP,BEGIN,MOVE,END} DYNAMIC_STATES;
 static void help()
 {
     cout << "Build date:" << __DATE__ << " " << __TIME__
@@ -23,8 +23,6 @@ static void help()
 
 string cascadeFullName = "../../data/haarcascades/haarcascade_frontalface_alt.xml";
 string cascadeProfName = "../../data/haarcascades/haarcascade_profileface.xml";
-string cascadeLEyeName = "../../data/haarcascades/haarcascade_lefteye_2splits.xml";
-string cascadeREyeName = "../../data/haarcascades/haarcascade_righteye_2splits.xml";
 
 inline Point rectCenterAbs(const Rect2f& r){ // absolute coordinates
     int w=r.width;
@@ -149,10 +147,10 @@ public:
                 }
                 accelTime = precision*2.0/speedAim;
                 speedInc=(speedAim-speedMin)/accelTime;
-                state = START;
+                state = BEGIN;
             }
             break;
-        case START:
+        case BEGIN:
             speed+=speedInc;
             x += sign*speed;
             if(speed>speedAim) {state=MOVE;speed=speedAim;}
@@ -339,6 +337,11 @@ public:
     operator T(){
         return val;
     }
+    T operator =(T newVal){
+        val=newVal;
+        return val;
+    }
+
     bool exists(const char* argv){
         return (opt->compare(0,opt->length(),argv,opt->length())==0);
     }
@@ -368,6 +371,8 @@ int main( int argc, const char** argv )
 
     Arg<int> showPreview(0,"--showPreview=","%d",new int(0));
     Arg<int> recordPreview(0,"--recordPreview=","%d",new int(0));
+    Arg<int> writeCropFile(0,"--writeCropFile=","%d",new int(0));
+    Arg<int> recordResult(1,"--recordResult=","%d",new int(0));
 
     /// Перемещение виртуальной камеры
     Arg<float>maxStepX(1,"--maxStepX=","%f",new float(0.2));
@@ -398,8 +403,8 @@ int main( int argc, const char** argv )
         else if( nestedCascadeOpt.compare( 0, nestedCascadeOptLen, argv[i], nestedCascadeOptLen ) == 0 )
         {
             cout << "nc" <<endl;
-            if( argv[i][nestedCascadeOpt.length()] == '=' )
-                cascadeLEyeName.assign( argv[i] + nestedCascadeOpt.length() + 1 );
+            if( argv[i][nestedCascadeOpt.length()] == '=' );
+//                cascadeLEyeName.assign( argv[i] + nestedCascadeOpt.length() + 1 );
 
         }
         else if(scale.input(argv[i]));
@@ -416,6 +421,9 @@ int main( int argc, const char** argv )
         else if(maxStepX.input(argv[i]));
         else if(maxStepY.input(argv[i]));
         else if(zoomStopThr_.input(argv[i]));
+
+        else if(writeCropFile.input(argv[i]));
+        else if(recordResult.input(argv[i]));
 
         else if(zoomThr.input(argv[i]));
         else if(face2shot.input(argv[i]));
@@ -460,6 +468,7 @@ int main( int argc, const char** argv )
 
     if( capture.isOpened() )
     {
+        if(isWebcam) writeCropFile=false;
         cout << __LINE__ <<endl;
         cout << "Video capturing has been started ..." << endl;
 
@@ -518,7 +527,8 @@ cout << __LINE__ <<endl;
         double zoomSign = 1;
 
         //file writing
-        stringstream outFileTitle;
+        stringstream outTitleStream;
+        string outFileTitle;
         VideoWriter previewVideo;
         VideoWriter outputVideo;
 
@@ -527,10 +537,12 @@ cout << __LINE__ <<endl;
         vector<int64> tmr;
         vector<int> lines;
         fstream logFile;
+        stringstream pzoom;
+
 
    //    VIEW    //
         Mat preview;
-
+        Rect2f roiFullSize;
         //drawing
         const float thickness = 0.5*previewSize.width/100.0;
         const int dotsRadius = thickness*2;
@@ -544,17 +556,20 @@ cout << __LINE__ <<endl;
         if(isWebcam){
             time_t t = time(0);   // get time now
             struct tm * now = localtime( & t );
-             outFileTitle << "webcam"
+             outTitleStream << "webcam"
                           << (now->tm_year + 1900) << '_'
                           << (now->tm_mon + 1) << '_'
                           << now->tm_mday << "_"
                           << now->tm_hour <<"-"
                           << now->tm_min << "_"
-                          << __DATE__ <<" "<< __TIME__ <<"_sc"<< scale;
+                          << __DATE__ <<"_"<< __TIME__ <<"_sc"<< scale;
         }else{
-            outFileTitle << inputName.substr(inputName.find_last_of('/')+1)
-            << __DATE__ <<" "<< __TIME__<<"_sc"<< scale;
+            outTitleStream << inputName.substr(inputName.find_last_of('/')+1)
+            << "_" <<__DATE__ <<"_"<< __TIME__<<"_sc"<< scale;
         }
+        outFileTitle=outTitleStream.str();
+        replace(outFileTitle.begin(),outFileTitle.end(),' ','_');
+        replace(outFileTitle.begin(),outFileTitle.end(),':','-');
 
         if(isWebcam){
             fps = capture.get(CAP_PROP_FPS)/5.0;
@@ -564,25 +579,26 @@ cout << __LINE__ <<endl;
             fourcc = capture.get(CV_CAP_PROP_FOURCC); // codecs
             fps = capture.get(CAP_PROP_FPS);
         }
-        if(!outputVideo.open("results/closeUp_"+outFileTitle.str()+".avi",fourcc,
+        if(recordResult && !outputVideo.open("results/closeUp_"+outFileTitle+".avi",fourcc,
                                          fps, resultSize, true)){
             cout << "Could not open the output video ("
-                 << "results/closeUp_"+outFileTitle.str()+".avi" <<") for writing"<<endl;
+                 << "results/closeUp_"+outFileTitle+".avi" <<") for writing"<<endl;
             return -1;
         }
         if(recordPreview){
-             if(!previewVideo.open("results/test_"+outFileTitle.str()+".avi",fourcc,
+             if(!previewVideo.open("results/test_"+outFileTitle+".avi",fourcc,
                                    fps, previewSize, true))
              {
                  cout << "Could not open the output video ("
-                      << "results/test_"+outFileTitle.str()+".avi" <<") for writing"<<endl;
+                      << "results/test_"+outFileTitle+".avi" <<") for writing"<<endl;
                  return -1;
              }
         }
-        logFile.open(("results/test_"+outFileTitle.str()+".csv").c_str(), fstream::out);
+        logFile.open(("results/test_"+outFileTitle+".csv").c_str(), fstream::out);
         if(!logFile.is_open()){
-            cout << "Error with opening the file:" << "results/test_"+outFileTitle.str()+".csv" << endl;
+            cout << "Error with opening the file:" << "results/test_"+outFileTitle+".csv" << endl;
         }
+
         //// Main cycle
         for(;;)
         {
@@ -634,14 +650,14 @@ cout << __LINE__ <<endl;
                 case STOP:
                     if(aimH>roi.height*zoomThr){
                         zoomSign=1;
-                        zoomState=START;
+                        zoomState=BEGIN;
                     }
                     if(aimH<roi.height/zoomThr){
                         zoomSign=-1;
-                        zoomState=START;
+                        zoomState=BEGIN;
                     }
                     break;
-                case START:
+                case BEGIN:
                     zoomSpeed+=zoomSpeedInc;
                     scaleRect(roi,aspect,zoomSign*zoomSpeed);
                     if(zoomSpeed > zoomSpeedMax) {zoomState=MOVE;zoomSpeed=zoomSpeedMax;}
@@ -696,29 +712,26 @@ cout << __LINE__ <<endl;
 
             tmr.push_back(cvGetTickCount());if(frameCounter<2)lines.push_back(__LINE__);
             try{
-                Rect2f roiFullSize = Rect2f(Point(roi.x*scale,roi.y*scale),Size(roi.width*scale,roi.height*scale));
-                resize(fullFrame(roiFullSize), result , resultSize, 0,0, INTER_LINEAR );
-                outputVideo << result ;
+                roiFullSize = Rect2f(Point(roi.x*scale,roi.y*scale),Size(roi.width*scale,roi.height*scale));
+                if(recordResult){
+                    resize(fullFrame(roiFullSize), result , resultSize, 0,0, INTER_LINEAR );
+                    outputVideo << result ;
+                }
             }catch(Exception &mvEx){
                 cout << "Result saving: "<< mvEx.msg << endl;
             }
             tmr.push_back(cvGetTickCount());if(frameCounter<2)lines.push_back(__LINE__);
-
-
-
-
-
             if(showPreview || recordPreview){ // Отрисовка области интереса
                 resize(fullFrame, preview, smallImgSize, 0, 0, INTER_NEAREST );
 
                 // Рисовать кадр захвата
-                if(zoomState==START)rectangle(preview,roi,Scalar(100,255,100),thickness+zoomStopThr);
+                if(zoomState==BEGIN)rectangle(preview,roi,Scalar(100,255,100),thickness+zoomStopThr);
                 if(zoomState==MOVE)rectangle(preview,roi,Scalar(255,255,255),thickness+zoomStopThr);
                 if(zoomState==END)rectangle(preview,roi,Scalar(100,100,255),thickness+zoomStopThr);
                 rectangle(preview,roi,Scalar(0,0,255),thickness);
                 Scalar colorX;
                 switch (moveX.getState()){
-                case START:
+                case BEGIN:
                     colorX = Scalar(127,255,127);break;
                 case MOVE:
                     colorX = Scalar(255,255,255);break;
@@ -727,7 +740,7 @@ cout << __LINE__ <<endl;
                 }
                 Scalar colorY;
                 switch (moveY.getState()){
-                case START:
+                case BEGIN:
                     colorY = Scalar(127,255,127);break;
                 case MOVE:
                     colorY = Scalar(255,255,255);break;
@@ -794,11 +807,7 @@ cout << __LINE__ <<endl;
             }
             tmr.push_back(cvGetTickCount());if(frameCounter<2)lines.push_back(__LINE__);
 
-            cout <<"frame:"<< ++frameCounter
-                << " fps:" << (int)(1000*(float)ticksPerMsec/(float)(tmr[tmr.size()-1]-tmr[0]))
-                << " ("<< (int)((100*(float)frameCounter)/(float)videoLength) <<"% of video)"
-                << endl;
-            if( waitKey(1) == 27 )break;
+
             /// Запись статистики
             if(logFile.is_open()) {
                 if(frameCounter<2){
@@ -849,12 +858,39 @@ cout << __LINE__ <<endl;
                         << roi.width << "\t"
                         << roi.height << endl;
             }
+            if(writeCropFile){ /// \todo 9.05.2016 Не только вырезать, но и изменять размер кадра
+                pzoom << "zoompan=enable=eq(n\\,"<< frameCounter
+                      << "):z=" << fullShot.width/roiFullSize.width
+                      << ":x=" << roiFullSize.x
+                      << ":y=" << roiFullSize.y << ":d=1";
+            }
+
+            cout <<"frame:"<< frameCounter
+                << " fps:" << (int)(1000*(float)ticksPerMsec/(float)(tmr[tmr.size()-1]-tmr[0]))
+                << " ("<< (int)((100*(float)frameCounter)/(float)videoLength) <<"% of video)"
+                << endl;
+            ++frameCounter;
 
             tmr.clear();
             lines.clear();
+            if( waitKey(1) != 27 && frameCounter < videoLength-1) {
+                pzoom << ",";
+            }else{
+                break;
+            }
         }
         if(logFile.is_open())logFile.close();
-        cout << "The results have been written to " << "''"+outFileTitle.str()+"''" << endl;
+        if(writeCropFile){
+            fstream cropFile;
+            cropFile.open(("results/test_"+outFileTitle+".crop").c_str(),fstream::out);
+            if(cropFile.is_open()){
+                cropFile  << pzoom.str();
+                cropFile.close();
+            }else{
+                clog << "Error with opening the file:" << "results/test_"+outFileTitle+".crop" << endl;
+            }
+        }
+        cout << "The results have been written to " << "''"+outFileTitle+"''" << endl;
         cvDestroyAllWindows();
     }
     return 0;
