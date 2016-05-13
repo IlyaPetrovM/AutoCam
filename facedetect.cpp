@@ -606,7 +606,10 @@ cout << __LINE__ <<endl;
             tmr.push_back(cvGetTickCount());if(frameCounter<2)lines.push_back(__LINE__);
             try{
                 capture >> fullFrame;
-                if(fullFrame.empty()) {
+                if(!fullFrame.empty() && waitKey(1) != 27) {
+                    if(frameCounter>0)pzoom<<',';
+                }
+                else{
                     clog << "Frame is empty" << endl;
                     break;
                 }
@@ -873,11 +876,6 @@ cout << __LINE__ <<endl;
 
             tmr.clear();
             lines.clear();
-            if( waitKey(1) != 27 && frameCounter < videoLength-1) {
-                pzoom << ",";
-            }else{
-                break;
-            }
         }
         if(logFile.is_open())logFile.close();
         if(writeCropFile){
