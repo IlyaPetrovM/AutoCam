@@ -524,7 +524,7 @@ int main( int argc, const char** argv )
         const Size maxRoiSize = smallImgSize;
         const Size previewSize = smallImgSize;
         const Size resultSize = Size(resultHeight*aspectRatio,resultHeight);
-cout << __LINE__ <<endl;
+
         ///Zoom & movement params (driver)
         const double onePerc =(double)smallImgSize.width/100.0; // onePercent
 
@@ -583,10 +583,48 @@ cout << __LINE__ <<endl;
                           << now->tm_mday << "_"
                           << now->tm_hour <<"-"
                           << now->tm_min << "_"
-                          << __DATE__ <<"_"<< __TIME__ <<"_sc"<< scale;
+                          << __DATE__ <<"_"<< __TIME__ <<"_arg"
+                          << scale
+                          << minNeighbors
+                          << scaleFactor
+                          << minFaceHeight
+                          << aimUpdatePer
+                          << faceDetectPer
+                          << resultHeight
+                          << showPreview
+                          << recordPreview
+                          << maxStepX
+                         << maxStepY
+                         << zoomStopThr_
+                         << writeCropFile
+                         << recordResult
+                         << zoomThr
+                         << face2shot
+                         << zoomSpeedMin
+                         << zoomSpeedMax
+                         << zoomSpeedInc_;
         }else{
             outTitleStream << inputName.substr(inputName.find_last_of('/')+1)
-            << "_" <<__DATE__ <<"_"<< __TIME__<<"_sc"<< scale;
+            << "_" <<__DATE__ <<"_"<< __TIME__<<"_arg"
+            << scale<< "_"
+            << minNeighbors << "_"
+            << scaleFactor << "_"
+            << minFaceHeight << "_"
+            << aimUpdatePer << "_"
+            << faceDetectPer << "_"
+            << resultHeight << "_"
+            << showPreview << "_"
+            << recordPreview << "_"
+            << maxStepX << "_"
+           << maxStepY << "_"
+           << zoomStopThr_ << "_"
+           << writeCropFile << "_"
+           << recordResult << "_"
+           << zoomThr << "_"
+           << face2shot << "_"
+           << zoomSpeedMin << "_"
+           << zoomSpeedMax << "_"
+           << zoomSpeedInc_;
         }
         outFileTitle=outTitleStream.str();
         replace(outFileTitle.begin(),outFileTitle.end(),' ','_');
@@ -615,9 +653,9 @@ cout << __LINE__ <<endl;
                  return -1;
              }
         }
-        logFile.open(("results/test_"+outFileTitle+".csv").c_str(), fstream::out);
+        logFile.open(("results/test_"+outFileTitle+".ods").c_str(), fstream::out);
         if(!logFile.is_open()){
-            cout << "Error with opening the file:" << "results/test_"+outFileTitle+".csv" << endl;
+            cout << "Error with opening the file:" << "results/test_"+outFileTitle+".ods" << endl;
         }
 
         //// Main cycle
@@ -834,7 +872,7 @@ cout << __LINE__ <<endl;
 
             /// Запись статистики
             if(logFile.is_open()) {
-                if(frameCounter<2){
+                if(frameCounter<1){
                     logFile << "frame\t";
                     for (int i = 0; i < lines.size()-1; ++i) {
                         logFile << lines[i] << "-" << lines[i+1] << "\t";
@@ -901,7 +939,7 @@ cout << __LINE__ <<endl;
         if(logFile.is_open())logFile.close();
         if(writeCropFile){
             fstream cropFile;
-            cropFile.open(("results/test_"+outFileTitle+".crop").c_str(),fstream::out);
+            cropFile.open(("results/filter_"+outFileTitle).c_str(),fstream::out);
             if(cropFile.is_open()){
                 cropFile  << pzoom.str();
                 cropFile.close();
