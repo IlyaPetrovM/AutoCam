@@ -1,0 +1,425 @@
+\hypertarget{facedetect_8cpp}{\section{Файл facedetect.\-cpp}
+\label{facedetect_8cpp}\index{facedetect.\-cpp@{facedetect.\-cpp}}
+}
+{\ttfamily \#include \char`\"{}opencv2/objdetect.\-hpp\char`\"{}}\\*
+{\ttfamily \#include \char`\"{}opencv2/highgui.\-hpp\char`\"{}}\\*
+{\ttfamily \#include \char`\"{}opencv2/imgproc.\-hpp\char`\"{}}\\*
+{\ttfamily \#include $<$iostream$>$}\\*
+{\ttfamily \#include $<$iomanip$>$}\\*
+{\ttfamily \#include $<$string$>$}\\*
+{\ttfamily \#include $<$sstream$>$}\\*
+{\ttfamily \#include $<$fstream$>$}\\*
+{\ttfamily \#include $<$cstdlib$>$}\\*
+{\ttfamily \#include $<$opencv2/videoio/videoio.\-hpp$>$}\\*
+{\ttfamily \#include $<$ctime$>$}\\*
+\subsection*{Классы}
+\begin{DoxyCompactItemize}
+\item 
+class \hyperlink{classauto_motion}{auto\-Motion}
+\begin{DoxyCompactList}\small\item\em The \hyperlink{classauto_motion}{auto\-Motion} class. \end{DoxyCompactList}\item 
+class \hyperlink{class_arg}{Arg$<$ T $>$}
+\end{DoxyCompactItemize}
+\subsection*{Перечисления}
+\begin{DoxyCompactItemize}
+\item 
+enum \hyperlink{facedetect_8cpp_ad2857a2730378886451066b8979741fc}{D\-Y\-N\-A\-M\-I\-C\-\_\-\-S\-T\-A\-T\-E\-S} \{ \hyperlink{facedetect_8cpp_ad2857a2730378886451066b8979741fca679ee5320d66c8322e310daeb2ee99b8}{S\-T\-O\-P}, 
+\hyperlink{facedetect_8cpp_ad2857a2730378886451066b8979741fca368db50032da622d4c456ef7eaf9cb67}{B\-E\-G\-I\-N}, 
+\hyperlink{facedetect_8cpp_ad2857a2730378886451066b8979741fcaed3ef32890b6da0919b57254c5206c62}{M\-O\-V\-E}, 
+\hyperlink{facedetect_8cpp_ad2857a2730378886451066b8979741fcadc6f24fd6915a3f2786a1b7045406924}{E\-N\-D}
+ \}
+\begin{DoxyCompactList}\small\item\em Золотое сечение \end{DoxyCompactList}\end{DoxyCompactItemize}
+\subsection*{Функции}
+\begin{DoxyCompactItemize}
+\item 
+Point \hyperlink{facedetect_8cpp_a712783e970afeb1cac7654431028b0b9}{top\-Middle\-Dec} (const Rect2f \&r)
+\begin{DoxyCompactList}\small\item\em top\-Middle\-Dec Ищет точку посередине прямоугольника, отстоящую от верха на одну треть (в относительных координатах) \end{DoxyCompactList}\item 
+Point \hyperlink{facedetect_8cpp_a11402cb962c4d3169214b0bceac25014}{top\-Left\-Dec} (const Rect2f \&r)
+\begin{DoxyCompactList}\small\item\em top\-Left\-Dec Ищет левую верхнюю точку по правилу третей (в относительных координатах) \end{DoxyCompactList}\item 
+Point \hyperlink{facedetect_8cpp_a04e2fd895d0d4dedc37bdc2e7c3cd7d9}{top\-Right\-Dec} (const Rect2f \&r)
+\begin{DoxyCompactList}\small\item\em top\-Right\-Dec Ищет правую верхнюю точку по правилу третей (в относительных координатах) \end{DoxyCompactList}\item 
+Point \hyperlink{facedetect_8cpp_ae83932dc9d36886990be6dff300987dc}{get\-Golden\-Point} (const Rect2f \&roi, const Rect \&face)
+\begin{DoxyCompactList}\small\item\em get\-Golden\-Point Ищет координаты прямоугольника так, чтобы внитри него располагалось лицо по правилу третей \end{DoxyCompactList}\item 
+int \hyperlink{facedetect_8cpp_af23d9d3b957105f099417c29e1404852}{gcd} (int a, int b)
+\begin{DoxyCompactList}\small\item\em gcd Определяет наибольший общий делитель \end{DoxyCompactList}\item 
+Size \hyperlink{facedetect_8cpp_a942d7111c2255d89d26c038c1213544a}{get\-Aspect} (const Size \&sz)
+\begin{DoxyCompactList}\small\item\em get\-Aspect Определяет соотношение сторон кадра в удобочитаемом виде \end{DoxyCompactList}\item 
+void \hyperlink{facedetect_8cpp_a1c423c2a5f656fa5f9e33d5a6bad975c}{scale\-Rect} (Rect2f \&r, const Size \&asp, const float \&sc=1.\-0)
+\begin{DoxyCompactList}\small\item\em scale\-Rect И \end{DoxyCompactList}\item 
+void \hyperlink{facedetect_8cpp_af222249d0230a7c9229b241494535d9c}{auto\-Zoom} (const Rect \&face, Rect2f \&roi, const Size \&aspect, const float \&max\-Step, const double \&relation)
+\item 
+void \hyperlink{facedetect_8cpp_acf062d222f4597fad6507b441a96adfe}{draw\-Rects} (Mat \&img, const vector$<$ Rect $>$ \&rects, string t=\char`\"{}rect\char`\"{}, Scalar color=Scalar(255, 0, 0), float font\-Scale=1.\-0, float text\-Thickness=1.\-0, int text\-Offset=0, int thickness=1, int font\-Face=C\-V\-\_\-\-F\-O\-N\-T\-\_\-\-N\-O\-R\-M\-A\-L)
+\begin{DoxyCompactList}\small\item\em Нарисовать прямоугольники Рисует несколько прямоугольников, добавляя к ним подпись в виде текста и номера \end{DoxyCompactList}\item 
+void \hyperlink{facedetect_8cpp_a42ea262b6ac27913caf8e0ac14b56cfe}{draw\-Thirds} (Mat \&img, const Rect2f \&r, Scalar color=Scalar(0, 255, 0), const double \&dots\-Radius=1)
+\begin{DoxyCompactList}\small\item\em Рисовать точки правила третей Рисует точки по правилу третей в заданном прямоугольнике r. \end{DoxyCompactList}\item 
+Rect \hyperlink{facedetect_8cpp_a5d55d9072e2fd74f630e791189fec7ad}{median} (const vector$<$ Rect $>$ \&r)
+\begin{DoxyCompactList}\small\item\em Медиана набора прямоугольников \end{DoxyCompactList}\item 
+int \hyperlink{facedetect_8cpp_a217dbf8b442f20279ea00b898af96f52}{main} (int argc, const char $\ast$$\ast$argv)
+\begin{DoxyCompactList}\small\item\em Главная функция \end{DoxyCompactList}\end{DoxyCompactItemize}
+\subsection*{Переменные}
+\begin{DoxyCompactItemize}
+\item 
+const double \hyperlink{facedetect_8cpp_a53c6c357c0b8952a46b9ac6cbd6f2724}{F\-I} =1.\-61803398
+\end{DoxyCompactItemize}
+
+
+\subsection{Перечисления}
+\hypertarget{facedetect_8cpp_ad2857a2730378886451066b8979741fc}{\index{facedetect.\-cpp@{facedetect.\-cpp}!D\-Y\-N\-A\-M\-I\-C\-\_\-\-S\-T\-A\-T\-E\-S@{D\-Y\-N\-A\-M\-I\-C\-\_\-\-S\-T\-A\-T\-E\-S}}
+\index{D\-Y\-N\-A\-M\-I\-C\-\_\-\-S\-T\-A\-T\-E\-S@{D\-Y\-N\-A\-M\-I\-C\-\_\-\-S\-T\-A\-T\-E\-S}!facedetect.cpp@{facedetect.\-cpp}}
+\subsubsection[{D\-Y\-N\-A\-M\-I\-C\-\_\-\-S\-T\-A\-T\-E\-S}]{\setlength{\rightskip}{0pt plus 5cm}enum {\bf D\-Y\-N\-A\-M\-I\-C\-\_\-\-S\-T\-A\-T\-E\-S}}}\label{facedetect_8cpp_ad2857a2730378886451066b8979741fc}
+
+
+Золотое сечение 
+
+Состояния камеры при перемещении и зуммировании \begin{Desc}
+\item[Элементы перечислений]\par
+\begin{description}
+\index{S\-T\-O\-P@{S\-T\-O\-P}!facedetect.\-cpp@{facedetect.\-cpp}}\index{facedetect.\-cpp@{facedetect.\-cpp}!S\-T\-O\-P@{S\-T\-O\-P}}\item[{\em 
+\hypertarget{facedetect_8cpp_ad2857a2730378886451066b8979741fca679ee5320d66c8322e310daeb2ee99b8}{S\-T\-O\-P}\label{facedetect_8cpp_ad2857a2730378886451066b8979741fca679ee5320d66c8322e310daeb2ee99b8}
+}]Движение прекращено \index{B\-E\-G\-I\-N@{B\-E\-G\-I\-N}!facedetect.\-cpp@{facedetect.\-cpp}}\index{facedetect.\-cpp@{facedetect.\-cpp}!B\-E\-G\-I\-N@{B\-E\-G\-I\-N}}\item[{\em 
+\hypertarget{facedetect_8cpp_ad2857a2730378886451066b8979741fca368db50032da622d4c456ef7eaf9cb67}{B\-E\-G\-I\-N}\label{facedetect_8cpp_ad2857a2730378886451066b8979741fca368db50032da622d4c456ef7eaf9cb67}
+}]Разгон \index{M\-O\-V\-E@{M\-O\-V\-E}!facedetect.\-cpp@{facedetect.\-cpp}}\index{facedetect.\-cpp@{facedetect.\-cpp}!M\-O\-V\-E@{M\-O\-V\-E}}\item[{\em 
+\hypertarget{facedetect_8cpp_ad2857a2730378886451066b8979741fcaed3ef32890b6da0919b57254c5206c62}{M\-O\-V\-E}\label{facedetect_8cpp_ad2857a2730378886451066b8979741fcaed3ef32890b6da0919b57254c5206c62}
+}]Движение с постоянной максимальной скоростью \index{E\-N\-D@{E\-N\-D}!facedetect.\-cpp@{facedetect.\-cpp}}\index{facedetect.\-cpp@{facedetect.\-cpp}!E\-N\-D@{E\-N\-D}}\item[{\em 
+\hypertarget{facedetect_8cpp_ad2857a2730378886451066b8979741fcadc6f24fd6915a3f2786a1b7045406924}{E\-N\-D}\label{facedetect_8cpp_ad2857a2730378886451066b8979741fcadc6f24fd6915a3f2786a1b7045406924}
+}]Торможение \end{description}
+\end{Desc}
+
+
+\subsection{Функции}
+\hypertarget{facedetect_8cpp_af222249d0230a7c9229b241494535d9c}{\index{facedetect.\-cpp@{facedetect.\-cpp}!auto\-Zoom@{auto\-Zoom}}
+\index{auto\-Zoom@{auto\-Zoom}!facedetect.cpp@{facedetect.\-cpp}}
+\subsubsection[{auto\-Zoom}]{\setlength{\rightskip}{0pt plus 5cm}void auto\-Zoom (
+\begin{DoxyParamCaption}
+\item[{const Rect \&}]{face, }
+\item[{Rect2f \&}]{roi, }
+\item[{const Size \&}]{aspect, }
+\item[{const float \&}]{max\-Step, }
+\item[{const double \&}]{relation}
+\end{DoxyParamCaption}
+)}}\label{facedetect_8cpp_af222249d0230a7c9229b241494535d9c}
+\hypertarget{facedetect_8cpp_acf062d222f4597fad6507b441a96adfe}{\index{facedetect.\-cpp@{facedetect.\-cpp}!draw\-Rects@{draw\-Rects}}
+\index{draw\-Rects@{draw\-Rects}!facedetect.cpp@{facedetect.\-cpp}}
+\subsubsection[{draw\-Rects}]{\setlength{\rightskip}{0pt plus 5cm}void draw\-Rects (
+\begin{DoxyParamCaption}
+\item[{Mat \&}]{img, }
+\item[{const vector$<$ Rect $>$ \&}]{rects, }
+\item[{string}]{t = {\ttfamily \char`\"{}rect\char`\"{}}, }
+\item[{Scalar}]{color = {\ttfamily Scalar(255,0,0)}, }
+\item[{float}]{font\-Scale = {\ttfamily 1.0}, }
+\item[{float}]{text\-Thickness = {\ttfamily 1.0}, }
+\item[{int}]{text\-Offset = {\ttfamily 0}, }
+\item[{int}]{thickness = {\ttfamily 1}, }
+\item[{int}]{font\-Face = {\ttfamily CV\-\_\-FONT\-\_\-NORMAL}}
+\end{DoxyParamCaption}
+)}}\label{facedetect_8cpp_acf062d222f4597fad6507b441a96adfe}
+
+
+Нарисовать прямоугольники Рисует несколько прямоугольников, добавляя к ним подпись в виде текста и номера 
+
+
+\begin{DoxyParams}[1]{Аргументы}
+\mbox{\tt in,out}  & {\em } & Кадр, в котором будут нарисованы прямоугольники \\
+\hline
+\mbox{\tt in}  & {\em } & Массив прямоугольников \\
+\hline
+\mbox{\tt in}  & {\em } & Подпись каждого прямоугольника \\
+\hline
+\mbox{\tt in}  & {\em } & Цвет прямоугольников и подписей \\
+\hline
+\mbox{\tt in}  & {\em } & Кегль подписи \\
+\hline
+\mbox{\tt in}  & {\em } & Толщина линии подписи \\
+\hline
+\mbox{\tt in}  & {\em } & Отступ подписи от прямоугольника \\
+\hline
+\mbox{\tt in}  & {\em } & Толщина прямоугольника \\
+\hline
+\mbox{\tt in}  & {\em } & Шрифт \\
+\hline
+\end{DoxyParams}
+\hypertarget{facedetect_8cpp_a42ea262b6ac27913caf8e0ac14b56cfe}{\index{facedetect.\-cpp@{facedetect.\-cpp}!draw\-Thirds@{draw\-Thirds}}
+\index{draw\-Thirds@{draw\-Thirds}!facedetect.cpp@{facedetect.\-cpp}}
+\subsubsection[{draw\-Thirds}]{\setlength{\rightskip}{0pt plus 5cm}void draw\-Thirds (
+\begin{DoxyParamCaption}
+\item[{Mat \&}]{img, }
+\item[{const Rect2f \&}]{r, }
+\item[{Scalar}]{color = {\ttfamily Scalar(0,255,0)}, }
+\item[{const double \&}]{dots\-Radius = {\ttfamily 1}}
+\end{DoxyParamCaption}
+)\hspace{0.3cm}{\ttfamily [inline]}}}\label{facedetect_8cpp_a42ea262b6ac27913caf8e0ac14b56cfe}
+
+
+Рисовать точки правила третей Рисует точки по правилу третей в заданном прямоугольнике r. 
+
+
+\begin{DoxyParams}[1]{Аргументы}
+\mbox{\tt in,out}  & {\em } & Изображение, на которое наносятся точки правила третей \\
+\hline
+\mbox{\tt in}  & {\em } & Прямоугольник, в котором определяется правило третей \\
+\hline
+\mbox{\tt in}  & {\em } & Цвет точек \\
+\hline
+\mbox{\tt in}  & {\em } & Радиус точек \\
+\hline
+\end{DoxyParams}
+\hypertarget{facedetect_8cpp_af23d9d3b957105f099417c29e1404852}{\index{facedetect.\-cpp@{facedetect.\-cpp}!gcd@{gcd}}
+\index{gcd@{gcd}!facedetect.cpp@{facedetect.\-cpp}}
+\subsubsection[{gcd}]{\setlength{\rightskip}{0pt plus 5cm}int gcd (
+\begin{DoxyParamCaption}
+\item[{int}]{a, }
+\item[{int}]{b}
+\end{DoxyParamCaption}
+)}}\label{facedetect_8cpp_af23d9d3b957105f099417c29e1404852}
+
+
+gcd Определяет наибольший общий делитель 
+
+
+\begin{DoxyParams}[1]{Аргументы}
+\mbox{\tt in}  & {\em } & \\
+\hline
+\mbox{\tt in}  & {\em } & \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Возвращает}
+Наибольший общий делитель a и b 
+\end{DoxyReturn}
+\hypertarget{facedetect_8cpp_a942d7111c2255d89d26c038c1213544a}{\index{facedetect.\-cpp@{facedetect.\-cpp}!get\-Aspect@{get\-Aspect}}
+\index{get\-Aspect@{get\-Aspect}!facedetect.cpp@{facedetect.\-cpp}}
+\subsubsection[{get\-Aspect}]{\setlength{\rightskip}{0pt plus 5cm}Size get\-Aspect (
+\begin{DoxyParamCaption}
+\item[{const Size \&}]{sz}
+\end{DoxyParamCaption}
+)\hspace{0.3cm}{\ttfamily [inline]}}}\label{facedetect_8cpp_a942d7111c2255d89d26c038c1213544a}
+
+
+get\-Aspect Определяет соотношение сторон кадра в удобочитаемом виде 
+
+
+\begin{DoxyParams}[1]{Аргументы}
+\mbox{\tt in}  & {\em } & размеры кадра \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Возвращает}
+
+\end{DoxyReturn}
+\hypertarget{facedetect_8cpp_ae83932dc9d36886990be6dff300987dc}{\index{facedetect.\-cpp@{facedetect.\-cpp}!get\-Golden\-Point@{get\-Golden\-Point}}
+\index{get\-Golden\-Point@{get\-Golden\-Point}!facedetect.cpp@{facedetect.\-cpp}}
+\subsubsection[{get\-Golden\-Point}]{\setlength{\rightskip}{0pt plus 5cm}Point get\-Golden\-Point (
+\begin{DoxyParamCaption}
+\item[{const Rect2f \&}]{roi, }
+\item[{const Rect \&}]{face}
+\end{DoxyParamCaption}
+)}}\label{facedetect_8cpp_ae83932dc9d36886990be6dff300987dc}
+
+
+get\-Golden\-Point Ищет координаты прямоугольника так, чтобы внитри него располагалось лицо по правилу третей 
+
+
+\begin{DoxyParams}[1]{Аргументы}
+\mbox{\tt in}  & {\em } & Область интереса, кадр \\
+\hline
+\mbox{\tt in}  & {\em } & лицо \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Возвращает}
+Абсолютные координаты нового положения кадра 
+\end{DoxyReturn}
+если лицо крупное, то держать его в центре кадра \hypertarget{facedetect_8cpp_a217dbf8b442f20279ea00b898af96f52}{\index{facedetect.\-cpp@{facedetect.\-cpp}!main@{main}}
+\index{main@{main}!facedetect.cpp@{facedetect.\-cpp}}
+\subsubsection[{main}]{\setlength{\rightskip}{0pt plus 5cm}int main (
+\begin{DoxyParamCaption}
+\item[{int}]{argc, }
+\item[{const char $\ast$$\ast$}]{argv}
+\end{DoxyParamCaption}
+)}}\label{facedetect_8cpp_a217dbf8b442f20279ea00b898af96f52}
+
+
+Главная функция 
+
+
+\begin{DoxyParams}[1]{Аргументы}
+\mbox{\tt in}  & {\em } & Количество аргументов в программе \\
+\hline
+\mbox{\tt in}  & {\em } & Массив аргументов \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Возвращает}
+0, если программа завершена удачно 
+\end{DoxyReturn}
+$<$ Путь к файлу видео для обработки. Если не введен, то изображение захватывается с камеры
+
+Параметры детектора лиц
+
+$<$ Каскады Хаара для детекции лица
+
+$<$ Этот параметр отвечает за то, во сколько раз следует сжать кадр перед тем как приступить к детекции лица
+
+$<$ Количество соседних детекций лица в изображении
+
+$<$ шаг изменения размеров лица, которое ожидается детектировать в изображении.\-Чем ближе этот параметр к единице, тем точнее будет определён размер лица, но тем дольше будет работать алгоритм
+
+$<$ Минимальные размеры детектируемого лица
+
+$<$ Период обновления цели (каждые n кадров), к которой будет следоватьвиртуальная камера
+
+$<$ Период детектирования лиц
+
+Запись результата
+
+$<$ Высота результирующего видео (ширина рассчитывается автоматически в соответствии с соотношением сторон)
+
+$<$ Записывать результирующее видео.
+
+$<$ Записывать фильтр-\/скрипт для обработки исходного видео в ffmpeg (см. \href{http://ffmpeg.org/ffmpeg.html#Main-options}{\tt filter\-\_\-script})
+
+Визуализация
+
+$<$ Показывать в реальном времени процесс обработки видео с отрисовкой виртуальной камеры и детектированных лиц
+
+$<$ Записывать процесс обработки видео в отдельный файл
+
+Перемещение виртуальной камеры
+
+$<$ Максимальная скорость по координате Х
+
+$<$ Максимальная скорость по координате У
+
+Зум
+
+$<$ Триггерное значение окончания зуммирования
+
+$<$ Триггер начала зуммирования
+
+$<$ Требуемое отношение высоты лица к высоте кадра
+
+$<$ Минимальная скорость зума
+
+$<$ Максимальная скорость зума
+
+$<$ Инкремент скорости зума
+
+Чтение аргументов программы
+
+Характеристики видео
+
+$<$ Количество кадров в секунду
+
+$<$ Код кодека, состоящий из 4-\/х символов (см. fourcc.\-org \href{http://www.fourcc.org/codecs.php}{\tt http\-://www.\-fourcc.\-org/codecs.\-php})
+
+Zoom \& movement params (driver)
+
+Test items
+
+Поиск лиц в профиль
+
+Motion and zoom
+
+end Motion and zoom
+
+Вывести время в превью
+
+Запись статистики\hypertarget{facedetect_8cpp_a5d55d9072e2fd74f630e791189fec7ad}{\index{facedetect.\-cpp@{facedetect.\-cpp}!median@{median}}
+\index{median@{median}!facedetect.cpp@{facedetect.\-cpp}}
+\subsubsection[{median}]{\setlength{\rightskip}{0pt plus 5cm}Rect median (
+\begin{DoxyParamCaption}
+\item[{const vector$<$ Rect $>$ \&}]{r}
+\end{DoxyParamCaption}
+)}}\label{facedetect_8cpp_a5d55d9072e2fd74f630e791189fec7ad}
+
+
+Медиана набора прямоугольников 
+
+
+\begin{DoxyParams}[1]{Аргументы}
+\mbox{\tt in}  & {\em } & Массив прямоугольников \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Возвращает}
+Прямоугольник, высота которого -\/ медиана высот, а координаты -\/ медианы координат прямоугольников 
+\end{DoxyReturn}
+\hypertarget{facedetect_8cpp_a1c423c2a5f656fa5f9e33d5a6bad975c}{\index{facedetect.\-cpp@{facedetect.\-cpp}!scale\-Rect@{scale\-Rect}}
+\index{scale\-Rect@{scale\-Rect}!facedetect.cpp@{facedetect.\-cpp}}
+\subsubsection[{scale\-Rect}]{\setlength{\rightskip}{0pt plus 5cm}void scale\-Rect (
+\begin{DoxyParamCaption}
+\item[{Rect2f \&}]{r, }
+\item[{const Size \&}]{asp, }
+\item[{const float \&}]{sc = {\ttfamily 1.0}}
+\end{DoxyParamCaption}
+)\hspace{0.3cm}{\ttfamily [inline]}}}\label{facedetect_8cpp_a1c423c2a5f656fa5f9e33d5a6bad975c}
+
+
+scale\-Rect И 
+
+
+\begin{DoxyParams}{Аргументы}
+{\em r} & \\
+\hline
+{\em asp} & \\
+\hline
+{\em sc} & \\
+\hline
+\end{DoxyParams}
+from center \hypertarget{facedetect_8cpp_a11402cb962c4d3169214b0bceac25014}{\index{facedetect.\-cpp@{facedetect.\-cpp}!top\-Left\-Dec@{top\-Left\-Dec}}
+\index{top\-Left\-Dec@{top\-Left\-Dec}!facedetect.cpp@{facedetect.\-cpp}}
+\subsubsection[{top\-Left\-Dec}]{\setlength{\rightskip}{0pt plus 5cm}Point top\-Left\-Dec (
+\begin{DoxyParamCaption}
+\item[{const Rect2f \&}]{r}
+\end{DoxyParamCaption}
+)\hspace{0.3cm}{\ttfamily [inline]}}}\label{facedetect_8cpp_a11402cb962c4d3169214b0bceac25014}
+
+
+top\-Left\-Dec Ищет левую верхнюю точку по правилу третей (в относительных координатах) 
+
+
+\begin{DoxyParams}[1]{Аргументы}
+\mbox{\tt in}  & {\em } & Прямоугольник, в котором ищется точка \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Возвращает}
+Точка, у которой x и y -\/ отступы от левого верхнего края прямоугольника 
+\end{DoxyReturn}
+\hypertarget{facedetect_8cpp_a712783e970afeb1cac7654431028b0b9}{\index{facedetect.\-cpp@{facedetect.\-cpp}!top\-Middle\-Dec@{top\-Middle\-Dec}}
+\index{top\-Middle\-Dec@{top\-Middle\-Dec}!facedetect.cpp@{facedetect.\-cpp}}
+\subsubsection[{top\-Middle\-Dec}]{\setlength{\rightskip}{0pt plus 5cm}Point top\-Middle\-Dec (
+\begin{DoxyParamCaption}
+\item[{const Rect2f \&}]{r}
+\end{DoxyParamCaption}
+)\hspace{0.3cm}{\ttfamily [inline]}}}\label{facedetect_8cpp_a712783e970afeb1cac7654431028b0b9}
+
+
+top\-Middle\-Dec Ищет точку посередине прямоугольника, отстоящую от верха на одну треть (в относительных координатах) 
+
+
+\begin{DoxyParams}[1]{Аргументы}
+\mbox{\tt in}  & {\em } & Прямоугольник, в котором ищется точка \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Возвращает}
+Точка, у которой x и y -\/ отступы от левого верхнего края прямоугольника 
+\end{DoxyReturn}
+\hypertarget{facedetect_8cpp_a04e2fd895d0d4dedc37bdc2e7c3cd7d9}{\index{facedetect.\-cpp@{facedetect.\-cpp}!top\-Right\-Dec@{top\-Right\-Dec}}
+\index{top\-Right\-Dec@{top\-Right\-Dec}!facedetect.cpp@{facedetect.\-cpp}}
+\subsubsection[{top\-Right\-Dec}]{\setlength{\rightskip}{0pt plus 5cm}Point top\-Right\-Dec (
+\begin{DoxyParamCaption}
+\item[{const Rect2f \&}]{r}
+\end{DoxyParamCaption}
+)\hspace{0.3cm}{\ttfamily [inline]}}}\label{facedetect_8cpp_a04e2fd895d0d4dedc37bdc2e7c3cd7d9}
+
+
+top\-Right\-Dec Ищет правую верхнюю точку по правилу третей (в относительных координатах) 
+
+
+\begin{DoxyParams}[1]{Аргументы}
+\mbox{\tt in}  & {\em } & Прямоугольник, в котором ищется точка \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Возвращает}
+Точка, у которой x и y -\/ отступы от левого верхнего края прямоугольника 
+\end{DoxyReturn}
+
+
+\subsection{Переменные}
+\hypertarget{facedetect_8cpp_a53c6c357c0b8952a46b9ac6cbd6f2724}{\index{facedetect.\-cpp@{facedetect.\-cpp}!F\-I@{F\-I}}
+\index{F\-I@{F\-I}!facedetect.cpp@{facedetect.\-cpp}}
+\subsubsection[{F\-I}]{\setlength{\rightskip}{0pt plus 5cm}const double F\-I =1.\-61803398}}\label{facedetect_8cpp_a53c6c357c0b8952a46b9ac6cbd6f2724}

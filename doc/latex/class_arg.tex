@@ -1,0 +1,137 @@
+\hypertarget{class_arg}{\section{Шаблон класса Arg$<$ T $>$}
+\label{class_arg}\index{Arg$<$ T $>$@{Arg$<$ T $>$}}
+}
+\subsection*{Открытые члены}
+\begin{DoxyCompactItemize}
+\item 
+\hyperlink{class_arg_a89090f9dc935c020f8d6b1caedfc47fc}{Arg} (const T def\-Val, const string opt\-\_\-, const string format\-\_\-, const T $\ast$greater=N\-U\-L\-L, const T $\ast$less=N\-U\-L\-L)
+\begin{DoxyCompactList}\small\item\em Конструктор \end{DoxyCompactList}\item 
+bool \hyperlink{class_arg_aded2a97404d7c21fbebc88d7fb0514bf}{input} (const char $\ast$argv)
+\begin{DoxyCompactList}\small\item\em Ввод параметра Определяет, является ли текущая строка нужным идентефикатором \end{DoxyCompactList}\item 
+\hyperlink{class_arg_a56700d1bd778ba6f731cfbe8389c495b}{operator T} ()
+\begin{DoxyCompactList}\small\item\em operator T Маскировка данного класса под используемый тип \end{DoxyCompactList}\item 
+T \hyperlink{class_arg_a360ad85ad5b00751ed51d70fa77705f8}{operator=} (T new\-Val)
+\begin{DoxyCompactList}\small\item\em operator = Маскировка данного класса под используемый тип \end{DoxyCompactList}\item 
+bool \hyperlink{class_arg_ab8617f74c7eeb311ab51fe1572731f01}{exists} (const char $\ast$argv)
+\begin{DoxyCompactList}\small\item\em Поиск аргумента Ищет аргумент в заданной строке \end{DoxyCompactList}\item 
+\hyperlink{class_arg_ad3ace51eba55f805a7aab729bb3115a3}{$\sim$\-Arg} ()
+\end{DoxyCompactItemize}
+
+
+\subsection{Подробное описание}
+\subsubsection*{template$<$typename T$>$class Arg$<$ T $>$}
+
+Этот класс предназначен для ввода числовых параметров программы различных типов 
+
+\subsection{Конструктор(ы)}
+\hypertarget{class_arg_a89090f9dc935c020f8d6b1caedfc47fc}{\index{Arg@{Arg}!Arg@{Arg}}
+\index{Arg@{Arg}!Arg@{Arg}}
+\subsubsection[{Arg}]{\setlength{\rightskip}{0pt plus 5cm}template$<$typename T $>$ {\bf Arg}$<$ T $>$\-::{\bf Arg} (
+\begin{DoxyParamCaption}
+\item[{const T}]{def\-Val, }
+\item[{const string}]{opt\-\_\-, }
+\item[{const string}]{format\-\_\-, }
+\item[{const T $\ast$}]{greater = {\ttfamily NULL}, }
+\item[{const T $\ast$}]{less = {\ttfamily NULL}}
+\end{DoxyParamCaption}
+)\hspace{0.3cm}{\ttfamily [inline]}}}\label{class_arg_a89090f9dc935c020f8d6b1caedfc47fc}
+
+
+Конструктор 
+
+
+\begin{DoxyParams}[1]{Аргументы}
+\mbox{\tt in}  & {\em } & Значение параметра по-\/умолчанию \\
+\hline
+\mbox{\tt in}  & {\em } & Как должен выглядеть аргумент при запуске программы \\
+\hline
+\mbox{\tt in}  & {\em } & Спецификатор (см. документацию \href{http://www.cplusplus.com/reference/cstdio/scanf/}{\tt scanf}) \\
+\hline
+\mbox{\tt in}  & {\em } & Нижняя граница для числа. По-\/умолчанию границы нет. \\
+\hline
+\mbox{\tt in}  & {\em } & Верхняя граница для числа. По-\/умолчанию границы нет. \\
+\hline
+\end{DoxyParams}
+\hypertarget{class_arg_ad3ace51eba55f805a7aab729bb3115a3}{\index{Arg@{Arg}!$\sim$\-Arg@{$\sim$\-Arg}}
+\index{$\sim$\-Arg@{$\sim$\-Arg}!Arg@{Arg}}
+\subsubsection[{$\sim$\-Arg}]{\setlength{\rightskip}{0pt plus 5cm}template$<$typename T $>$ {\bf Arg}$<$ T $>$\-::$\sim${\bf Arg} (
+\begin{DoxyParamCaption}
+{}
+\end{DoxyParamCaption}
+)\hspace{0.3cm}{\ttfamily [inline]}}}\label{class_arg_ad3ace51eba55f805a7aab729bb3115a3}
+
+
+\subsection{Методы}
+\hypertarget{class_arg_ab8617f74c7eeb311ab51fe1572731f01}{\index{Arg@{Arg}!exists@{exists}}
+\index{exists@{exists}!Arg@{Arg}}
+\subsubsection[{exists}]{\setlength{\rightskip}{0pt plus 5cm}template$<$typename T $>$ bool {\bf Arg}$<$ T $>$\-::exists (
+\begin{DoxyParamCaption}
+\item[{const char $\ast$}]{argv}
+\end{DoxyParamCaption}
+)\hspace{0.3cm}{\ttfamily [inline]}}}\label{class_arg_ab8617f74c7eeb311ab51fe1572731f01}
+
+
+Поиск аргумента Ищет аргумент в заданной строке 
+
+
+\begin{DoxyParams}[1]{Аргументы}
+\mbox{\tt in}  & {\em } & Один аргумент программы \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Возвращает}
+true, если аргумент найден 
+\end{DoxyReturn}
+\hypertarget{class_arg_aded2a97404d7c21fbebc88d7fb0514bf}{\index{Arg@{Arg}!input@{input}}
+\index{input@{input}!Arg@{Arg}}
+\subsubsection[{input}]{\setlength{\rightskip}{0pt plus 5cm}template$<$typename T $>$ bool {\bf Arg}$<$ T $>$\-::input (
+\begin{DoxyParamCaption}
+\item[{const char $\ast$}]{argv}
+\end{DoxyParamCaption}
+)\hspace{0.3cm}{\ttfamily [inline]}}}\label{class_arg_aded2a97404d7c21fbebc88d7fb0514bf}
+
+
+Ввод параметра Определяет, является ли текущая строка нужным идентефикатором 
+
+
+\begin{DoxyParams}[1]{Аргументы}
+\mbox{\tt in}  & {\em } & один аргумент программы \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Возвращает}
+true, если была распознана строка-\/идентификатор и знчение удалось прочитать 
+\end{DoxyReturn}
+\hypertarget{class_arg_a56700d1bd778ba6f731cfbe8389c495b}{\index{Arg@{Arg}!operator T@{operator T}}
+\index{operator T@{operator T}!Arg@{Arg}}
+\subsubsection[{operator T}]{\setlength{\rightskip}{0pt plus 5cm}template$<$typename T $>$ {\bf Arg}$<$ T $>$\-::operator T (
+\begin{DoxyParamCaption}
+{}
+\end{DoxyParamCaption}
+)\hspace{0.3cm}{\ttfamily [inline]}}}\label{class_arg_a56700d1bd778ba6f731cfbe8389c495b}
+
+
+operator T Маскировка данного класса под используемый тип 
+
+\hypertarget{class_arg_a360ad85ad5b00751ed51d70fa77705f8}{\index{Arg@{Arg}!operator=@{operator=}}
+\index{operator=@{operator=}!Arg@{Arg}}
+\subsubsection[{operator=}]{\setlength{\rightskip}{0pt plus 5cm}template$<$typename T $>$ T {\bf Arg}$<$ T $>$\-::operator= (
+\begin{DoxyParamCaption}
+\item[{T}]{new\-Val}
+\end{DoxyParamCaption}
+)\hspace{0.3cm}{\ttfamily [inline]}}}\label{class_arg_a360ad85ad5b00751ed51d70fa77705f8}
+
+
+operator = Маскировка данного класса под используемый тип 
+
+
+\begin{DoxyParams}[1]{Аргументы}
+\mbox{\tt in}  & {\em } & \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Возвращает}
+Новое значение параметра 
+\end{DoxyReturn}
+
+
+Объявления и описания членов класса находятся в файле\-:\begin{DoxyCompactItemize}
+\item 
+\hyperlink{facedetect_8cpp}{facedetect.\-cpp}\end{DoxyCompactItemize}

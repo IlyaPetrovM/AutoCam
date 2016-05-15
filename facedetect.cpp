@@ -288,7 +288,7 @@ class Arg
     T val; ///< Значение
     T *valDef; ///< Значение по-умолчанию
     string *opt;///< Как должен выглядеть аргумент при запуске программы
-    string *format;///< Спецификатор для ввода параметров (см. документацию  \ref scanf [http://www.cplusplus.com/reference/cstdio/scanf/])
+    string *format;///< Спецификатор для ввода параметров (см. документацию [scanf](http://www.cplusplus.com/reference/cstdio/scanf/))
     T *gt;///< нижняя граница для параметра (Greater Than)
     T *lt;///< верхняя граница для параметра (Less Than)
 public:
@@ -296,7 +296,7 @@ public:
      * @brief Конструктор
      * @param [in]defVal Значение параметра по-умолчанию
      * @param [in]opt_ Как должен выглядеть аргумент при запуске программы
-     * @param [in]format_ Спецификатор (см. документацию  \ref scanf [http://www.cplusplus.com/reference/cstdio/scanf/])
+     * @param [in]format_ Спецификатор (см. документацию [scanf](http://www.cplusplus.com/reference/cstdio/scanf/))
      * @param [in]greater Нижняя граница для числа. По-умолчанию границы нет.
      * @param [in]less Верхняя граница для числа. По-умолчанию границы нет.
      */
@@ -394,7 +394,7 @@ int main( int argc, const char** argv )
     ///Запись результата
     Arg<int> resultHeight(480,"--resultHeight=","%d", new int(1));///< Высота результирующего видео (ширина рассчитывается автоматически в соответствии с соотношением сторон)
     Arg<int> recordResult(1,"--recordResult=","%d",new int(0));///< Записывать результирующее видео.
-    Arg<int> writeCropFile(0,"--writeCropFile=","%d",new int(0));///< Записывать фильтр-скрипт для обработки исходного видео в ffmpeg (см. \ref filter_script [http://ffmpeg.org/ffmpeg.html#Main-options])
+    Arg<int> writeCropFile(0,"--writeCropFile=","%d",new int(0));///< Записывать фильтр-скрипт для обработки исходного видео в ffmpeg (см. [filter_script](http://ffmpeg.org/ffmpeg.html#Main-options))
 
     /// Визуализация
     Arg<int> showPreview(0,"--showPreview=","%d",new int(0));///< Показывать в реальном времени процесс обработки видео с отрисовкой виртуальной камеры и детектированных лиц
@@ -496,13 +496,13 @@ int main( int argc, const char** argv )
         cout << "Video capturing has been started ..." << endl;
 
    //    MODEL    //
-        /// Кадры
+        // Кадры
         Mat fullFrame;
         Mat smallImg;
         Mat graySmall;
         Mat result;
 
-        /// Face detection
+        // Face detection
         const double fx = 1 / scale;
         const Size minfaceSize=Size(minFaceHeight,minFaceHeight);
 
@@ -515,8 +515,8 @@ int main( int argc, const char** argv )
                                   (float)capture.get(CV_CAP_PROP_FRAME_HEIGHT);
         const Rect2f fullShot(0,0,(int)capture.get(CV_CAP_PROP_FRAME_WIDTH),
                                 (int)capture.get(CV_CAP_PROP_FRAME_HEIGHT));
-        int fps;
-        int fourcc;
+        int fps; ///< Количество кадров в секунду
+        int fourcc; ///< Код кодека, состоящий из 4-х символов (см. \ref fourcc.org http://www.fourcc.org/codecs.php)
         long int frameCounter=0;
 
 
@@ -573,7 +573,7 @@ cout << __LINE__ <<endl;
         string prevWindTitle = "Preview";
 
         cout << "Aspect:" << aspect << endl;
-/// SetUp
+        // SetUp
         if(isWebcam){
             time_t t = time(0);   // get time now
             struct tm * now = localtime( & t );
