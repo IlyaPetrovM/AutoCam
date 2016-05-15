@@ -9,3 +9,5 @@ In the area of production of mass educational courses the lecture recording are 
 It is simply enough to determine the area that should be cut, if the speaker does not move during the entire presentation. But the editing becomes quite laborious, if the motion takes the place in shot. In this work attempt are made to automate mentioned process.
 
 Testing videos: https://goo.gl/ANnyKX
+
+[Documentation (Rus)](http://ilyapetrovm.github.io/faceDetect/doc/html/md__r_e_a_d_m_e.html)
