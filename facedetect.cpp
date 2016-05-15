@@ -1,3 +1,8 @@
+/**
+  * \brief Программа для детекции лиц в видео с повышенным разрешением
+  * \author Ilya Petrov
+  * \date Май 2016 года
+  */
 #include "opencv2/objdetect.hpp"
 #include "opencv2/highgui.hpp"
 #include "opencv2/imgproc.hpp"
@@ -12,26 +17,46 @@
 
 using namespace std;
 using namespace cv;
-const double FI=1.61803398;
-typedef enum {STOP,BEGIN,MOVE,END} DYNAMIC_STATES;
+const double FI=1.61803398; /// Золотое сечение
+
+/// Состояния камеры при перемещении и зуммировании
+typedef enum {STOP, ///< Движение прекращено
+              BEGIN, ///< Разгон
+              MOVE, ///< Движение с постоянной максимальной скоростью
+              END ///< Торможение
+             } DYNAMIC_STATES;
+
 static void help()
 {
     cout << "Build date:" << __DATE__ << " " << __TIME__
             "\n\tDuring execution:\n\tHit any key to quit.\n"
             "\tUsing OpenCV version " << CV_VERSION << "\n" << endl;
 }
-
-string cascadeFullName = "../../data/haarcascades/haarcascade_frontalface_alt.xml";
-string cascadeProfName = "../../data/haarcascades/haarcascade_profileface.xml";
-
-inline Point rectCenterAbs(const Rect2f& r){ // absolute coordinates
-    int w=r.width;
-    return Point(r.x+(int)(w*0.5), r.y+(int)(r.height*0.5));
-}
-inline Point topMiddleDec(const Rect2f& r) {return Point(cvRound((double)r.width*0.5) , cvRound((double)r.height/3.0));} // relative coordinates
-inline Point topLeftDec(const Rect2f& r) {return Point(cvRound((double)r.width/3.0) , cvRound((double)r.height/3.0));} // relative coordinates
-inline Point topRightDec(const Rect2f& r){return Point(cvRound((double)r.width*2.0/3.0) , cvRound((double)r.height/3.0));} // relative coordinates
-Point getGoldenPoint(const Rect2f& roi,const Rect& face){ // absolute coordinates
+/**
+ * @brief topMiddleDec Ищет точку посередине прямоугольника, отстоящую от верха на одну треть (в относительных координатах)
+ * @param [in]r Прямоугольник, в котором ищется точка
+ * @return Точка, у которой x и y - отступы от левого верхнего края прямоугольника
+ */
+inline Point topMiddleDec(const Rect2f& r) {return Point(cvRound((double)r.width*0.5) , cvRound((double)r.height/3.0));}
+/**
+ * @brief topLeftDec Ищет левую верхнюю точку по правилу третей (в относительных координатах)
+ * @param [in]r Прямоугольник, в котором ищется точка
+ * @return Точка, у которой x и y - отступы от левого верхнего края прямоугольника
+ */
+inline Point topLeftDec(const Rect2f& r) {return Point(cvRound((double)r.width/3.0) , cvRound((double)r.height/3.0));}
+/**
+ * @brief topRightDec Ищет правую верхнюю точку по правилу третей (в относительных координатах)
+ * @param [in]r Прямоугольник, в котором ищется точка
+ * @return Точка, у которой x и y - отступы от левого верхнего края прямоугольника
+ */
+inline Point topRightDec(const Rect2f& r){return Point(cvRound((double)r.width*2.0/3.0) , cvRound((double)r.height/3.0));}
+/**
+ * @brief getGoldenPoint Ищет координаты прямоугольника так, чтобы внитри него располагалось лицо по правилу третей
+ * @param [in]roi Область интереса, кадр
+ * @param [in]face лицо
+ * @return Абсолютные координаты нового положения кадра
+ */
+Point getGoldenPoint(const Rect2f& roi,const Rect& face){
     Point target;
     if(cvRound((float)roi.width/3.0) - face.width < 0 ) /// если лицо крупное, то держать его в центре кадра
         target = topMiddleDec(roi);
@@ -43,37 +68,15 @@ Point getGoldenPoint(const Rect2f& roi,const Rect& face){ // absolute coordinate
     else
         target = topMiddleDec(roi);
 
-    Point result = (face+topMiddleDec(face) - target).tl();/// Должна быть зависимость только от размеров ROI
+    Point result = (face+topMiddleDec(face) - target).tl();// Должна быть зависимость только от размеров ROI
     return result;
 }
-/// PID - регулятор для позиционирования камеры
-class PIDController{
-    double errPrev;
-    double Kp, Ki, Kd;//0.001 , 0.05
-    double stor;
-    double u;
-    double maxU;
-    double minU;
-public:
-    PIDController(const double& kp,const double& ki,const double& kd, const double& max_u, const double& min_u=0){
-        errPrev=stor=0.0;
-        Kp=kp, Ki=ki, Kd=kd;//0.001 , 0.05
-        minU=min_u;
-        maxU=max_u;
-    }
-    double getU(const double& err){
-        stor   += err;
-        u     = err*Kp + stor*Ki + (err-errPrev)*Kd;
-        errPrev = err;
-
-        if(u>maxU)u=maxU;
-        else if(u<-maxU)u=-maxU;
-        else if(0<u && u<minU)u=minU;
-        else if(-minU<u && u<0)u=-minU;
-
-        return u;
-    }
-};
+/**
+ * @brief gcd Определяет наибольший общий делитель
+ * @param [in]a
+ * @param [in]b
+ * @return Наибольший общий делитель a и b
+ */
 int gcd(int a,int b){
     int c;
     while (a != 0){
@@ -83,11 +86,21 @@ int gcd(int a,int b){
     }
     return b;
 }
-Size getAspect(Size sz){
+/**
+ * @brief getAspect Определяет соотношение сторон кадра в удобочитаемом виде
+ * @param [in]sz размеры кадра
+ * @return
+ */
+inline Size getAspect(const Size& sz){
     int g=gcd(sz.width,sz.height);
     return Size(sz.width/g,sz.height/g);
 }
-
+/**
+ * @brief scaleRect И
+ * @param r
+ * @param asp
+ * @param sc
+ */
 inline void scaleRect(Rect2f &r,const Size& asp, const float &sc=1.0){ /// from center
     r.height+=2*asp.height*sc;
     r.width+=2*asp.width*sc;
@@ -105,34 +118,41 @@ void autoZoom(const Rect& face,
        else
            scaleRect(roi,aspect,step);
 }
-
-void autoMove(const Rect& face,
-                     Rect2f& roi,
-                     const int& maxStepX, const int& maxStepY)
-{
-    static PIDController pidX(0.1, 0.001, -0.09,maxStepX);
-    static PIDController pidY(0.1, 0.001, -0.09,maxStepY);
-
-    Point p(getGoldenPoint(roi,face));
-    roi.x += pidX.getU(p.x-roi.x);
-    roi.y += pidY.getU(p.y-roi.y);
-}
+/**
+ * @brief The autoMotion class
+ *
+ * Плавное перемещение виртуальной камеры с использованием нескольких состояний
+ */
 class autoMotion{
-     DYNAMIC_STATES state;
-     double speedMin;
-     double speedMax;
-     double speedAim;
-     double speedInc;
-     double accelTime;
-     double speed;
-     float sign;
+     DYNAMIC_STATES state; ///< Состояния движения
+     double speedMin; ///< Минимальная скорость перемещения
+     double speedMax; ///< Максимальная скорость перемещения
+     double speedAim; ///< Желаемая скорость перемещения
+     double speedInc; ///< Инкремент. Насколько скорость будет увеличена или уменьшена
+     double accelTime; ///< Время ускорения
+     double speed; ///< Текущая скорость
+     float sign; ///< Знак изменения скорости (+/-)
 public:
+     /**
+     * @brief Конструктор
+     * @param [in]spdMin минимальная скорость
+     * @param [in]spdMax максимальная скорость
+     */
     autoMotion(double spdMin,double spdMax){
         state = STOP;
         speedMin=spdMin;
         speedMax=spdMax;
         speed=spdMin;
     }
+    /**
+     * @brief update
+     * Обновить координаты в соответствии с текущей скоростьюи состоянием
+     * @param [in,out]x
+     * @param [in]aim
+     * @param [in]precision
+     * @param outOfRoi
+     * @return Текущую скорость изменения координаты
+     */
     float update(float& x,const int& aim, const double& precision, const bool outOfRoi){
 
         switch (state) {/// \todo test this code!!
@@ -167,61 +187,39 @@ public:
         }
         return speed;
     }
+    /**
+     * @brief getState
+     * @return Текущее состояние движения
+     */
     DYNAMIC_STATES getState(){
          return state;
     }
+    /**
+     * @brief getSign
+     * @return Текущий знак движения
+     */
     float getSign(){ return sign;}
+    /**
+     * @brief getSpeed
+     * @return Текущую скорость
+     */
     double getSpeed(){
         return speed;
     }
-    void stop(){
-        state=END;
-    }
 };
-
-class FaceFilter
-{
-    Rect facePrev;
-    bool hasPrevFace;
-    int area;
-public:
-    FaceFilter()
-        : hasPrevFace(false){}
-    int isNear(const Rect faceCur){ // returns true if previous face detection was nearby the current
-        if(hasPrevFace) {
-            if(isNear(faceCur,facePrev)){
-                facePrev = faceCur;
-                return true;
-            }else return false;
-        }
-        else{
-            hasPrevFace=false;
-            facePrev=faceCur;
-            return true;
-        }
-    }
-    static int isNear(const Rect face1, const Rect face2 ){ // returns true if previous face detection was nearby the current
-        return (face1 & face2).area();
-    }
-};
-class FaceFilterArray{
-    Rect facePrev;
-    bool hasPrevFace;
-public:
-    FaceFilterArray() {
-    }
-    void filter(vector<Rect>& faces){
-        if(hasPrevFace)
-            for (int i = 0; i < faces.size(); ++i) {
-                if((facePrev & faces[i]).area()<=0)faces.erase(faces.begin()+i);
-            }
-    }
-    inline void setFacePrev(const Rect fp){
-        facePrev=fp;
-        hasPrevFace=true;
-    }
-};
-
+/**
+ * @brief Нарисовать прямоугольники
+ * Рисует несколько прямоугольников, добавляя к ним подпись в виде текста и номера
+ * @param [in,out]img Кадр, в котором будут нарисованы прямоугольники
+ * @param [in]rects Массив прямоугольников
+ * @param [in]t Подпись каждого прямоугольника
+ * @param [in]color Цвет прямоугольников и подписей
+ * @param [in]fontScale Кегль подписи
+ * @param [in]textThickness Толщина линии подписи
+ * @param [in]textOffset Отступ подписи от прямоугольника
+ * @param [in]thickness Толщина прямоугольника
+ * @param [in]fontFace Шрифт
+ */
 void drawRects(Mat& img, const vector<Rect>& rects,
                string t="rect", Scalar color=Scalar(255,0,0),
                float fontScale=1.0,
@@ -241,9 +239,15 @@ void drawRects(Mat& img, const vector<Rect>& rects,
                   color, thickness, 8, 0);
     }
 }
-
-inline void drawGoldenRules(Mat& img, const Rect2f& r,Scalar color=Scalar(0,255,0),const double& dotsRadius=1){
-    //Отрисовка точек золотого сечения
+/**
+ * @brief Рисовать точки правила третей
+ * Рисует точки по правилу третей в заданном прямоугольнике r
+ * @param [in,out]img Изображение, на которое наносятся точки правила третей
+ * @param [in]r Прямоугольник, в котором определяется правило третей
+ * @param [in]color Цвет точек
+ * @param [in]dotsRadius Радиус точек
+ */
+inline void drawThirds(Mat& img, const Rect2f& r,Scalar color=Scalar(0,255,0),const double& dotsRadius=1){
     circle(img,Point(r.x + r.width/3.0,
                               r.y + r.height/3.0), 1,Scalar(0,255,0), dotsRadius);
     circle(img,Point(r.x + 2.0*r.width/3.0,
@@ -253,32 +257,11 @@ inline void drawGoldenRules(Mat& img, const Rect2f& r,Scalar color=Scalar(0,255,
     circle(img,Point(r.x + 2.0*r.width/3.0,
                               r.y + 2.0*r.height/3.0),1,Scalar(0,255,0),dotsRadius);
 }
-
-
-
-int detectMotion(Mat img, int thresh=50, int blur=21, bool showPrev=false){
-    static Mat diff,gr, grLast;
-    int motion=0;
-    cvtColor( img, gr, COLOR_BGR2GRAY );
-    if (!grLast.empty())
-    {
-        GaussianBlur(gr, gr, Size(blur,blur), 0,0);
-        absdiff(gr, grLast, diff);
-        threshold(diff, diff, thresh, 255, cv::THRESH_BINARY);
-        motion=(int)mean(diff)[0]; // Движение в кадрике обнаружено
-
-        if(showPrev){
-            stringstream motion;
-            motion<<"Motion "<<(int)mean(diff)[0];
-            resize( diff, diff, Size(240*diff.cols/diff.rows,240), 0, 0, INTER_NEAREST );
-            putText(diff, motion.str(),
-                    Point(0,diff.rows),CV_FONT_NORMAL, 0.5, Scalar(255, 0,0));
-            imshow("diff",diff);
-        }
-    }
-    grLast=gr.clone();
-    return motion;
-}
+/**
+ * @brief Медиана набора прямоугольников
+ * @param [in]r Массив прямоугольников
+ * @return Прямоугольник, высота которого - медиана высот, а координаты - медианы координат прямоугольников
+ */
 Rect median(const vector<Rect>& r){
     static vector<int> x,y,h;
     x.resize(r.size());
@@ -297,19 +280,27 @@ Rect median(const vector<Rect>& r){
 
 /**
  * @class Arg
- * @p Этот класс предназначен для ввода параметров программы различных типов
+ * Этот класс предназначен для ввода числовых параметров программы различных типов
  */
 template <typename T>
 class Arg
 {
-    T val;
-    T *valDef;
-    string *opt;
-    string *format;
-    T *gt;
-    T *lt;
+    T val; ///< Значение
+    T *valDef; ///< Значение по-умолчанию
+    string *opt;///< Как должен выглядеть аргумент при запуске программы
+    string *format;///< Спецификатор для ввода параметров (см. документацию  \ref scanf [http://www.cplusplus.com/reference/cstdio/scanf/])
+    T *gt;///< нижняя граница для параметра (Greater Than)
+    T *lt;///< верхняя граница для параметра (Less Than)
 public:
-    Arg(T defVal, string opt_, string format_,  T* greater=NULL, T* less=NULL)
+    /**
+     * @brief Конструктор
+     * @param [in]defVal Значение параметра по-умолчанию
+     * @param [in]opt_ Как должен выглядеть аргумент при запуске программы
+     * @param [in]format_ Спецификатор (см. документацию  \ref scanf [http://www.cplusplus.com/reference/cstdio/scanf/])
+     * @param [in]greater Нижняя граница для числа. По-умолчанию границы нет.
+     * @param [in]less Верхняя граница для числа. По-умолчанию границы нет.
+     */
+    Arg(const T defVal, const string opt_, const string format_,  const T* greater=NULL,const T* less=NULL)
         : val(defVal) {
         opt = new string(opt_);
         format = new string(format_);
@@ -318,6 +309,12 @@ public:
         if(less)    lt = new T(*less);    else lt=NULL;
         cout << "\t" << *opt << "[" << val << "]" << endl;
     }
+    /**
+     * @brief Ввод параметра
+     * Определяет, является ли текущая строка нужным идентефикатором
+     * @param [in]argv один аргумент программы
+     * @return true, если была распознана строка-идентификатор и знчение удалось прочитать
+     */
     bool input(const char* argv){
         if(exists(argv))
         {
@@ -334,61 +331,87 @@ public:
         }
         return false;
     }
+    /**
+     * @brief operator T
+     * Маскировка данного класса под используемый тип
+     */
     operator T(){
         return val;
     }
+    /**
+     * @brief operator =
+     * Маскировка данного класса под используемый тип
+     * @param [in]newVal
+     * @return Новое значение параметра
+     */
     T operator =(T newVal){
         val=newVal;
         return val;
     }
-
+    /**
+     * @brief Поиск аргумента
+     * Ищет аргумент в заданной строке
+     * @param [in]argv Один аргумент программы
+     * @return true, если аргумент найден
+     */
     bool exists(const char* argv){
         return (opt->compare(0,opt->length(),argv,opt->length())==0);
     }
+    ~Arg(){
+        delete gt,lt;
+    }
 };
-
+/**
+ * @brief Главная функция
+ * @param [in]argc Количество аргументов в программе
+ * @param [in]argv Массив аргументов
+ * @return 0, если программа завершена удачно
+ */
 int main( int argc, const char** argv )
 {
-    string inputName;
+
+    string inputName; ///< Путь к файлу видео для обработки. Если не введен, то изображение захватывается с камеры
 
     cout << "Availible parameters: " << endl;
     /// Параметры детектора лиц
-
-    Arg<double> scale(3,"--scale=","%lf", new double(1));
+    CascadeClassifier cascadeFull,cascadeProf; ///< Каскады Хаара для детекции лица
+    string cascadeFullName = "../../data/haarcascades/haarcascade_frontalface_alt.xml";
+    string cascadeProfName = "../../data/haarcascades/haarcascade_profileface.xml";
     const string nestedCascadeOpt = "--nested-cascade";
     size_t nestedCascadeOptLen = nestedCascadeOpt.length();
     const string cascadeOpt = "--cascade=";
     size_t cascadeOptLen = cascadeOpt.length();
-    Arg<int>minNeighbors(1,"--minNeighbors=","%d",new int(1)); // количество соседних лиц
-    Arg<double> scaleFactor(1.1,"--scaleFactor=","%lf", new double(1.1));
-    Arg<int> minFaceHeight(25,"--minFaceHeight=","%d", new int(1));
 
-    Arg<int> aimUpdateFreq(15,"--aimUpdateFreq=","%d",new int(1));
-    Arg<int> faceDetectFreq(1,"--faceDetectFreq=","%d", new int(1));
+    Arg<double> scale(3,"--scale=","%lf", new double(1)); ///< Этот параметр отвечает за то, во сколько раз следует сжать кадр перед тем как приступить к детекции лица
+    Arg<int>minNeighbors(1,"--minNeighbors=","%d",new int(1)); ///<  Количество соседних детекций лица в изображении
+    Arg<double> scaleFactor(1.1,"--scaleFactor=","%lf", new double(1.1));/**< шаг изменения размеров лица, которое ожидается детектировать
+                                                                            в изображении.Чем ближе этот параметр к единице,
+                                                                        тем точнее будет определён размер лица, но тем дольше будет работать алгоритм*/
+    Arg<int> minFaceHeight(25,"--minFaceHeight=","%d", new int(1));///< Минимальные размеры детектируемого лица
+    Arg<int> aimUpdatePer(15,"--aimUpdatePer=","%d",new int(1));///< Период обновления цели (каждые n кадров), к которой будет следоватьвиртуальная камера
+    Arg<int> faceDetectPer(1,"--faceDetectPer=","%d", new int(1));///< Период детектирования лиц
 
-    Arg<int> resultHeight(480,"--resultHeight=","%d", new int(1));
+    ///Запись результата
+    Arg<int> resultHeight(480,"--resultHeight=","%d", new int(1));///< Высота результирующего видео (ширина рассчитывается автоматически в соответствии с соотношением сторон)
+    Arg<int> recordResult(1,"--recordResult=","%d",new int(0));///< Записывать результирующее видео.
+    Arg<int> writeCropFile(0,"--writeCropFile=","%d",new int(0));///< Записывать фильтр-скрипт для обработки исходного видео в ffmpeg (см. \ref filter_script [http://ffmpeg.org/ffmpeg.html#Main-options])
 
-
-    Arg<int> showPreview(0,"--showPreview=","%d",new int(0));
-    Arg<int> recordPreview(0,"--recordPreview=","%d",new int(0));
-    Arg<int> writeCropFile(0,"--writeCropFile=","%d",new int(0));
-    Arg<int> recordResult(1,"--recordResult=","%d",new int(0));
+    /// Визуализация
+    Arg<int> showPreview(0,"--showPreview=","%d",new int(0));///< Показывать в реальном времени процесс обработки видео с отрисовкой виртуальной камеры и детектированных лиц
+    Arg<int> recordPreview(0,"--recordPreview=","%d",new int(0));///< Записывать процесс обработки видео в отдельный файл
 
     /// Перемещение виртуальной камеры
-    Arg<float>maxStepX(1,"--maxStepX=","%f",new float(0.2));
-    Arg<float>maxStepY(1,"--maxStepY=","%f",new float(0.2));
-
-    Arg<float> zoomStopThr_ (10.0,"--zoomStopThr=","%f",new float(1));
-    Arg<float> zoomThr(FI,"--zoomThr=","%f",new float(1));
-    Arg<double> face2shot(FI,"--face2shot=","%lf",new double(0.1));
-
-    Arg<double> zoomSpeedMin(0.01,"--zoomSpeedMin=","%lf",new double(0.001));
-    Arg<double> zoomSpeedMax(0.2,"--zoomSpeedMax=","%lf",new double(0.001));
-    Arg<double> zoomSpeedInc_(10.0,"--zoomSpeedInc=","%lf",new double(0.001));
+    Arg<float>maxStepX(1,"--maxStepX=","%f",new float(0.2));///< Максимальная скорость по координате Х
+    Arg<float>maxStepY(1,"--maxStepY=","%f",new float(0.2));///< Максимальная скорость по координате У
+    /// Зум
+    Arg<float> zoomStopThr_ (10.0,"--zoomStopThr=","%f",new float(1));///< Триггерное значение окончания зуммирования
+    Arg<float> zoomThr(FI,"--zoomThr=","%f",new float(1));///< Триггер начала зуммирования
+    Arg<double> face2shot(FI,"--face2shot=","%lf",new double(0.1));///< Требуемое отношение высоты лица к высоте кадра
+    Arg<double> zoomSpeedMin(0.01,"--zoomSpeedMin=","%lf",new double(0.001));///< Минимальная скорость зума
+    Arg<double> zoomSpeedMax(0.2,"--zoomSpeedMax=","%lf",new double(0.001));///< Максимальная скорость зума
+    Arg<double> zoomSpeedInc_(10.0,"--zoomSpeedInc=","%lf",new double(0.001));///< Инкремент скорости зума
 
     help();
-
-    CascadeClassifier cascadeFull,cascadeProf; // Cascades for Full face and Profile face
 
     /// Чтение аргументов программы
     for( int i = 1; i < argc; i++ )
@@ -412,8 +435,8 @@ int main( int argc, const char** argv )
         else if(scaleFactor.input(argv[i]));
         else if(minFaceHeight.input((argv[i])));
 
-        else if(aimUpdateFreq.input(argv[i]));
-        else if(faceDetectFreq.input(argv[i]));
+        else if(aimUpdatePer.input(argv[i]));
+        else if(faceDetectPer.input(argv[i]));
 
         else if(resultHeight.input(argv[i]));
         else if(showPreview.input(argv[i]));
@@ -473,7 +496,7 @@ int main( int argc, const char** argv )
         cout << "Video capturing has been started ..." << endl;
 
    //    MODEL    //
-        // frames
+        /// Кадры
         Mat fullFrame;
         Mat smallImg;
         Mat graySmall;
@@ -483,12 +506,10 @@ int main( int argc, const char** argv )
         const double fx = 1 / scale;
         const Size minfaceSize=Size(minFaceHeight,minFaceHeight);
 
-        FaceFilterArray filt;
-
         bool foundFaces=false;
         vector<Rect> facesFull,facesProf,faceBuf;
 
-        //Video characteristics
+        /// Характеристики видео
         const long int videoLength = capture.get(CAP_PROP_FRAME_COUNT);
         const float aspectRatio = (float)capture.get(CV_CAP_PROP_FRAME_WIDTH)/
                                   (float)capture.get(CV_CAP_PROP_FRAME_HEIGHT);
@@ -616,7 +637,7 @@ cout << __LINE__ <<endl;
 
 
                 tmr.push_back(cvGetTickCount());if(frameCounter<2)lines.push_back(__LINE__);
-                if(frameCounter%faceDetectFreq==0){
+                if(frameCounter%faceDetectPer==0){
                     resize( fullFrame, smallImg, smallImgSize, 0, 0, INTER_LINEAR );
                     cvtColor( smallImg, graySmall, COLOR_BGR2GRAY );
                 /// \todo 04/05/2016 Искать лица только в некоторой области вокруг уже обнаруженного лица
@@ -635,7 +656,7 @@ cout << __LINE__ <<endl;
                     if(!facesFull.empty() && ((facesFull[0]&aim).area()>0))faceBuf.push_back(facesFull[0]);
                     if(!facesProf.empty() && ((facesProf[0]&aim).area()>0))faceBuf.push_back(facesProf[0]);
                 }
-                if(frameCounter%aimUpdateFreq == 0){
+                if(frameCounter%aimUpdatePer == 0){
                     if(!faceBuf.empty()) {
                         aim = median(faceBuf);
                         faceBuf.clear();
@@ -774,7 +795,7 @@ cout << __LINE__ <<endl;
                                     Point(roi.x+roi.width/2,roi.br().y+moveY.getSpeed()*2),
                                     colorY,thickness,8,0,1);
                 }
-                drawGoldenRules(preview,roi,Scalar(0,255,0),dotsRadius);
+                drawThirds(preview,roi,Scalar(0,255,0),dotsRadius);
                 // Рисовать цель
                 rectangle(preview,aim,Scalar(0,255,0),thickness);
                 putText(preview, "aim",aim.tl(),CV_FONT_NORMAL,fontScale,Scalar(0,255,0),textThickness);
