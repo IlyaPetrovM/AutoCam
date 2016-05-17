@@ -16,17 +16,11 @@
 #include <ctime>
 
 #include "automotion.h"
+#include "autozoom.h"
 
 using namespace std;
 using namespace cv;
 const double FI=1.61803398; /// Золотое сечение
-
-///// Состояния камеры при перемещении и зуммировании
-//typedef enum {STOP, ///< Движение прекращено
-//              BEGIN, ///< Разгон
-//              MOVE, ///< Движение с постоянной максимальной скоростью
-//              END ///< Торможение
-//             } DYNAMIC_STATES;
 
 static void help()
 {
@@ -72,53 +66,6 @@ Point getGoldenPoint(const Rect2f& roi,const Rect& face){
 
     Point result = (face+topMiddleDec(face) - target).tl();// Должна быть зависимость только от размеров ROI
     return result;
-}
-/**
- * @brief gcd Определяет наибольший общий делитель
- * @param [in]a
- * @param [in]b
- * @return Наибольший общий делитель a и b
- */
-int gcd(int a,int b){
-    int c;
-    while (a != 0){
-        c = a;
-        a = b%a;
-        b = c;
-    }
-    return b;
-}
-/**
- * @brief getAspect Определяет соотношение сторон кадра в удобочитаемом виде
- * @param [in]sz размеры кадра
- * @return
- */
-inline Size getAspect(const Size& sz){
-    int g=gcd(sz.width,sz.height);
-    return Size(sz.width/g,sz.height/g);
-}
-/**
- * @brief scaleRect И
- * @param r
- * @param asp
- * @param sc
- */
-inline void scaleRect(Rect2f &r,const Size& asp, const float &sc=1.0){ /// from center
-    r.height+=2*asp.height*sc;
-    r.width+=2*asp.width*sc;
-    r.x -= asp.width*sc;
-    r.y -= asp.height*sc;
-}
-
-void autoZoom(const Rect& face,
-              Rect2f& roi,
-              const Size& aspect,const float& maxStep, const double& relation){
-    static float step=0.01;
-    if(maxStep>step)step+=0.01;else step -= 0.01;
-       if(roi.height > face.height*relation)
-           scaleRect(roi,aspect,-step);
-       else
-           scaleRect(roi,aspect,step);
 }
 /**
  * @brief Нарисовать прямоугольники
@@ -320,9 +267,9 @@ int main( int argc, const char** argv )
     Arg<float> zoomStopThr_ (10.0,"--zoomStopThr=","%f",new float(1));///< Триггерное значение окончания зуммирования
     Arg<float> zoomThr(FI,"--zoomThr=","%f",new float(1));///< Триггер начала зуммирования
     Arg<double> face2shot(FI,"--face2shot=","%lf",new double(0.1));///< Требуемое отношение высоты лица к высоте кадра
-    Arg<double> zoomSpeedMin(0.01,"--zoomSpeedMin=","%lf",new double(0.001));///< Минимальная скорость зума
-    Arg<double> zoomSpeedMax(0.2,"--zoomSpeedMax=","%lf",new double(0.001));///< Максимальная скорость зума
-    Arg<double> zoomSpeedInc_(10.0,"--zoomSpeedInc=","%lf",new double(0.001));///< Инкремент скорости зума
+    Arg<double> zoomSpeedMin(0.00,"--zoomSpeedMin=","%lf",new double(0.00));///< Минимальная скорость зума
+    Arg<double> zoomSpeedMax(0.03,"--zoomSpeedMax=","%lf",new double(0.001));///< Максимальная скорость зума
+    Arg<double> zoomSpeedInc_(15.0,"--zoomSpeedInc=","%lf",new double(0.001));///< Инкремент скорости зума
 
     help();
 
@@ -442,23 +389,15 @@ int main( int argc, const char** argv )
         const double onePerc =(double)smallImgSize.width/100.0; // onePercent
 
         Point gp;
-        //zooming
-
-        const int zoomStopThr = cvRound(zoomStopThr_*onePerc);
-
-        const Size aspect = getAspect(fullShot.size());
-
         Rect aim=Rect(Point(0,0),maxRoiSize);
         Rect2f roi = Rect2f(Point(0,0),maxRoiSize);
 
         const bool bZoom = true;
         const bool bMove = true;
 
-        double zoomSpeedInc=(zoomSpeedMax-zoomSpeedMin)/zoomSpeedInc_;
-        double zoomSpeed=zoomSpeedMin;
         DYNAMIC_STATES zoomState = STOP;
         AutoMotion moveX(0,maxStepX*onePerc),moveY(0,maxStepY*onePerc);
-        double zoomSign = 1;
+        AutoZoom zoom(zoomSpeedMin,zoomSpeedMax,maxRoiSize,zoomThr,cvRound(zoomStopThr_*onePerc),zoomSpeedInc_,face2shot);
 
         //file writing
         stringstream outTitleStream;
@@ -485,8 +424,7 @@ int main( int argc, const char** argv )
         const double fontScale = thickness/5;
         string prevWindTitle = "Preview";
 
-        cout << "Aspect:" << aspect << endl;
-        // SetUp
+         // SetUp
         if(isWebcam){
             time_t t = time(0);   // get time now
             struct tm * now = localtime( & t );
@@ -619,49 +557,7 @@ int main( int argc, const char** argv )
             tmr.push_back(cvGetTickCount());if(frameCounter<2)lines.push_back(__LINE__);
             try{
                 if(bZoom){
-                float aimH = aim.height*face2shot;
-                switch (zoomState) {
-                case STOP:
-                    if(aimH>roi.height*zoomThr){
-                        zoomSign=1;
-                        zoomState=BEGIN;
-                    }
-                    if(aimH<roi.height/zoomThr){
-                        zoomSign=-1;
-                        zoomState=BEGIN;
-                    }
-                    break;
-                case BEGIN:
-                    zoomSpeed+=zoomSpeedInc;
-                    scaleRect(roi,aspect,zoomSign*zoomSpeed);
-                    if(zoomSpeed > zoomSpeedMax) {zoomState=MOVE;zoomSpeed=zoomSpeedMax;}
-                    if(roi.height > maxRoiSize.height) {
-                        roi.height=maxRoiSize.height;
-                        roi.width=maxRoiSize.width;
-                        zoomState=END;
-                    }
-                    break;
-                case MOVE:
-                    scaleRect(roi,aspect,zoomSign*zoomSpeed);
-                    if((abs(aimH-roi.height) < zoomStopThr) || cvRound(roi.height) <= aim.height)zoomState=END;
-                    if(roi.height > maxRoiSize.height) {
-                        roi.height=maxRoiSize.height;
-                        roi.width=maxRoiSize.width;
-                        zoomState=END;
-                    }
-                    break;
-                case END:
-                    zoomSpeed-=zoomSpeedInc;
-                    scaleRect(roi,aspect,zoomSign*zoomSpeed);
-                    if(zoomSpeed < zoomSpeedMin) {zoomState=STOP; zoomSpeed=zoomSpeedMin;}
-                    if(roi.height > maxRoiSize.height) {
-                        roi.height=maxRoiSize.height;
-                        roi.width=maxRoiSize.width;
-                        zoomState=STOP;
-                        zoomSpeed=zoomSpeedMin;
-                    }
-                    break;
-                }
+                    zoom.update(aim,roi);
                 }
                 tmr.push_back(cvGetTickCount());if(frameCounter<2)lines.push_back(__LINE__);
 
@@ -699,9 +595,9 @@ int main( int argc, const char** argv )
                 resize(fullFrame, preview, smallImgSize, 0, 0, INTER_NEAREST );
 
                 // Рисовать кадр захвата
-                if(zoomState==BEGIN)rectangle(preview,roi,Scalar(100,255,100),thickness+zoomStopThr);
-                if(zoomState==MOVE)rectangle(preview,roi,Scalar(255,255,255),thickness+zoomStopThr);
-                if(zoomState==END)rectangle(preview,roi,Scalar(100,100,255),thickness+zoomStopThr);
+                if(zoom.getState()==BEGIN)rectangle(preview,roi,Scalar(100,255,100),thickness+zoom.getStopThr());
+                if(zoom.getState()==MOVE)rectangle(preview,roi,Scalar(255,255,255),thickness+zoom.getStopThr());
+                if(zoom.getState()==END)rectangle(preview,roi,Scalar(100,100,255),thickness+zoom.getStopThr());
                 rectangle(preview,roi,Scalar(0,0,255),thickness);
                 Scalar colorX;
                 switch (moveX.getState()){

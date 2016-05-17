@@ -1,8 +1,9 @@
 #ifndef STATEMACHINE_H
 #define STATEMACHINE_H
 #include "stdlib.h"
-#include "opencv2/highgui.hpp"
-
+#include "opencv2/core.hpp"
+using namespace cv;
+/// Состояния движения
 typedef enum {STOP, ///< Движение прекращено
               BEGIN, ///< Разгон
               MOVE, ///< Движение с постоянной максимальной скоростью
