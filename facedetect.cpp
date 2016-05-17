@@ -15,16 +15,18 @@
 #include <opencv2/videoio/videoio.hpp>  // Video write
 #include <ctime>
 
+#include "automotion.h"
+
 using namespace std;
 using namespace cv;
 const double FI=1.61803398; /// Золотое сечение
 
-/// Состояния камеры при перемещении и зуммировании
-typedef enum {STOP, ///< Движение прекращено
-              BEGIN, ///< Разгон
-              MOVE, ///< Движение с постоянной максимальной скоростью
-              END ///< Торможение
-             } DYNAMIC_STATES;
+///// Состояния камеры при перемещении и зуммировании
+//typedef enum {STOP, ///< Движение прекращено
+//              BEGIN, ///< Разгон
+//              MOVE, ///< Движение с постоянной максимальной скоростью
+//              END ///< Торможение
+//             } DYNAMIC_STATES;
 
 static void help()
 {
@@ -118,95 +120,6 @@ void autoZoom(const Rect& face,
        else
            scaleRect(roi,aspect,step);
 }
-/**
- * @brief The autoMotion class
- *
- * Плавное перемещение виртуальной камеры с использованием нескольких состояний
- */
-class autoMotion{
-     DYNAMIC_STATES state; ///< Состояния движения
-     double speedMin; ///< Минимальная скорость перемещения
-     double speedMax; ///< Максимальная скорость перемещения
-     double speedAim; ///< Желаемая скорость перемещения
-     double speedInc; ///< Инкремент. Насколько скорость будет увеличена или уменьшена
-     double accelTime; ///< Время ускорения
-     double speed; ///< Текущая скорость
-     float sign; ///< Знак изменения скорости (+/-)
-public:
-     /**
-     * @brief Конструктор
-     * @param [in]spdMin минимальная скорость
-     * @param [in]spdMax максимальная скорость
-     */
-    autoMotion(double spdMin,double spdMax){
-        state = STOP;
-        speedMin=spdMin;
-        speedMax=spdMax;
-        speed=spdMin;
-    }
-    /**
-     * @brief update
-     * Обновить координаты в соответствии с текущей скоростьюи состоянием
-     * @param [in,out]x
-     * @param [in]aim
-     * @param [in]precision
-     * @param outOfRoi
-     * @return Текущую скорость изменения координаты
-     */
-    float update(float& x,const int& aim, const double& precision, const bool outOfRoi){
-
-        switch (state) {/// \todo test this code!!
-        case STOP:
-            if(outOfRoi && abs(aim-cvRound(x))>2*precision){
-                if(aim>cvRound(x)) sign=1.0; else sign=-1.0;
-                if(abs(aim-cvRound(x))<1.5*precision){
-                    speedAim = speedMax/3.0;
-                    cout << speedAim <<endl;
-                }else{
-                    speedAim = speedMax;
-                }
-                accelTime = precision*2.0/speedAim;
-                speedInc=(speedAim-speedMin)/accelTime;
-                state = BEGIN;
-            }
-            break;
-        case BEGIN:
-            speed+=speedInc;
-            x += sign*speed;
-            if(speed>speedAim) {state=MOVE;speed=speedAim;}
-            break;
-        case MOVE:
-            x += sign*speed;
-            if(abs(aim-cvRound(x))<precision) state=END;
-            break;
-        case END:
-            speed-=speedInc;
-            x += sign*speed;
-            if(speed<speedMin) {state=STOP; speed=speedMin;}
-            break;
-        }
-        return speed;
-    }
-    /**
-     * @brief getState
-     * @return Текущее состояние движения
-     */
-    DYNAMIC_STATES getState(){
-         return state;
-    }
-    /**
-     * @brief getSign
-     * @return Текущий знак движения
-     */
-    float getSign(){ return sign;}
-    /**
-     * @brief getSpeed
-     * @return Текущую скорость
-     */
-    double getSpeed(){
-        return speed;
-    }
-};
 /**
  * @brief Нарисовать прямоугольники
  * Рисует несколько прямоугольников, добавляя к ним подпись в виде текста и номера
@@ -544,7 +457,7 @@ int main( int argc, const char** argv )
         double zoomSpeedInc=(zoomSpeedMax-zoomSpeedMin)/zoomSpeedInc_;
         double zoomSpeed=zoomSpeedMin;
         DYNAMIC_STATES zoomState = STOP;
-        autoMotion moveX(0,maxStepX*onePerc),moveY(0,maxStepY*onePerc);
+        AutoMotion moveX(0,maxStepX*onePerc),moveY(0,maxStepY*onePerc);
         double zoomSign = 1;
 
         //file writing
@@ -685,7 +598,6 @@ int main( int argc, const char** argv )
                     /// Поиск лиц в профиль
                     cascadeProf.detectMultiScale( graySmall, facesProf,
                                                   scaleFactor, minNeighbors, 0|CASCADE_SCALE_IMAGE,minfaceSize);
-                    tmr.push_back(cvGetTickCount());if(frameCounter<2)lines.push_back(__LINE__);
                     foundFaces = !(facesFull.empty() && facesProf.empty());
                 }else foundFaces = false;
                 tmr.push_back(cvGetTickCount());if(frameCounter<2)lines.push_back(__LINE__);
