@@ -17,6 +17,8 @@
 
 #include "automotion.h"
 #include "autozoom.h"
+#include "autocamera.h"
+#include "arg.h"
 
 using namespace std;
 using namespace cv;
@@ -27,45 +29,6 @@ static void help()
     cout << "Build date:" << __DATE__ << " " << __TIME__
             "\n\tDuring execution:\n\tHit any key to quit.\n"
             "\tUsing OpenCV version " << CV_VERSION << "\n" << endl;
-}
-/**
- * @brief topMiddleDec Ищет точку посередине прямоугольника, отстоящую от верха на одну треть (в относительных координатах)
- * @param [in]r Прямоугольник, в котором ищется точка
- * @return Точка, у которой x и y - отступы от левого верхнего края прямоугольника
- */
-inline Point topMiddleDec(const Rect2f& r) {return Point(cvRound((double)r.width*0.5) , cvRound((double)r.height/3.0));}
-/**
- * @brief topLeftDec Ищет левую верхнюю точку по правилу третей (в относительных координатах)
- * @param [in]r Прямоугольник, в котором ищется точка
- * @return Точка, у которой x и y - отступы от левого верхнего края прямоугольника
- */
-inline Point topLeftDec(const Rect2f& r) {return Point(cvRound((double)r.width/3.0) , cvRound((double)r.height/3.0));}
-/**
- * @brief topRightDec Ищет правую верхнюю точку по правилу третей (в относительных координатах)
- * @param [in]r Прямоугольник, в котором ищется точка
- * @return Точка, у которой x и y - отступы от левого верхнего края прямоугольника
- */
-inline Point topRightDec(const Rect2f& r){return Point(cvRound((double)r.width*2.0/3.0) , cvRound((double)r.height/3.0));}
-/**
- * @brief getGoldenPoint Ищет координаты прямоугольника так, чтобы внитри него располагалось лицо по правилу третей
- * @param [in]roi Область интереса, кадр
- * @param [in]face лицо
- * @return Абсолютные координаты нового положения кадра
- */
-Point getGoldenPoint(const Rect2f& roi,const Rect& face){
-    Point target;
-    if(cvRound((float)roi.width/3.0) - face.width < 0 ) /// если лицо крупное, то держать его в центре кадра
-        target = topMiddleDec(roi);
-    else if(face.x+cvRound((float)face.width/2.0) < topMiddleDec(roi).x
-            && face.x < roi.x+topLeftDec(roi).x)
-        target = topLeftDec(roi);
-    else if(face.x+face.width > roi.x+topRightDec(roi).x) // Камера посередине не будет реагировать
-        target = topRightDec(roi);
-    else
-        target = topMiddleDec(roi);
-
-    Point result = (face+topMiddleDec(face) - target).tl();// Должна быть зависимость только от размеров ROI
-    return result;
 }
 /**
  * @brief Нарисовать прямоугольники
@@ -86,7 +49,7 @@ void drawRects(Mat& img, const vector<Rect>& rects,
                float textThickness=1.0,
                int textOffset=0,
                int thickness=1,
-               int fontFace=CV_FONT_NORMAL){
+               int fontFace=CV_FONT_NORMAL){ /// \todo 18.05.2016 class Drawer
     for (int i = 0; i < rects.size(); ++i)
     {
         stringstream title;
@@ -107,7 +70,7 @@ void drawRects(Mat& img, const vector<Rect>& rects,
  * @param [in]color Цвет точек
  * @param [in]dotsRadius Радиус точек
  */
-inline void drawThirds(Mat& img, const Rect2f& r,Scalar color=Scalar(0,255,0),const double& dotsRadius=1){
+inline void drawThirds(Mat& img, const Rect2f& r,Scalar color=Scalar(0,255,0),const double& dotsRadius=1){ /// \todo 18.05.2016 class Drawer
     circle(img,Point(r.x + r.width/3.0,
                               r.y + r.height/3.0), 1,Scalar(0,255,0), dotsRadius);
     circle(img,Point(r.x + 2.0*r.width/3.0,
@@ -122,7 +85,7 @@ inline void drawThirds(Mat& img, const Rect2f& r,Scalar color=Scalar(0,255,0),co
  * @param [in]r Массив прямоугольников
  * @return Прямоугольник, высота которого - медиана высот, а координаты - медианы координат прямоугольников
  */
-Rect median(const vector<Rect>& r){
+Rect median(const vector<Rect>& r){ /// \todo 18.05.2016 class Detector
     static vector<int> x,y,h;
     x.resize(r.size());
     y.resize(r.size());
@@ -138,89 +101,7 @@ Rect median(const vector<Rect>& r){
     return Rect(x[x.size()/2],y[y.size()/2],h[h.size()/2],h[h.size()/2]);
 }
 
-/**
- * @class Arg
- * Этот класс предназначен для ввода числовых параметров программы различных типов
- */
-template <typename T>
-class Arg
-{
-    T val; ///< Значение
-    T *valDef; ///< Значение по-умолчанию
-    string *opt;///< Как должен выглядеть аргумент при запуске программы
-    string *format;///< Спецификатор для ввода параметров (см. документацию [scanf](http://www.cplusplus.com/reference/cstdio/scanf/))
-    T *gt;///< нижняя граница для параметра (Greater Than)
-    T *lt;///< верхняя граница для параметра (Less Than)
-public:
-    /**
-     * @brief Конструктор
-     * @param [in]defVal Значение параметра по-умолчанию
-     * @param [in]opt_ Как должен выглядеть аргумент при запуске программы
-     * @param [in]format_ Спецификатор (см. документацию [scanf](http://www.cplusplus.com/reference/cstdio/scanf/))
-     * @param [in]greater Нижняя граница для числа. По-умолчанию границы нет.
-     * @param [in]less Верхняя граница для числа. По-умолчанию границы нет.
-     */
-    Arg(const T defVal, const string opt_, const string format_,  const T* greater=NULL,const T* less=NULL)
-        : val(defVal) {
-        opt = new string(opt_);
-        format = new string(format_);
-        valDef = new T(defVal);
-        if(greater) gt = new T(*greater); else gt=NULL;
-        if(less)    lt = new T(*less);    else lt=NULL;
-        cout << "\t" << *opt << "[" << val << "]" << endl;
-    }
-    /**
-     * @brief Ввод параметра
-     * Определяет, является ли текущая строка нужным идентефикатором
-     * @param [in]argv один аргумент программы
-     * @return true, если была распознана строка-идентификатор и знчение удалось прочитать
-     */
-    bool input(const char* argv){
-        if(exists(argv))
-        {
-            if(sscanf( argv + opt->length(), format->c_str(), &val)){
-                if((gt!=NULL && *gt>val))
-                    val=*valDef;
-                else if((lt!=NULL && *lt<val))
-                    val=*valDef;
-                cout << " and " << val << " assigned."<<endl;
-                delete format, opt;
-                delete valDef;
-                return true;
-            }
-        }
-        return false;
-    }
-    /**
-     * @brief operator T
-     * Маскировка данного класса под используемый тип
-     */
-    operator T(){
-        return val;
-    }
-    /**
-     * @brief operator =
-     * Маскировка данного класса под используемый тип
-     * @param [in]newVal
-     * @return Новое значение параметра
-     */
-    T operator =(T newVal){
-        val=newVal;
-        return val;
-    }
-    /**
-     * @brief Поиск аргумента
-     * Ищет аргумент в заданной строке
-     * @param [in]argv Один аргумент программы
-     * @return true, если аргумент найден
-     */
-    bool exists(const char* argv){
-        return (opt->compare(0,opt->length(),argv,opt->length())==0);
-    }
-    ~Arg(){
-        delete gt,lt;
-    }
-};
+
 /**
  * @brief Главная функция
  * @param [in]argc Количество аргументов в программе
@@ -230,11 +111,11 @@ public:
 int main( int argc, const char** argv )
 {
 
-    string inputName; ///< Путь к файлу видео для обработки. Если не введен, то изображение захватывается с камеры
+    string inputName; ///< Путь к файлу видео для обработки. Если не введен, то изображение захватывается с камеры /// \todo 18.05.2016 class FileSaver
 
     cout << "Availible parameters: " << endl;
     /// Параметры детектора лиц
-    CascadeClassifier cascadeFull,cascadeProf; ///< Каскады Хаара для детекции лица
+    CascadeClassifier cascadeFull,cascadeProf; ///< Каскады Хаара для детекции лица /// \todo 18.05.2016 class Detector
     string cascadeFullName = "../../data/haarcascades/haarcascade_frontalface_alt.xml";
     string cascadeProfName = "../../data/haarcascades/haarcascade_profileface.xml";
     const string nestedCascadeOpt = "--nested-cascade";
@@ -332,7 +213,7 @@ int main( int argc, const char** argv )
         help();
         return -1;
     }
-    bool isWebcam=false;
+    bool isWebcam=false; /// \todo 18.05.2016 class InputMan
     VideoCapture capture;
     if( inputName.empty() || (isdigit(inputName.c_str()[0]) && inputName.c_str()[1] == '\0') )
     {
@@ -351,53 +232,44 @@ int main( int argc, const char** argv )
 
     if( capture.isOpened() )
     {
-        if(isWebcam) writeCropFile=false;
-        cout << __LINE__ <<endl;
+        if(isWebcam) writeCropFile=false; /// \todo 18.05.2016 class FileSaver
         cout << "Video capturing has been started ..." << endl;
 
    //    MODEL    //
         // Кадры
-        Mat fullFrame;
-        Mat smallImg;
-        Mat graySmall;
-        Mat result;
+        Mat fullFrame; /// \todo 18.05.2016 class InputMan, class Detector
+        Mat result; /// \todo 18.05.2016 class FileSaver
 
         // Face detection
-        const double fx = 1 / scale;
+        /// \todo 18.05.2016 class Detector
+        Mat smallImg; /// \todo 18.05.2016 class Detector
+        Mat graySmall; /// \todo 18.05.2016 class Detector
         const Size minfaceSize=Size(minFaceHeight,minFaceHeight);
 
         bool foundFaces=false;
         vector<Rect> facesFull,facesProf,faceBuf;
+        /// \todo 18.05.2016 end class Detector
 
         /// Характеристики видео
         const long int videoLength = capture.get(CAP_PROP_FRAME_COUNT);
         const float aspectRatio = (float)capture.get(CV_CAP_PROP_FRAME_WIDTH)/
                                   (float)capture.get(CV_CAP_PROP_FRAME_HEIGHT);
         const Rect2f fullShot(0,0,(int)capture.get(CV_CAP_PROP_FRAME_WIDTH),
-                                (int)capture.get(CV_CAP_PROP_FRAME_HEIGHT));
-        int fps; ///< Количество кадров в секунду
+                                (int)capture.get(CV_CAP_PROP_FRAME_HEIGHT)); /// \todo 18.05.2016 class Detector
+        int fps; ///< Количество кадров в секунду /// \todo 18.05.2016 class FileSaver, class Previewer
         int fourcc; ///< Код кодека, состоящий из 4-х символов (см. \ref fourcc.org http://www.fourcc.org/codecs.php)
-        long int frameCounter=0;
+        long int frameCounter=0; /// \todo 18.05.2016 class InputMan
 
 
-        const Size smallImgSize = Size((float)fullShot.width/scale, (float)fullShot.height/scale);
-        const Size maxRoiSize = smallImgSize;
-        const Size previewSize = smallImgSize;
+        const Size smallImgSize = Size((float)fullShot.width/scale, (float)fullShot.height/scale); /// \todo 18.05.2016 class Detector
+        const Size maxRoiSize = smallImgSize; /// \todo 18.05.2016 class AutoCamera
+        const Size previewSize = smallImgSize; /// \todo 18.05.2016 class Drawer
         const Size resultSize = Size(resultHeight*aspectRatio,resultHeight);
 
         ///Zoom & movement params (driver)
-        const double onePerc =(double)smallImgSize.width/100.0; // onePercent
+        Rect aim=Rect(Point(0,0),maxRoiSize); /// \todo 18.05.2016 class Detector, class AutoCamera
 
-        Point gp;
-        Rect aim=Rect(Point(0,0),maxRoiSize);
-        Rect2f roi = Rect2f(Point(0,0),maxRoiSize);
-
-        const bool bZoom = true;
-        const bool bMove = true;
-
-        DYNAMIC_STATES zoomState = STOP;
-        AutoMotion moveX(0,maxStepX*onePerc),moveY(0,maxStepY*onePerc);
-        AutoZoom zoom(zoomSpeedMin,zoomSpeedMax,maxRoiSize,zoomThr,cvRound(zoomStopThr_*onePerc),zoomSpeedInc_,face2shot);
+        AutoCamera cam(maxRoiSize,maxStepX,maxStepY,zoomSpeedMin,zoomSpeedMax,zoomThr,zoomStopThr_,zoomSpeedInc_,face2shot,1,1);
 
         //file writing
         stringstream outTitleStream;
@@ -413,8 +285,9 @@ int main( int argc, const char** argv )
         stringstream pzoom;
 
 
-   //    VIEW    //
-        Mat preview;
+        //    VIEW    //
+        /// \todo 18.05.2016 class Drawer ///
+        Mat preview; ///<
         Rect2f roiFullSize;
         //drawing
         const float thickness = 0.5*previewSize.width/100.0;
@@ -423,9 +296,10 @@ int main( int argc, const char** argv )
         const int textThickness = thickness/2.0;
         const double fontScale = thickness/5;
         string prevWindTitle = "Preview";
+        /// \todo 18.05.2016 end class Drawer ///
 
          // SetUp
-        if(isWebcam){
+        if(isWebcam){ /// \todo 18.05.2016 class InputMan
             time_t t = time(0);   // get time now
             struct tm * now = localtime( & t );
              outTitleStream << "webcam"
@@ -504,17 +378,18 @@ int main( int argc, const char** argv )
                  return -1;
              }
         }
-        logFile.open(("results/test_"+outFileTitle+".ods").c_str(), fstream::out);
+        logFile.open(("results/test_"+outFileTitle+".ods").c_str(), fstream::out); /// \todo 18.05.2016 class StatMan
         if(!logFile.is_open()){
             cout << "Error with opening the file:" << "results/test_"+outFileTitle+".ods" << endl;
         }
 
-        //// Main cycle
+        // Main cycle
         for(;;)
         {
 
             tmr.push_back(cvGetTickCount());if(frameCounter<2)lines.push_back(__LINE__);
             try{
+                /// \todo 18.05.2016 class InputMan
                 capture >> fullFrame;
                 if(!fullFrame.empty() && waitKey(1) != 27) {
                     if(frameCounter>0)pzoom<<',';
@@ -526,14 +401,15 @@ int main( int argc, const char** argv )
 
 
                 tmr.push_back(cvGetTickCount());if(frameCounter<2)lines.push_back(__LINE__);
+                /// \todo 18.05.2016 class Detector
                 if(frameCounter%faceDetectPer==0){
                     resize( fullFrame, smallImg, smallImgSize, 0, 0, INTER_LINEAR );
                     cvtColor( smallImg, graySmall, COLOR_BGR2GRAY );
-                /// \todo 04/05/2016 Искать лица только в некоторой области вокруг уже обнаруженного лица
+
                     /* Поиск лиц в анфас */
                     cascadeFull.detectMultiScale(graySmall, facesFull,
                                                  scaleFactor, minNeighbors, 0|CASCADE_SCALE_IMAGE,minfaceSize);
-                    /// Поиск лиц в профиль
+                    /* Поиск лиц в профиль */
                     cascadeProf.detectMultiScale( graySmall, facesProf,
                                                   scaleFactor, minNeighbors, 0|CASCADE_SCALE_IMAGE,minfaceSize);
                     foundFaces = !(facesFull.empty() && facesProf.empty());
@@ -553,54 +429,30 @@ int main( int argc, const char** argv )
             }catch(Exception &mvEx){
                 cout << "Detection block: "<< mvEx.msg << endl;
             }
-            /// Motion and zoom
+            tmr.push_back(cvGetTickCount());if(frameCounter<2)lines.push_back(__LINE__);
+            cam.update(aim);
             tmr.push_back(cvGetTickCount());if(frameCounter<2)lines.push_back(__LINE__);
             try{
-                if(bZoom){
-                    zoom.update(aim,roi);
-                }
-                tmr.push_back(cvGetTickCount());if(frameCounter<2)lines.push_back(__LINE__);
-
-                if(bMove) {
-                    bool outOfRoi = ((Rect2f)aim&roi).area()<aim.area();
-                    gp = getGoldenPoint(roi,aim);
-                    moveX.update(roi.x,gp.x,roi.width/15.0,outOfRoi);
-                    moveY.update(roi.y,gp.y,roi.height/3.0,outOfRoi);
-                }
-                tmr.push_back(cvGetTickCount());if(frameCounter<2)lines.push_back(__LINE__);
-
-                if(roi.x<0) roi.x = 0;
-                if(maxRoiSize.width < roi.x+roi.width)
-                    roi.x = maxRoiSize.width-roi.width;
-                if(roi.y<0)roi.y = 0;
-                if(maxRoiSize.height < roi.y+roi.height)
-                    roi.y=maxRoiSize.height-roi.height;
-                /// end Motion and zoom
-            }catch(Exception &mvEx){
-                cout << "Motion and zoom block: "<< mvEx.msg << endl;
-            }
-
-            tmr.push_back(cvGetTickCount());if(frameCounter<2)lines.push_back(__LINE__);
-            try{
-                roiFullSize = Rect2f(Point(roi.x*scale,roi.y*scale),Size(roi.width*scale,roi.height*scale));
+                /// \todo 18.05.2016 FileSaver
                 if(recordResult){
-                    resize(fullFrame(roiFullSize), result , resultSize, 0,0, INTER_LINEAR );
+                    resize(fullFrame(cam.getRoiFullSize(scale)), result , resultSize, 0,0, INTER_LINEAR );
                     outputVideo << result ;
                 }
             }catch(Exception &mvEx){
                 cout << "Result saving: "<< mvEx.msg << endl;
             }
             tmr.push_back(cvGetTickCount());if(frameCounter<2)lines.push_back(__LINE__);
+            /// \todo 18.05.2016 class Drawer
             if(showPreview || recordPreview){ // Отрисовка области интереса
                 resize(fullFrame, preview, smallImgSize, 0, 0, INTER_NEAREST );
 
                 // Рисовать кадр захвата
-                if(zoom.getState()==BEGIN)rectangle(preview,roi,Scalar(100,255,100),thickness+zoom.getStopThr());
-                if(zoom.getState()==MOVE)rectangle(preview,roi,Scalar(255,255,255),thickness+zoom.getStopThr());
-                if(zoom.getState()==END)rectangle(preview,roi,Scalar(100,100,255),thickness+zoom.getStopThr());
-                rectangle(preview,roi,Scalar(0,0,255),thickness);
+                if(cam.getZoom().getState()==BEGIN)rectangle(preview,cam.getRoi(),Scalar(100,255,100),cam.getZoom().getStopThr());
+                if(cam.getZoom().getState()==MOVE)rectangle(preview,cam.getRoi(),Scalar(255,255,255),thickness+cam.getZoom().getStopThr());
+                if(cam.getZoom().getState()==END)rectangle(preview,cam.getRoi(),Scalar(100,100,255),thickness+cam.getZoom().getStopThr());
+                rectangle(preview,cam.getRoi(),Scalar(0,0,255),thickness);
                 Scalar colorX;
-                switch (moveX.getState()){
+                switch (cam.getMoveX().getState()){
                 case BEGIN:
                     colorX = Scalar(127,255,127);break;
                 case MOVE:
@@ -609,7 +461,7 @@ int main( int argc, const char** argv )
                     colorX = Scalar(127,127,255);break;
                 }
                 Scalar colorY;
-                switch (moveY.getState()){
+                switch (cam.getMoveY().getState()){
                 case BEGIN:
                     colorY = Scalar(127,255,127);break;
                 case MOVE:
@@ -617,31 +469,31 @@ int main( int argc, const char** argv )
                 case END:
                     colorY = Scalar(127,127,255);break;
                 }
-                if(moveX.getState()!=STOP){
-                    if(moveX.getSign()<0)
+                if(cam.getMoveX().getState()!=STOP){
+                    if(cam.getMoveX().getSign()<0)
                         arrowedLine(preview,
-                                    Point(roi.x,roi.y+roi.height/2),
-                                    Point(roi.x-moveX.getSpeed()*2,roi.y+roi.height/2),
+                                    Point(cam.getRoi().x,cam.getRoi().y+cam.getRoi().height/2),
+                                    Point(cam.getRoi().x-cam.getMoveX().getSpeed()*2,cam.getRoi().y+cam.getRoi().height/2),
                                     colorX,thickness,8,0,1);
                     else
                         arrowedLine(preview,
-                                    Point(roi.x+roi.width,roi.y+roi.height/2),
-                                    Point(roi.x+roi.width+moveX.getSpeed()*2,roi.y+roi.height/2),
+                                    Point(cam.getRoi().x+cam.getRoi().width,cam.getRoi().y+cam.getRoi().height/2),
+                                    Point(cam.getRoi().x+cam.getRoi().width+cam.getMoveX().getSpeed()*2,cam.getRoi().y+cam.getRoi().height/2),
                                     colorX,thickness,8,0,1);
                 }
-                if(moveY.getState()!=STOP){
-                    if(moveY.getSign()<0)
+                if(cam.getMoveY().getState()!=STOP){
+                    if(cam.getMoveY().getSign()<0)
                         arrowedLine(preview,
-                                    Point(roi.x+roi.width/2,roi.y),
-                                    Point(roi.x+roi.width/2,roi.y-moveY.getSpeed()*2),
+                                    Point(cam.getRoi().x+cam.getRoi().width/2,cam.getRoi().y),
+                                    Point(cam.getRoi().x+cam.getRoi().width/2,cam.getRoi().y-cam.getMoveY().getSpeed()*2),
                                     colorY,thickness,8,0,1);
                     else
                         arrowedLine(preview,
-                                    Point(roi.x+roi.width/2,roi.br().y),
-                                    Point(roi.x+roi.width/2,roi.br().y+moveY.getSpeed()*2),
+                                    Point(cam.getRoi().x+cam.getRoi().width/2,cam.getRoi().br().y),
+                                    Point(cam.getRoi().x+cam.getRoi().width/2,cam.getRoi().br().y+cam.getMoveY().getSpeed()*2),
                                     colorY,thickness,8,0,1);
                 }
-                drawThirds(preview,roi,Scalar(0,255,0),dotsRadius);
+                drawThirds(preview,cam.getRoi(),Scalar(0,255,0),dotsRadius);
                 // Рисовать цель
                 rectangle(preview,aim,Scalar(0,255,0),thickness);
                 putText(preview, "aim",aim.tl(),CV_FONT_NORMAL,fontScale,Scalar(0,255,0),textThickness);
@@ -674,11 +526,11 @@ int main( int argc, const char** argv )
                     previewVideo << preview;
                 if(showPreview)
                     imshow(prevWindTitle.c_str(),preview);
-            }
+            } /// \todo 18.05.2016 end class Drawer
+
             tmr.push_back(cvGetTickCount());if(frameCounter<2)lines.push_back(__LINE__);
 
-
-            /// Запись статистики
+            /// \todo 18.05.2016 class StatMan
             if(logFile.is_open()) {
                 if(frameCounter<1){
                     logFile << "frame\t";
@@ -723,12 +575,12 @@ int main( int argc, const char** argv )
                         << aim.y << "\t"
                         << aim.width << "\t"
                         << aim.height << "\t";
-                logFile << roi.x << "\t"
-                        << roi.y << "\t"
-                        << roi.width << "\t"
-                        << roi.height << endl;
+                logFile << cam.getRoi().x << "\t"
+                        << cam.getRoi().y << "\t"
+                        << cam.getRoi().width << "\t"
+                        << cam.getRoi().height << endl;
             }
-            if(writeCropFile){ /// \todo 9.05.2016 Не только вырезать, но и изменять размер кадра
+            if(writeCropFile){
                 pzoom << "zoompan=enable=eq(n\\,"<< frameCounter
                       << "):z=" << fullShot.width/roiFullSize.width
                       << ":x=" << roiFullSize.x
@@ -744,8 +596,10 @@ int main( int argc, const char** argv )
             tmr.clear();
             lines.clear();
         }
-        if(logFile.is_open())logFile.close();
-        if(writeCropFile){
+
+        if(logFile.is_open())logFile.close(); /// \todo 18.05.2016 class StatMan
+
+        if(writeCropFile){ /// \todo 18.05.2016 class FileSaver
             fstream cropFile;
             cropFile.open(("results/filter_"+outFileTitle).c_str(),fstream::out);
             if(cropFile.is_open()){

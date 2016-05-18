@@ -14,7 +14,12 @@ if(OpenCV_VERSION VERSION_GREATER "2.9.0")
     if(CMAKE_VERSION VERSION_LESS "2.8.11")
       include_directories(${OpenCV_INCLUDE_DIRS}) ## Добавление директорий
     endif()
-    add_executable(${PROJECT_NAME} facedetect.cpp  automotion.cpp autozoom.cpp statemachine.cpp)
+    add_executable(${PROJECT_NAME} facedetect.cpp
+                                   automotion.cpp
+                                   autozoom.cpp
+                                    statemachine.cpp
+                                    arg.cpp
+                                    autocamera.cpp)
     target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBS})
 else()
     message(FATAL_ERROR

@@ -29,6 +29,10 @@ public:
     DYNAMIC_STATES getState(){
          return state;
     }
+    StateMachine operator =(StateMachine m){
+        return m;
+    }
+
     /**
      * @brief getSign
      * @return Текущий знак движения
