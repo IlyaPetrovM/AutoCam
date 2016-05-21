@@ -3,11 +3,10 @@
 #include "statemachine.h"
 #include "math.h"
 /**
- * @brief The autoMotion class
- *
- * Плавное перемещение виртуальной камеры с использованием нескольких состояний
+ * \class AutoPan
+ * Измененяет одну из координат вырезаемого кадра
  */
-class AutoMotion : public StateMachine
+class AutoPan : public MotionAutomata
 {
 
 public:
@@ -16,9 +15,8 @@ public:
      * @param [in]spdMin минимальная скорость
      * @param [in]spdMax максимальная скорость
      */
-    AutoMotion(double spdMin,double spdMax) : StateMachine(spdMin, spdMax){}
+    AutoPan(double spdMin,double spdMax) : MotionAutomata(spdMin, spdMax){}
     /**
-     * @brief update
      * Обновить координаты в соответствии с текущей скоростьюи состоянием
      * @param [in,out]x
      * @param [in]aim

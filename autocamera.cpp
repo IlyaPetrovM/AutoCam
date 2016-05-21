@@ -1,6 +1,6 @@
 #include "autocamera.h"
 
-AutoCamera::AutoCamera(Size maxRoiSize_, double maxStepX,
+AutoCamera::AutoCamera(double scale_, Size maxRoiSize_, double maxStepX,
                        double maxStepY,
                        double zoomSpeedMin,
                        double zoomSpeedMax,
@@ -10,6 +10,7 @@ AutoCamera::AutoCamera(Size maxRoiSize_, double maxStepX,
                        double face2shot,
                        bool bZoom_,
                        bool bMove_) :
+    scale(scale_),
     maxRoiSize(maxRoiSize_),
     onePerc((double)maxRoiSize_.width/100.0),
     zoom(zoomSpeedMin,zoomSpeedMax,maxRoiSize_,zoomThr,cvRound(zoomStopThr_*((double)maxRoiSize_.width/100.0)),zoomSpeedInc_,face2shot),
@@ -22,12 +23,14 @@ AutoCamera::AutoCamera(Size maxRoiSize_, double maxStepX,
 
 
 void AutoCamera::update(const Rect &aim){
+    static Point gp;
+    register bool outOfRoi;
     if(bZoom){
         zoom.update(aim,roi);
     }
 
     if(bMove) {
-        bool outOfRoi = ((Rect2f)aim&roi).area()<aim.area();
+        outOfRoi = ((Rect2f)aim&roi).area()<aim.area();
         gp = getGoldenPoint(roi,aim);
         moveX.update(roi.x,gp.x,roi.width/15.0,outOfRoi);
         moveY.update(roi.y,gp.y,roi.height/3.0,outOfRoi);
@@ -47,39 +50,19 @@ Rect2f AutoCamera::getRoi() const
     return roi;
 }
 
-void AutoCamera::setRoi(const Rect2f &value)
-{
-    roi = value;
-}
-
-AutoMotion AutoCamera::getMoveX() const
+AutoPan AutoCamera::getMoveX() const
 {
     return moveX;
 }
 
-void AutoCamera::setMoveX(const AutoMotion &value)
-{
-    moveX = value;
-}
-
-AutoMotion AutoCamera::getMoveY() const
+AutoPan AutoCamera::getMoveY() const
 {
     return moveY;
-}
-
-void AutoCamera::setMoveY(const AutoMotion &value)
-{
-    moveY = value;
 }
 
 AutoZoom AutoCamera::getZoom() const
 {
     return zoom;
-}
-
-void AutoCamera::setZoom(const AutoZoom &value)
-{
-    zoom = value;
 }
 Point AutoCamera::getGoldenPoint(const Rect2f &roi, const Rect &face){
     Point target;

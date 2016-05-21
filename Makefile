@@ -114,6 +114,102 @@ facedetect/fast:
 	$(MAKE) -f CMakeFiles/facedetect.dir/build.make CMakeFiles/facedetect.dir/build
 .PHONY : facedetect/fast
 
+arg.o: arg.cpp.o
+.PHONY : arg.o
+
+# target to build an object file
+arg.cpp.o:
+	$(MAKE) -f CMakeFiles/facedetect.dir/build.make CMakeFiles/facedetect.dir/arg.cpp.o
+.PHONY : arg.cpp.o
+
+arg.i: arg.cpp.i
+.PHONY : arg.i
+
+# target to preprocess a source file
+arg.cpp.i:
+	$(MAKE) -f CMakeFiles/facedetect.dir/build.make CMakeFiles/facedetect.dir/arg.cpp.i
+.PHONY : arg.cpp.i
+
+arg.s: arg.cpp.s
+.PHONY : arg.s
+
+# target to generate assembly for a file
+arg.cpp.s:
+	$(MAKE) -f CMakeFiles/facedetect.dir/build.make CMakeFiles/facedetect.dir/arg.cpp.s
+.PHONY : arg.cpp.s
+
+autocamera.o: autocamera.cpp.o
+.PHONY : autocamera.o
+
+# target to build an object file
+autocamera.cpp.o:
+	$(MAKE) -f CMakeFiles/facedetect.dir/build.make CMakeFiles/facedetect.dir/autocamera.cpp.o
+.PHONY : autocamera.cpp.o
+
+autocamera.i: autocamera.cpp.i
+.PHONY : autocamera.i
+
+# target to preprocess a source file
+autocamera.cpp.i:
+	$(MAKE) -f CMakeFiles/facedetect.dir/build.make CMakeFiles/facedetect.dir/autocamera.cpp.i
+.PHONY : autocamera.cpp.i
+
+autocamera.s: autocamera.cpp.s
+.PHONY : autocamera.s
+
+# target to generate assembly for a file
+autocamera.cpp.s:
+	$(MAKE) -f CMakeFiles/facedetect.dir/build.make CMakeFiles/facedetect.dir/autocamera.cpp.s
+.PHONY : autocamera.cpp.s
+
+automotion.o: automotion.cpp.o
+.PHONY : automotion.o
+
+# target to build an object file
+automotion.cpp.o:
+	$(MAKE) -f CMakeFiles/facedetect.dir/build.make CMakeFiles/facedetect.dir/automotion.cpp.o
+.PHONY : automotion.cpp.o
+
+automotion.i: automotion.cpp.i
+.PHONY : automotion.i
+
+# target to preprocess a source file
+automotion.cpp.i:
+	$(MAKE) -f CMakeFiles/facedetect.dir/build.make CMakeFiles/facedetect.dir/automotion.cpp.i
+.PHONY : automotion.cpp.i
+
+automotion.s: automotion.cpp.s
+.PHONY : automotion.s
+
+# target to generate assembly for a file
+automotion.cpp.s:
+	$(MAKE) -f CMakeFiles/facedetect.dir/build.make CMakeFiles/facedetect.dir/automotion.cpp.s
+.PHONY : automotion.cpp.s
+
+autozoom.o: autozoom.cpp.o
+.PHONY : autozoom.o
+
+# target to build an object file
+autozoom.cpp.o:
+	$(MAKE) -f CMakeFiles/facedetect.dir/build.make CMakeFiles/facedetect.dir/autozoom.cpp.o
+.PHONY : autozoom.cpp.o
+
+autozoom.i: autozoom.cpp.i
+.PHONY : autozoom.i
+
+# target to preprocess a source file
+autozoom.cpp.i:
+	$(MAKE) -f CMakeFiles/facedetect.dir/build.make CMakeFiles/facedetect.dir/autozoom.cpp.i
+.PHONY : autozoom.cpp.i
+
+autozoom.s: autozoom.cpp.s
+.PHONY : autozoom.s
+
+# target to generate assembly for a file
+autozoom.cpp.s:
+	$(MAKE) -f CMakeFiles/facedetect.dir/build.make CMakeFiles/facedetect.dir/autozoom.cpp.s
+.PHONY : autozoom.cpp.s
+
 facedetect.o: facedetect.cpp.o
 .PHONY : facedetect.o
 
@@ -138,6 +234,30 @@ facedetect.cpp.s:
 	$(MAKE) -f CMakeFiles/facedetect.dir/build.make CMakeFiles/facedetect.dir/facedetect.cpp.s
 .PHONY : facedetect.cpp.s
 
+statemachine.o: statemachine.cpp.o
+.PHONY : statemachine.o
+
+# target to build an object file
+statemachine.cpp.o:
+	$(MAKE) -f CMakeFiles/facedetect.dir/build.make CMakeFiles/facedetect.dir/statemachine.cpp.o
+.PHONY : statemachine.cpp.o
+
+statemachine.i: statemachine.cpp.i
+.PHONY : statemachine.i
+
+# target to preprocess a source file
+statemachine.cpp.i:
+	$(MAKE) -f CMakeFiles/facedetect.dir/build.make CMakeFiles/facedetect.dir/statemachine.cpp.i
+.PHONY : statemachine.cpp.i
+
+statemachine.s: statemachine.cpp.s
+.PHONY : statemachine.s
+
+# target to generate assembly for a file
+statemachine.cpp.s:
+	$(MAKE) -f CMakeFiles/facedetect.dir/build.make CMakeFiles/facedetect.dir/statemachine.cpp.s
+.PHONY : statemachine.cpp.s
+
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -147,9 +267,24 @@ help:
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
 	@echo "... facedetect"
+	@echo "... arg.o"
+	@echo "... arg.i"
+	@echo "... arg.s"
+	@echo "... autocamera.o"
+	@echo "... autocamera.i"
+	@echo "... autocamera.s"
+	@echo "... automotion.o"
+	@echo "... automotion.i"
+	@echo "... automotion.s"
+	@echo "... autozoom.o"
+	@echo "... autozoom.i"
+	@echo "... autozoom.s"
 	@echo "... facedetect.o"
 	@echo "... facedetect.i"
 	@echo "... facedetect.s"
+	@echo "... statemachine.o"
+	@echo "... statemachine.i"
+	@echo "... statemachine.s"
 .PHONY : help
 
 

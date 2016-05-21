@@ -3,21 +3,22 @@
 #include "autozoom.h"
 #include "automotion.h"
 #include <iostream>
-
+/**
+  @class AutoCamera
+ * Класс AutoCamera на основе полученной цели плавно изменяет координаты и линейные размеры кадра
+ */
 class AutoCamera
 {
+    const double onePerc; ///< Один процент от ширины сжатого кадра
+    const bool bZoom; ///< Использовать ли масштабирование. true - если использовать.
+    const bool bMove; ///< Установить в значение true чтобы перемещать камеру
+    const Size maxRoiSize; ///< Максимальный размер области захвата кадра. Равен размеру сжатого кадра или меньше.
+    const double scale;
 
-    AutoMotion moveX;
-    AutoMotion moveY;
-    AutoZoom zoom;
-
-    /*const*/ double onePerc;
-    /*const*/ bool bZoom;
-    /*const*/ bool bMove;
+    AutoPan moveX; ///< Механизм перемещения камеры по горизонтали
+    AutoPan moveY; ///< Механизм перемещения камеры по вертикали
+    AutoZoom zoom; ///< Механизм масштабирования кадра
     Rect2f roi;
-    /*const*/ Size maxRoiSize;
-
-    Point gp; /// \todo 18.05.2016 class AutoCamera
 
     /**
      * @brief topMiddleDec Ищет точку посередине прямоугольника, отстоящую от верха на одну треть (в относительных координатах)
@@ -45,7 +46,23 @@ class AutoCamera
      */
     Point getGoldenPoint(const Rect2f& roi,const Rect& face);
 public:
-    AutoCamera(Size maxRoiSize_,
+    /**
+     * @brief Конструктор
+     * @param scale_ отношение линейных размеров кадра исходного видео и сжатого кадра
+     * @param maxRoiSize_
+     * @param maxStepX
+     * @param maxStepY
+     * @param zoomSpeedMin
+     * @param zoomSpeedMax
+     * @param zoomThr
+     * @param zoomStopThr_
+     * @param zoomSpeedInc_
+     * @param face2shot
+     * @param bZoom_
+     * @param bMove_
+     */
+    AutoCamera(double scale_,
+               Size maxRoiSize_,
                double maxStepX,
                double maxStepY,
                double zoomSpeedMin,
@@ -56,16 +73,24 @@ public:
                double face2shot,
                bool bZoom_,
                bool bMove_);
+    /**
+     * @brief Анализирует цель aim и на основе этого анализа перемещает и масштабирует кадр.
+     * @param [in]aim - цель, которая должна быть захвачена кадром
+     */
     void update(const Rect& aim);
-    Rect2f getRoiFullSize(const double& scale) {
+    /**
+     * @brief масштабирует размеры ROI под реальные размеры, чтобы из исходного видео высокого качества вырезать нужную область.
+     * @return
+     */
+    Rect2f getRoiFullSize() {
         return Rect2f(Point(roi.x*scale,roi.y*scale),Size(roi.width*scale,roi.height*scale));
     }
     Rect2f getRoi() const;
     void setRoi(const Rect2f &value);
-    AutoMotion getMoveX() const;
-    void setMoveX(const AutoMotion &value);
-    AutoMotion getMoveY() const;
-    void setMoveY(const AutoMotion &value);
+    AutoPan getMoveX() const;
+    void setMoveX(const AutoPan &value);
+    AutoPan getMoveY() const;
+    void setMoveY(const AutoPan &value);
     AutoZoom getZoom() const;
     void setZoom(const AutoZoom &value);
 };

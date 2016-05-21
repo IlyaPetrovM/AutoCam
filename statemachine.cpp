@@ -1,6 +1,6 @@
 #include "statemachine.h"
 
-StateMachine::StateMachine(double spdMin,double spdMax)
+MotionAutomata::MotionAutomata(double spdMin,double spdMax)
 {
     state = STOP;
     speedMin=spdMin;

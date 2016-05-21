@@ -8,11 +8,11 @@ typedef enum {STOP, ///< Движение прекращено
               BEGIN, ///< Разгон
               MOVE, ///< Движение с постоянной максимальной скоростью
               END ///< Торможение
-             } DYNAMIC_STATES;
-class StateMachine
+             } MOTION_STATES;
+class MotionAutomata
 {
 protected:
-    DYNAMIC_STATES state; ///< Состояния движения
+    MOTION_STATES state; ///< Состояния движения
     double speedMin; ///< Минимальная скорость перемещения
     double speedMax; ///< Максимальная скорость перемещения
     double speedAim; ///< Желаемая скорость перемещения
@@ -21,25 +21,29 @@ protected:
     double speed; ///< Текущая скорость
     float sign; ///< Знак изменения скорости (+/-)
 public:
-    StateMachine(double spdMin, double spdMax);
+    /**
+     * @brief Конструктор
+     * @param spdMin минимальная скорость движения
+     * @param spdMax максимальная скорость движения
+     */
+    MotionAutomata(double spdMin, double spdMax);
     /**
      * @brief getState
      * @return Текущее состояние движения
      */
-    DYNAMIC_STATES getState(){
+    MOTION_STATES getState(){
          return state;
     }
-    StateMachine operator =(StateMachine m){
+    MotionAutomata operator =(MotionAutomata m){
         return m;
     }
 
     /**
-     * @brief getSign
-     * @return Текущий знак движения
+
+     * @return Знак изменения скорости в данный момент
      */
     float getSign(){ return sign;}
     /**
-     * @brief getSpeed
      * @return Текущую скорость
      */
     double getSpeed(){

@@ -1,6 +1,6 @@
 #include "automotion.h"
 
-float AutoMotion::update(float &x, const int &aim, const double &precision, const bool outOfRoi){
+float AutoPan::update(float &x, const int &aim, const double &precision, const bool outOfRoi){
         switch (state) {/// \todo test this code!!
     case STOP:
         if(outOfRoi && abs(aim-cvRound(x))>2*precision){
