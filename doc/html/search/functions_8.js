@@ -1,6 +1,8 @@
 var searchData=
 [
-  ['topleftdec',['topLeftDec',['../facedetect_8cpp.html#a11402cb962c4d3169214b0bceac25014',1,'facedetect.cpp']]],
-  ['topmiddledec',['topMiddleDec',['../facedetect_8cpp.html#a712783e970afeb1cac7654431028b0b9',1,'facedetect.cpp']]],
-  ['toprightdec',['topRightDec',['../facedetect_8cpp.html#a04e2fd895d0d4dedc37bdc2e7c3cd7d9',1,'facedetect.cpp']]]
+  ['scalerect',['scaleRect',['../class_auto_zoom.html#a84b11058fbb63544895c50682e6d4a9f',1,'AutoZoom']]],
+  ['setmovex',['setMoveX',['../class_auto_camera.html#a1f60fb97b1a5c7c8b0f390289616c402',1,'AutoCamera']]],
+  ['setmovey',['setMoveY',['../class_auto_camera.html#a43313b41e4ab81be6193fb646535699f',1,'AutoCamera']]],
+  ['setroi',['setRoi',['../class_auto_camera.html#ad473abcc7303c35f9e321d7718c467c3',1,'AutoCamera']]],
+  ['setzoom',['setZoom',['../class_auto_camera.html#a6588bf82034d3e4746126537fec272e7',1,'AutoCamera']]]
 ];

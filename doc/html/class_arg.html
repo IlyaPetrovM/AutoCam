@@ -8,6 +8,13 @@
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
+<link href="navtree.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="resize.js"></script>
+<script type="text/javascript" src="navtree.js"></script>
+<script type="text/javascript">
+  $(document).ready(initResizable);
+  $(window).load(resizeHeight);
+</script>
 <link href="search/search.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="search/search.js"></script>
 <script type="text/javascript">
@@ -24,7 +31,7 @@
   <td id="projectlogo"><img alt="Logo" src="petrov_in_studio1.png"/></td>
   <td style="padding-left: 0.5em;">
    <div id="projectname">faceDetect
-   &#160;<span id="projectnumber">v1.0</span>
+   &#160;<span id="projectnumber">v2.0.1</span>
    </div>
    <div id="projectbrief">Autocorrection of Frame Composition in Extra-resolution Video</div>
   </td>
@@ -65,9 +72,25 @@ var searchBox = new SearchBox("searchBox", "search",false,'Поиск');
     <ul class="tablist">
       <li><a href="annotated.html"><span>Классы</span></a></li>
       <li><a href="classes.html"><span>Алфавитный&#160;указатель&#160;классов</span></a></li>
+      <li><a href="hierarchy.html"><span>Иерархия&#160;классов</span></a></li>
       <li><a href="functions.html"><span>Члены&#160;классов</span></a></li>
     </ul>
   </div>
+</div><!-- top -->
+<div id="side-nav" class="ui-resizable side-nav-resizable">
+  <div id="nav-tree">
+    <div id="nav-tree-contents">
+      <div id="nav-sync" class="sync"></div>
+    </div>
+  </div>
+  <div id="splitbar" style="-moz-user-select:none;" 
+       class="ui-resizable-handle">
+  </div>
+</div>
+<script type="text/javascript">
+$(document).ready(function(){initNavTree('class_arg.html','');});
+</script>
+<div id="doc-content">
 <!-- window showing the filter options -->
 <div id="MSearchSelectWindow"
      onmouseover="return searchBox.OnSearchSelectShow()"
@@ -82,15 +105,17 @@ var searchBox = new SearchBox("searchBox", "search",false,'Поиск');
 </iframe>
 </div>
 
-</div><!-- top -->
 <div class="header">
   <div class="summary">
 <a href="#pub-methods">Открытые члены</a> &#124;
+<a href="#pri-attribs">Закрытые данные</a> &#124;
 <a href="class_arg-members.html">Полный список членов класса</a>  </div>
   <div class="headertitle">
 <div class="title">Шаблон класса Arg&lt; T &gt;</div>  </div>
 </div><!--header-->
 <div class="contents">
+
+<p><code>#include &lt;<a class="el" href="arg_8h_source.html">arg.h</a>&gt;</code></p>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-methods"></a>
 Открытые члены</h2></td></tr>
@@ -111,6 +136,27 @@ var searchBox = new SearchBox("searchBox", "search",false,'Поиск');
 <tr class="separator:ab8617f74c7eeb311ab51fe1572731f01"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ad3ace51eba55f805a7aab729bb3115a3"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_arg.html#ad3ace51eba55f805a7aab729bb3115a3">~Arg</a> ()</td></tr>
 <tr class="separator:ad3ace51eba55f805a7aab729bb3115a3"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pri-attribs"></a>
+Закрытые данные</h2></td></tr>
+<tr class="memitem:aac29f4991a3ccea9a7e047901ba895eb"><td class="memItemLeft" align="right" valign="top">T&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_arg.html#aac29f4991a3ccea9a7e047901ba895eb">val</a></td></tr>
+<tr class="memdesc:aac29f4991a3ccea9a7e047901ba895eb"><td class="mdescLeft">&#160;</td><td class="mdescRight">Значение  <a href="#aac29f4991a3ccea9a7e047901ba895eb">Подробнее...</a><br/></td></tr>
+<tr class="separator:aac29f4991a3ccea9a7e047901ba895eb"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4e39de1f273191271234673c63fb0efb"><td class="memItemLeft" align="right" valign="top">T *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_arg.html#a4e39de1f273191271234673c63fb0efb">valDef</a></td></tr>
+<tr class="memdesc:a4e39de1f273191271234673c63fb0efb"><td class="mdescLeft">&#160;</td><td class="mdescRight">Значение по-умолчанию  <a href="#a4e39de1f273191271234673c63fb0efb">Подробнее...</a><br/></td></tr>
+<tr class="separator:a4e39de1f273191271234673c63fb0efb"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a0d933e9d8f709ea0b2d624221a2fa128"><td class="memItemLeft" align="right" valign="top">string *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_arg.html#a0d933e9d8f709ea0b2d624221a2fa128">opt</a></td></tr>
+<tr class="memdesc:a0d933e9d8f709ea0b2d624221a2fa128"><td class="mdescLeft">&#160;</td><td class="mdescRight">Как должен выглядеть аргумент при запуске программы  <a href="#a0d933e9d8f709ea0b2d624221a2fa128">Подробнее...</a><br/></td></tr>
+<tr class="separator:a0d933e9d8f709ea0b2d624221a2fa128"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aeb6245c884910c5b27e168ef552e666c"><td class="memItemLeft" align="right" valign="top">string *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_arg.html#aeb6245c884910c5b27e168ef552e666c">format</a></td></tr>
+<tr class="memdesc:aeb6245c884910c5b27e168ef552e666c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Спецификатор для ввода параметров (см. документацию <a href="http://www.cplusplus.com/reference/cstdio/scanf/">scanf</a>)  <a href="#aeb6245c884910c5b27e168ef552e666c">Подробнее...</a><br/></td></tr>
+<tr class="separator:aeb6245c884910c5b27e168ef552e666c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a52505634585e87963f78c489daf9aa1b"><td class="memItemLeft" align="right" valign="top">T *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_arg.html#a52505634585e87963f78c489daf9aa1b">gt</a></td></tr>
+<tr class="memdesc:a52505634585e87963f78c489daf9aa1b"><td class="mdescLeft">&#160;</td><td class="mdescRight">нижняя граница для параметра (Greater Than)  <a href="#a52505634585e87963f78c489daf9aa1b">Подробнее...</a><br/></td></tr>
+<tr class="separator:a52505634585e87963f78c489daf9aa1b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a02e311a5604641427409bd1d64f5cb49"><td class="memItemLeft" align="right" valign="top">T *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_arg.html#a02e311a5604641427409bd1d64f5cb49">lt</a></td></tr>
+<tr class="memdesc:a02e311a5604641427409bd1d64f5cb49"><td class="mdescLeft">&#160;</td><td class="mdescRight">верхняя граница для параметра (Less Than)  <a href="#a02e311a5604641427409bd1d64f5cb49">Подробнее...</a><br/></td></tr>
+<tr class="separator:a02e311a5604641427409bd1d64f5cb49"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Подробное описание</h2>
 <div class="textblock"><h3>template&lt;typename T&gt;<br/>
@@ -173,11 +219,11 @@ template&lt;typename T &gt; </div>
 <p>Конструктор </p>
 <dl class="params"><dt>Аргументы</dt><dd>
   <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname"></td><td>Значение параметра по-умолчанию </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname"></td><td>Как должен выглядеть аргумент при запуске программы </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname"></td><td>Спецификатор (см. документацию <a href="http://www.cplusplus.com/reference/cstdio/scanf/">scanf</a>) </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname"></td><td>Нижняя граница для числа. По-умолчанию границы нет. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname"></td><td>Верхняя граница для числа. По-умолчанию границы нет. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">defVal</td><td>Значение параметра по-умолчанию </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">opt_</td><td>Как должен выглядеть аргумент при запуске программы </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">format_</td><td>Спецификатор (см. документацию <a href="http://www.cplusplus.com/reference/cstdio/scanf/">scanf</a>) </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">greater</td><td>Нижняя граница для числа. По-умолчанию границы нет. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">less</td><td>Верхняя граница для числа. По-умолчанию границы нет. </td></tr>
   </table>
   </dd>
 </dl>
@@ -237,7 +283,7 @@ template&lt;typename T &gt; </div>
 <p>Поиск аргумента Ищет аргумент в заданной строке </p>
 <dl class="params"><dt>Аргументы</dt><dd>
   <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname"></td><td>Один аргумент программы </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">argv</td><td>Один аргумент программы </td></tr>
   </table>
   </dd>
 </dl>
@@ -272,7 +318,7 @@ template&lt;typename T &gt; </div>
 <p>Ввод параметра Определяет, является ли текущая строка нужным идентефикатором </p>
 <dl class="params"><dt>Аргументы</dt><dd>
   <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname"></td><td>один аргумент программы </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">argv</td><td>один аргумент программы </td></tr>
   </table>
   </dd>
 </dl>
@@ -334,7 +380,7 @@ template&lt;typename T &gt; </div>
 <p>operator = Маскировка данного класса под используемый тип </p>
 <dl class="params"><dt>Аргументы</dt><dd>
   <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname"></td><td></td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">newVal</td><td>Новое значение параметра </td></tr>
   </table>
   </dd>
 </dl>
@@ -342,15 +388,164 @@ template&lt;typename T &gt; </div>
 
 </div>
 </div>
+<h2 class="groupheader">Данные класса</h2>
+<a class="anchor" id="aeb6245c884910c5b27e168ef552e666c"></a>
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename T &gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">string* <a class="el" href="class_arg.html">Arg</a>&lt; T &gt;::format</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">private</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Спецификатор для ввода параметров (см. документацию <a href="http://www.cplusplus.com/reference/cstdio/scanf/">scanf</a>) </p>
+
+</div>
+</div>
+<a class="anchor" id="a52505634585e87963f78c489daf9aa1b"></a>
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename T &gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">T* <a class="el" href="class_arg.html">Arg</a>&lt; T &gt;::gt</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">private</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>нижняя граница для параметра (Greater Than) </p>
+
+</div>
+</div>
+<a class="anchor" id="a02e311a5604641427409bd1d64f5cb49"></a>
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename T &gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">T* <a class="el" href="class_arg.html">Arg</a>&lt; T &gt;::lt</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">private</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>верхняя граница для параметра (Less Than) </p>
+
+</div>
+</div>
+<a class="anchor" id="a0d933e9d8f709ea0b2d624221a2fa128"></a>
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename T &gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">string* <a class="el" href="class_arg.html">Arg</a>&lt; T &gt;::opt</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">private</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Как должен выглядеть аргумент при запуске программы </p>
+
+</div>
+</div>
+<a class="anchor" id="aac29f4991a3ccea9a7e047901ba895eb"></a>
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename T &gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">T <a class="el" href="class_arg.html">Arg</a>&lt; T &gt;::val</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">private</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Значение </p>
+
+</div>
+</div>
+<a class="anchor" id="a4e39de1f273191271234673c63fb0efb"></a>
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename T &gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">T* <a class="el" href="class_arg.html">Arg</a>&lt; T &gt;::valDef</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">private</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Значение по-умолчанию </p>
+
+</div>
+</div>
 <hr/>Объявления и описания членов класса находятся в файле:<ul>
-<li><a class="el" href="facedetect_8cpp.html">facedetect.cpp</a></li>
+<li><a class="el" href="arg_8h_source.html">arg.h</a></li>
 </ul>
 </div><!-- contents -->
+</div><!-- doc-content -->
 <!-- start footer part -->
-<hr class="footer"/><address class="footer"><small>
-Документация по faceDetect. Последние изменения: Вс 15 Май 2016 15:53:21. Создано системой &#160;<a href="http://www.doxygen.org/index.html">
-<img class="footer" src="doxygen.png" alt="doxygen"/>
-</a> 1.8.6
-</small></address>
+<div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
+  <ul>
+    <li class="navelem"><a class="el" href="class_arg.html">Arg</a></li>
+    <li class="footer">Документация по faceDetect. Последние изменения: Пн 23 Май 2016 08:38:39. Создано системой
+    <a href="http://www.doxygen.org/index.html">
+    <img class="footer" src="doxygen.png" alt="doxygen"/></a> 1.8.6 </li>
+  </ul>
+</div>
 </body>
 </html>

@@ -8,6 +8,13 @@
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
+<link href="navtree.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="resize.js"></script>
+<script type="text/javascript" src="navtree.js"></script>
+<script type="text/javascript">
+  $(document).ready(initResizable);
+  $(window).load(resizeHeight);
+</script>
 <link href="search/search.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="search/search.js"></script>
 <script type="text/javascript">
@@ -24,7 +31,7 @@
   <td id="projectlogo"><img alt="Logo" src="petrov_in_studio1.png"/></td>
   <td style="padding-left: 0.5em;">
    <div id="projectname">faceDetect
-   &#160;<span id="projectnumber">v1.0</span>
+   &#160;<span id="projectnumber">v2.0.1</span>
    </div>
    <div id="projectbrief">Autocorrection of Frame Composition in Extra-resolution Video</div>
   </td>
@@ -77,6 +84,20 @@ var searchBox = new SearchBox("searchBox", "search",false,'Поиск');
     </ul>
   </div>
 </div><!-- top -->
+<div id="side-nav" class="ui-resizable side-nav-resizable">
+  <div id="nav-tree">
+    <div id="nav-tree-contents">
+      <div id="nav-sync" class="sync"></div>
+    </div>
+  </div>
+  <div id="splitbar" style="-moz-user-select:none;" 
+       class="ui-resizable-handle">
+  </div>
+</div>
+<script type="text/javascript">
+$(document).ready(function(){initNavTree('globals.html','');});
+</script>
+<div id="doc-content">
 <!-- window showing the filter options -->
 <div id="MSearchSelectWindow"
      onmouseover="return searchBox.OnSearchSelectShow()"
@@ -93,11 +114,8 @@ var searchBox = new SearchBox("searchBox", "search",false,'Поиск');
 
 <div class="contents">
 <div class="textblock">Список всех членов файлов со ссылками на файлы, к которым они принадлежат.</div><ul>
-<li>autoZoom()
-: <a class="el" href="facedetect_8cpp.html#af222249d0230a7c9229b241494535d9c">facedetect.cpp</a>
-</li>
 <li>BEGIN
-: <a class="el" href="facedetect_8cpp.html#ad2857a2730378886451066b8979741fca368db50032da622d4c456ef7eaf9cb67">facedetect.cpp</a>
+: <a class="el" href="statemachine_8h.html#a789b8fd146c0563e29a6b8c2661c6e33a368db50032da622d4c456ef7eaf9cb67">statemachine.h</a>
 </li>
 <li>drawRects()
 : <a class="el" href="facedetect_8cpp.html#acf062d222f4597fad6507b441a96adfe">facedetect.cpp</a>
@@ -105,23 +123,14 @@ var searchBox = new SearchBox("searchBox", "search",false,'Поиск');
 <li>drawThirds()
 : <a class="el" href="facedetect_8cpp.html#a42ea262b6ac27913caf8e0ac14b56cfe">facedetect.cpp</a>
 </li>
-<li>DYNAMIC_STATES
-: <a class="el" href="facedetect_8cpp.html#ad2857a2730378886451066b8979741fc">facedetect.cpp</a>
-</li>
 <li>END
-: <a class="el" href="facedetect_8cpp.html#ad2857a2730378886451066b8979741fcadc6f24fd6915a3f2786a1b7045406924">facedetect.cpp</a>
+: <a class="el" href="statemachine_8h.html#a789b8fd146c0563e29a6b8c2661c6e33adc6f24fd6915a3f2786a1b7045406924">statemachine.h</a>
 </li>
 <li>FI
 : <a class="el" href="facedetect_8cpp.html#a53c6c357c0b8952a46b9ac6cbd6f2724">facedetect.cpp</a>
 </li>
-<li>gcd()
-: <a class="el" href="facedetect_8cpp.html#af23d9d3b957105f099417c29e1404852">facedetect.cpp</a>
-</li>
-<li>getAspect()
-: <a class="el" href="facedetect_8cpp.html#a942d7111c2255d89d26c038c1213544a">facedetect.cpp</a>
-</li>
-<li>getGoldenPoint()
-: <a class="el" href="facedetect_8cpp.html#ae83932dc9d36886990be6dff300987dc">facedetect.cpp</a>
+<li>help()
+: <a class="el" href="facedetect_8cpp.html#ad8c51bbfda76f19f61c727838e6eee30">facedetect.cpp</a>
 </li>
 <li>main()
 : <a class="el" href="facedetect_8cpp.html#a217dbf8b442f20279ea00b898af96f52">facedetect.cpp</a>
@@ -129,31 +138,25 @@ var searchBox = new SearchBox("searchBox", "search",false,'Поиск');
 <li>median()
 : <a class="el" href="facedetect_8cpp.html#a5d55d9072e2fd74f630e791189fec7ad">facedetect.cpp</a>
 </li>
-<li>MOVE
-: <a class="el" href="facedetect_8cpp.html#ad2857a2730378886451066b8979741fcaed3ef32890b6da0919b57254c5206c62">facedetect.cpp</a>
+<li>MOTION_STATES
+: <a class="el" href="statemachine_8h.html#a789b8fd146c0563e29a6b8c2661c6e33">statemachine.h</a>
 </li>
-<li>scaleRect()
-: <a class="el" href="facedetect_8cpp.html#a1c423c2a5f656fa5f9e33d5a6bad975c">facedetect.cpp</a>
+<li>MOVE
+: <a class="el" href="statemachine_8h.html#a789b8fd146c0563e29a6b8c2661c6e33aed3ef32890b6da0919b57254c5206c62">statemachine.h</a>
 </li>
 <li>STOP
-: <a class="el" href="facedetect_8cpp.html#ad2857a2730378886451066b8979741fca679ee5320d66c8322e310daeb2ee99b8">facedetect.cpp</a>
-</li>
-<li>topLeftDec()
-: <a class="el" href="facedetect_8cpp.html#a11402cb962c4d3169214b0bceac25014">facedetect.cpp</a>
-</li>
-<li>topMiddleDec()
-: <a class="el" href="facedetect_8cpp.html#a712783e970afeb1cac7654431028b0b9">facedetect.cpp</a>
-</li>
-<li>topRightDec()
-: <a class="el" href="facedetect_8cpp.html#a04e2fd895d0d4dedc37bdc2e7c3cd7d9">facedetect.cpp</a>
+: <a class="el" href="statemachine_8h.html#a789b8fd146c0563e29a6b8c2661c6e33a679ee5320d66c8322e310daeb2ee99b8">statemachine.h</a>
 </li>
 </ul>
 </div><!-- contents -->
+</div><!-- doc-content -->
 <!-- start footer part -->
-<hr class="footer"/><address class="footer"><small>
-Документация по faceDetect. Последние изменения: Вс 15 Май 2016 15:53:21. Создано системой &#160;<a href="http://www.doxygen.org/index.html">
-<img class="footer" src="doxygen.png" alt="doxygen"/>
-</a> 1.8.6
-</small></address>
+<div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
+  <ul>
+    <li class="footer">Документация по faceDetect. Последние изменения: Пн 23 Май 2016 08:38:39. Создано системой
+    <a href="http://www.doxygen.org/index.html">
+    <img class="footer" src="doxygen.png" alt="doxygen"/></a> 1.8.6 </li>
+  </ul>
+</div>
 </body>
 </html>

@@ -8,6 +8,13 @@
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
+<link href="navtree.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="resize.js"></script>
+<script type="text/javascript" src="navtree.js"></script>
+<script type="text/javascript">
+  $(document).ready(initResizable);
+  $(window).load(resizeHeight);
+</script>
 <link href="search/search.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="search/search.js"></script>
 <script type="text/javascript">
@@ -24,7 +31,7 @@
   <td id="projectlogo"><img alt="Logo" src="petrov_in_studio1.png"/></td>
   <td style="padding-left: 0.5em;">
    <div id="projectname">faceDetect
-   &#160;<span id="projectnumber">v1.0</span>
+   &#160;<span id="projectnumber">v2.0.1</span>
    </div>
    <div id="projectbrief">Autocorrection of Frame Composition in Extra-resolution Video</div>
   </td>
@@ -65,9 +72,25 @@ var searchBox = new SearchBox("searchBox", "search",false,'Поиск');
     <ul class="tablist">
       <li><a href="annotated.html"><span>Классы</span></a></li>
       <li><a href="classes.html"><span>Алфавитный&#160;указатель&#160;классов</span></a></li>
+      <li><a href="hierarchy.html"><span>Иерархия&#160;классов</span></a></li>
       <li><a href="functions.html"><span>Члены&#160;классов</span></a></li>
     </ul>
   </div>
+</div><!-- top -->
+<div id="side-nav" class="ui-resizable side-nav-resizable">
+  <div id="nav-tree">
+    <div id="nav-tree-contents">
+      <div id="nav-sync" class="sync"></div>
+    </div>
+  </div>
+  <div id="splitbar" style="-moz-user-select:none;" 
+       class="ui-resizable-handle">
+  </div>
+</div>
+<script type="text/javascript">
+$(document).ready(function(){initNavTree('class_arg.html','');});
+</script>
+<div id="doc-content">
 <!-- window showing the filter options -->
 <div id="MSearchSelectWindow"
      onmouseover="return searchBox.OnSearchSelectShow()"
@@ -82,7 +105,6 @@ var searchBox = new SearchBox("searchBox", "search",false,'Поиск');
 </iframe>
 </div>
 
-</div><!-- top -->
 <div class="header">
   <div class="headertitle">
 <div class="title">Arg&lt; T &gt; Cписок членов класса</div>  </div>
@@ -93,16 +115,25 @@ var searchBox = new SearchBox("searchBox", "search",false,'Поиск');
 <table class="directory">
   <tr class="even"><td class="entry"><a class="el" href="class_arg.html#a89090f9dc935c020f8d6b1caedfc47fc">Arg</a>(const T defVal, const string opt_, const string format_, const T *greater=NULL, const T *less=NULL)</td><td class="entry"><a class="el" href="class_arg.html">Arg&lt; T &gt;</a></td><td class="entry"><span class="mlabel">inline</span></td></tr>
   <tr><td class="entry"><a class="el" href="class_arg.html#ab8617f74c7eeb311ab51fe1572731f01">exists</a>(const char *argv)</td><td class="entry"><a class="el" href="class_arg.html">Arg&lt; T &gt;</a></td><td class="entry"><span class="mlabel">inline</span></td></tr>
+  <tr class="even"><td class="entry"><a class="el" href="class_arg.html#aeb6245c884910c5b27e168ef552e666c">format</a></td><td class="entry"><a class="el" href="class_arg.html">Arg&lt; T &gt;</a></td><td class="entry"><span class="mlabel">private</span></td></tr>
+  <tr><td class="entry"><a class="el" href="class_arg.html#a52505634585e87963f78c489daf9aa1b">gt</a></td><td class="entry"><a class="el" href="class_arg.html">Arg&lt; T &gt;</a></td><td class="entry"><span class="mlabel">private</span></td></tr>
   <tr class="even"><td class="entry"><a class="el" href="class_arg.html#aded2a97404d7c21fbebc88d7fb0514bf">input</a>(const char *argv)</td><td class="entry"><a class="el" href="class_arg.html">Arg&lt; T &gt;</a></td><td class="entry"><span class="mlabel">inline</span></td></tr>
-  <tr><td class="entry"><a class="el" href="class_arg.html#a56700d1bd778ba6f731cfbe8389c495b">operator T</a>()</td><td class="entry"><a class="el" href="class_arg.html">Arg&lt; T &gt;</a></td><td class="entry"><span class="mlabel">inline</span></td></tr>
-  <tr class="even"><td class="entry"><a class="el" href="class_arg.html#a360ad85ad5b00751ed51d70fa77705f8">operator=</a>(T newVal)</td><td class="entry"><a class="el" href="class_arg.html">Arg&lt; T &gt;</a></td><td class="entry"><span class="mlabel">inline</span></td></tr>
+  <tr><td class="entry"><a class="el" href="class_arg.html#a02e311a5604641427409bd1d64f5cb49">lt</a></td><td class="entry"><a class="el" href="class_arg.html">Arg&lt; T &gt;</a></td><td class="entry"><span class="mlabel">private</span></td></tr>
+  <tr class="even"><td class="entry"><a class="el" href="class_arg.html#a56700d1bd778ba6f731cfbe8389c495b">operator T</a>()</td><td class="entry"><a class="el" href="class_arg.html">Arg&lt; T &gt;</a></td><td class="entry"><span class="mlabel">inline</span></td></tr>
+  <tr><td class="entry"><a class="el" href="class_arg.html#a360ad85ad5b00751ed51d70fa77705f8">operator=</a>(T newVal)</td><td class="entry"><a class="el" href="class_arg.html">Arg&lt; T &gt;</a></td><td class="entry"><span class="mlabel">inline</span></td></tr>
+  <tr class="even"><td class="entry"><a class="el" href="class_arg.html#a0d933e9d8f709ea0b2d624221a2fa128">opt</a></td><td class="entry"><a class="el" href="class_arg.html">Arg&lt; T &gt;</a></td><td class="entry"><span class="mlabel">private</span></td></tr>
+  <tr><td class="entry"><a class="el" href="class_arg.html#aac29f4991a3ccea9a7e047901ba895eb">val</a></td><td class="entry"><a class="el" href="class_arg.html">Arg&lt; T &gt;</a></td><td class="entry"><span class="mlabel">private</span></td></tr>
+  <tr class="even"><td class="entry"><a class="el" href="class_arg.html#a4e39de1f273191271234673c63fb0efb">valDef</a></td><td class="entry"><a class="el" href="class_arg.html">Arg&lt; T &gt;</a></td><td class="entry"><span class="mlabel">private</span></td></tr>
   <tr><td class="entry"><a class="el" href="class_arg.html#ad3ace51eba55f805a7aab729bb3115a3">~Arg</a>()</td><td class="entry"><a class="el" href="class_arg.html">Arg&lt; T &gt;</a></td><td class="entry"><span class="mlabel">inline</span></td></tr>
 </table></div><!-- contents -->
+</div><!-- doc-content -->
 <!-- start footer part -->
-<hr class="footer"/><address class="footer"><small>
-Документация по faceDetect. Последние изменения: Вс 15 Май 2016 15:53:21. Создано системой &#160;<a href="http://www.doxygen.org/index.html">
-<img class="footer" src="doxygen.png" alt="doxygen"/>
-</a> 1.8.6
-</small></address>
+<div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
+  <ul>
+    <li class="footer">Документация по faceDetect. Последние изменения: Пн 23 Май 2016 08:38:39. Создано системой
+    <a href="http://www.doxygen.org/index.html">
+    <img class="footer" src="doxygen.png" alt="doxygen"/></a> 1.8.6 </li>
+  </ul>
+</div>
 </body>
 </html>

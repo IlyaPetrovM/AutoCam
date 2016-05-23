@@ -1,6 +1,5 @@
 var searchData=
 [
-  ['topleftdec',['topLeftDec',['../facedetect_8cpp.html#a11402cb962c4d3169214b0bceac25014',1,'facedetect.cpp']]],
-  ['topmiddledec',['topMiddleDec',['../facedetect_8cpp.html#a712783e970afeb1cac7654431028b0b9',1,'facedetect.cpp']]],
-  ['toprightdec',['topRightDec',['../facedetect_8cpp.html#a04e2fd895d0d4dedc37bdc2e7c3cd7d9',1,'facedetect.cpp']]]
+  ['readme_2emd',['README.md',['../_r_e_a_d_m_e_8md.html',1,'']]],
+  ['roi',['roi',['../class_auto_camera.html#a8efc6a8c638714976f33c8de7f7555db',1,'AutoCamera']]]
 ];

@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['input',['input',['../class_arg.html#aded2a97404d7c21fbebc88d7fb0514bf',1,'Arg']]]
+  ['help',['help',['../facedetect_8cpp.html#ad8c51bbfda76f19f61c727838e6eee30',1,'facedetect.cpp']]]
 ];
