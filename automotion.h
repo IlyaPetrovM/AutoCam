@@ -12,15 +12,15 @@ class AutoPan : public MotionAutomata
 public:
      /**
      * @brief Конструктор
-     * @param [in]spdMin минимальная скорость
-     * @param [in]spdMax максимальная скорость
+     * @param[in] spdMin минимальная скорость
+     * @param[in] spdMax максимальная скорость
      */
     AutoPan(double spdMin,double spdMax) : MotionAutomata(spdMin, spdMax){}
     /**
      * Обновить координаты в соответствии с текущей скоростьюи состоянием
-     * @param [in,out]x
-     * @param [in]aim
-     * @param [in]precision
+     * @param[in,out] x
+     * @param[in] aim
+     * @param[in] precision
      * @param outOfRoi
      * @return Текущую скорость изменения координаты
      */

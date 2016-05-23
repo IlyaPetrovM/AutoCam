@@ -33,15 +33,15 @@ static void help()
 /**
  * @brief Нарисовать прямоугольники
  * Рисует несколько прямоугольников, добавляя к ним подпись в виде текста и номера
- * @param [in,out]img Кадр, в котором будут нарисованы прямоугольники
- * @param [in]rects Массив прямоугольников
- * @param [in]t Подпись каждого прямоугольника
- * @param [in]color Цвет прямоугольников и подписей
- * @param [in]fontScale Кегль подписи
- * @param [in]textThickness Толщина линии подписи
- * @param [in]textOffset Отступ подписи от прямоугольника
- * @param [in]thickness Толщина прямоугольника
- * @param [in]fontFace Шрифт
+ * @param[in,out] img Кадр, в котором будут нарисованы прямоугольники
+ * @param[in] rects Массив прямоугольников
+ * @param[in] t Подпись каждого прямоугольника
+ * @param[in] color Цвет прямоугольников и подписей
+ * @param[in] fontScale Кегль подписи
+ * @param[in] textThickness Толщина линии подписи
+ * @param[in] textOffset Отступ подписи от прямоугольника
+ * @param[in] thickness Толщина прямоугольника
+ * @param[in] fontFace Шрифт
  */
 void drawRects(Mat& img, const vector<Rect>& rects,
                string t="rect", Scalar color=Scalar(255,0,0),
@@ -64,11 +64,11 @@ void drawRects(Mat& img, const vector<Rect>& rects,
 }
 /**
  * @brief Рисовать точки правила третей
- * Рисует точки по правилу третей в заданном прямоугольнике r
- * @param [in,out]img Изображение, на которое наносятся точки правила третей
- * @param [in]r Прямоугольник, в котором определяется правило третей
- * @param [in]color Цвет точек
- * @param [in]dotsRadius Радиус точек
+ * Рисует точки по правилу третей в заданном прямоугольнике \c r
+ * @param[in,out] img Изображение, на которое наносятся точки правила третей
+ * @param[in] r Прямоугольник, в котором определяется правило третей
+ * @param[in] color Цвет точек
+ * @param[in] dotsRadius Радиус точек
  */
 inline void drawThirds(Mat& img, const Rect2f& r,Scalar color=Scalar(0,255,0),const double& dotsRadius=1){ /// \todo 18.05.2016 class Drawer
     circle(img,Point(r.x + r.width/3.0,
@@ -82,7 +82,7 @@ inline void drawThirds(Mat& img, const Rect2f& r,Scalar color=Scalar(0,255,0),co
 }
 /**
  * @brief Медиана набора прямоугольников
- * @param [in]r Массив прямоугольников
+ * @param[in] r Массив прямоугольников
  * @return Прямоугольник, высота которого - медиана высот, а координаты - медианы координат прямоугольников
  */
 Rect median(const vector<Rect>& r){ /// \todo 18.05.2016 class Detector
@@ -104,8 +104,8 @@ Rect median(const vector<Rect>& r){ /// \todo 18.05.2016 class Detector
 
 /**
  * @brief Главная функция
- * @param [in]argc Количество аргументов в программе
- * @param [in]argv Массив аргументов
+ * @param[in] argc Количество аргументов в программе
+ * @param[in] argv Массив аргументов
  * @return 0, если программа завершена удачно
  */
 int main( int argc, const char** argv )

@@ -24,11 +24,11 @@ class Arg
 public:
     /**
      * @brief Конструктор
-     * @param [in]defVal Значение параметра по-умолчанию
-     * @param [in]opt_ Как должен выглядеть аргумент при запуске программы
-     * @param [in]format_ Спецификатор (см. документацию [scanf](http://www.cplusplus.com/reference/cstdio/scanf/))
-     * @param [in]greater Нижняя граница для числа. По-умолчанию границы нет.
-     * @param [in]less Верхняя граница для числа. По-умолчанию границы нет.
+     * @param[in] defVal Значение параметра по-умолчанию
+     * @param[in] opt_ Как должен выглядеть аргумент при запуске программы
+     * @param[in] format_ Спецификатор (см. документацию [scanf](http://www.cplusplus.com/reference/cstdio/scanf/))
+     * @param[in] greater Нижняя граница для числа. По-умолчанию границы нет.
+     * @param[in] less Верхняя граница для числа. По-умолчанию границы нет.
      */
     Arg(const T defVal, const string opt_, const string format_,  const T* greater=NULL,const T* less=NULL)
         : val(defVal) {
@@ -42,7 +42,7 @@ public:
     /**
      * @brief Ввод параметра
      * Определяет, является ли текущая строка нужным идентефикатором
-     * @param [in]argv один аргумент программы
+     * @param[in] argv один аргумент программы
      * @return true, если была распознана строка-идентификатор и знчение удалось прочитать
      */
     bool input(const char* argv){
@@ -71,7 +71,7 @@ public:
     /**
      * @brief operator =
      * Маскировка данного класса под используемый тип
-     * @param [in]newVal
+     * @param[in] newVal Новое значение параметра
      * @return Новое значение параметра
      */
     T operator =(T newVal){
@@ -81,8 +81,8 @@ public:
     /**
      * @brief Поиск аргумента
      * Ищет аргумент в заданной строке
-     * @param [in]argv Один аргумент программы
-     * @return true, если аргумент найден
+     * @param[in] argv Один аргумент программы
+     * @return \r true, если аргумент найден
      */
     bool exists(const char* argv){
         return (opt->compare(0,opt->length(),argv,opt->length())==0);

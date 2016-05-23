@@ -15,9 +15,8 @@ class AutoZoom : public MotionAutomata
     const float zoomThr;    ///< Триггер начала зуммирования
     /**
      * @brief gcd Определяет наибольший общий делитель
-     * @param [in]a
-     * @param [in]b
-     * @return Наибольший общий делитель a и b
+     * @param[in] a, b числа
+     * @return Наибольший общий делитель \c a и \c b
      */
     static int gcd(int a,int b){
         int c;
@@ -29,10 +28,10 @@ class AutoZoom : public MotionAutomata
         return b;
     }
     /**
-     * Увеличить лиенейные размеры прямоугольника r в sc раз
+     * Увеличить лиенейные размеры прямоугольника \c r в \c sc раз
      * @param r
      * @param asp (aspect) соотношение сторон прямоугольника в удобочитаемом виде
-     * @param sc
+     * @param sc Отношение линейных размеров большего прямоугольника меньшему
      */
     inline void scaleRect(Rect2f &r, const float &sc=1.0){ /// from center
         r.height+=2*aspect.height*sc;
@@ -61,7 +60,7 @@ public:
     {speedInc=((spdMax-spdMin)/zoomSpeedInc_);}
     /**
      * @brief getAspect Определяет соотношение сторон кадра в удобочитаемом виде
-     * @param [in]sz размеры кадра
+     * @param[in] sz размеры кадра
      * @return
      */
     inline static Size getAspect(const Size& sz){

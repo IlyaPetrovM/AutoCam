@@ -10,8 +10,8 @@
 class AutoCamera
 {
     const double onePerc; ///< Один процент от ширины сжатого кадра
-    const bool bZoom; ///< Использовать ли масштабирование. true - если использовать.
-    const bool bMove; ///< Установить в значение true чтобы перемещать камеру
+    const bool bZoom; ///< Использовать ли масштабирование. \c true - если использовать.
+    const bool bMove; ///< Установить в значение \c true чтобы перемещать камеру
     const Size maxRoiSize; ///< Максимальный размер области захвата кадра. Равен размеру сжатого кадра или меньше.
     const double scale;
 
@@ -22,26 +22,26 @@ class AutoCamera
 
     /**
      * @brief topMiddleDec Ищет точку посередине прямоугольника, отстоящую от верха на одну треть (в относительных координатах)
-     * @param [in]r Прямоугольник, в котором ищется точка
-     * @return Точка, у которой x и y - отступы от левого верхнего края прямоугольника
+     * @param[in] r Прямоугольник, в котором ищется точка
+     * @return Точка, у которой \c x и \c y - отступы от левого верхнего края прямоугольника
      */
     inline Point topMiddleDec(const Rect2f& r) {return Point(cvRound((double)r.width*0.5) , cvRound((double)r.height/3.0));}
     /**
      * @brief topLeftDec Ищет левую верхнюю точку по правилу третей (в относительных координатах)
-     * @param [in]r Прямоугольник, в котором ищется точка
-     * @return Точка, у которой x и y - отступы от левого верхнего края прямоугольника
+     * @param[in] r Прямоугольник, в котором ищется точка
+     * @return Точка, у которой \c x и \c y - отступы от левого верхнего края прямоугольника
      */
     inline Point topLeftDec(const Rect2f& r) {return Point(cvRound((double)r.width/3.0) , cvRound((double)r.height/3.0));}
     /**
      * @brief topRightDec Ищет правую верхнюю точку по правилу третей (в относительных координатах)
-     * @param [in]r Прямоугольник, в котором ищется точка
-     * @return Точка, у которой x и y - отступы от левого верхнего края прямоугольника
+     * @param[in] r Прямоугольник, в котором ищется точка
+     * @return Точка, у которой \c x и \c y - отступы от левого верхнего края прямоугольника
      */
     inline Point topRightDec(const Rect2f& r){return Point(cvRound((double)r.width*2.0/3.0) , cvRound((double)r.height/3.0));}
     /**
      * @brief getGoldenPoint Ищет координаты прямоугольника так, чтобы внитри него располагалось лицо по правилу третей
-     * @param [in]roi Область интереса, кадр
-     * @param [in]face лицо
+     * @param[in] roi Область интереса, кадр
+     * @param[in] face лицо
      * @return Абсолютные координаты нового положения кадра
      */
     Point getGoldenPoint(const Rect2f& roi,const Rect& face);
@@ -75,7 +75,7 @@ public:
                bool bMove_);
     /**
      * @brief Анализирует цель aim и на основе этого анализа перемещает и масштабирует кадр.
-     * @param [in]aim - цель, которая должна быть захвачена кадром
+     * @param[in] aim - цель, которая должна быть захвачена кадром
      */
     void update(const Rect& aim);
     /**
