@@ -1,0 +1,290 @@
+.TH "AutoCamera" 3 "Пн 23 Май 2016" "Version v2.0.1" "faceDetect" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+AutoCamera \- 
+.SH SYNOPSIS
+.br
+.PP
+.PP
+\fC#include <autocamera\&.h>\fP
+.SS "Открытые члены"
+
+.in +1c
+.ti -1c
+.RI "\fBAutoCamera\fP (double scale_, Size maxRoiSize_, double maxStepX, double maxStepY, double zoomSpeedMin, double zoomSpeedMax, double zoomThr, double zoomStopThr_, double zoomSpeedInc_, double face2shot, bool bZoom_, bool bMove_)"
+.br
+.RI "\fIКонструктор \fP"
+.ti -1c
+.RI "void \fBupdate\fP (const Rect &aim)"
+.br
+.RI "\fIАнализирует цель aim и на основе этого анализа перемещает и масштабирует кадр\&. \fP"
+.ti -1c
+.RI "Rect2f \fBgetRoiFullSize\fP ()"
+.br
+.RI "\fIмасштабирует размеры ROI под реальные размеры, чтобы из исходного видео высокого качества вырезать нужную область\&. \fP"
+.ti -1c
+.RI "Rect2f \fBgetRoi\fP () const "
+.br
+.ti -1c
+.RI "void \fBsetRoi\fP (const Rect2f &value)"
+.br
+.ti -1c
+.RI "\fBAutoPan\fP \fBgetMoveX\fP () const "
+.br
+.ti -1c
+.RI "void \fBsetMoveX\fP (const \fBAutoPan\fP &value)"
+.br
+.ti -1c
+.RI "\fBAutoPan\fP \fBgetMoveY\fP () const "
+.br
+.ti -1c
+.RI "void \fBsetMoveY\fP (const \fBAutoPan\fP &value)"
+.br
+.ti -1c
+.RI "\fBAutoZoom\fP \fBgetZoom\fP () const "
+.br
+.ti -1c
+.RI "void \fBsetZoom\fP (const \fBAutoZoom\fP &value)"
+.br
+.in -1c
+.SS "Закрытые члены"
+
+.in +1c
+.ti -1c
+.RI "Point \fBtopMiddleDec\fP (const Rect2f &r)"
+.br
+.RI "\fItopMiddleDec Ищет точку посередине прямоугольника, отстоящую от верха на одну треть (в относительных координатах) \fP"
+.ti -1c
+.RI "Point \fBtopLeftDec\fP (const Rect2f &r)"
+.br
+.RI "\fItopLeftDec Ищет левую верхнюю точку по правилу третей (в относительных координатах) \fP"
+.ti -1c
+.RI "Point \fBtopRightDec\fP (const Rect2f &r)"
+.br
+.RI "\fItopRightDec Ищет правую верхнюю точку по правилу третей (в относительных координатах) \fP"
+.ti -1c
+.RI "Point \fBgetGoldenPoint\fP (const Rect2f &\fBroi\fP, const Rect &face)"
+.br
+.RI "\fIgetGoldenPoint Ищет координаты прямоугольника так, чтобы внитри него располагалось лицо по правилу третей \fP"
+.in -1c
+.SS "Закрытые данные"
+
+.in +1c
+.ti -1c
+.RI "const double \fBonePerc\fP"
+.br
+.RI "\fIОдин процент от ширины сжатого кадра \fP"
+.ti -1c
+.RI "const bool \fBbZoom\fP"
+.br
+.RI "\fIИспользовать ли масштабирование\&. \fCtrue\fP - если использовать\&. \fP"
+.ti -1c
+.RI "const bool \fBbMove\fP"
+.br
+.RI "\fIУстановить в значение \fCtrue\fP чтобы перемещать камеру \fP"
+.ti -1c
+.RI "const Size \fBmaxRoiSize\fP"
+.br
+.RI "\fIМаксимальный размер области захвата кадра\&. Равен размеру сжатого кадра или меньше\&. \fP"
+.ti -1c
+.RI "const double \fBscale\fP"
+.br
+.ti -1c
+.RI "\fBAutoPan\fP \fBmoveX\fP"
+.br
+.RI "\fIМеханизм перемещения камеры по горизонтали \fP"
+.ti -1c
+.RI "\fBAutoPan\fP \fBmoveY\fP"
+.br
+.RI "\fIМеханизм перемещения камеры по вертикали \fP"
+.ti -1c
+.RI "\fBAutoZoom\fP \fBzoom\fP"
+.br
+.RI "\fIМеханизм масштабирования кадра \fP"
+.ti -1c
+.RI "Rect2f \fBroi\fP"
+.br
+.in -1c
+.SH "Подробное описание"
+.PP 
+Класс \fBAutoCamera\fP на основе полученной цели плавно изменяет координаты и линейные размеры кадра 
+.SH "Конструктор(ы)"
+.PP 
+.SS "AutoCamera::AutoCamera (doublescale_, SizemaxRoiSize_, doublemaxStepX, doublemaxStepY, doublezoomSpeedMin, doublezoomSpeedMax, doublezoomThr, doublezoomStopThr_, doublezoomSpeedInc_, doubleface2shot, boolbZoom_, boolbMove_)"
+
+.PP
+Конструктор 
+.PP
+\fBАргументы:\fP
+.RS 4
+\fIscale_\fP отношение линейных размеров кадра исходного видео и сжатого кадра 
+.br
+\fImaxRoiSize_\fP 
+.br
+\fImaxStepX\fP 
+.br
+\fImaxStepY\fP 
+.br
+\fIzoomSpeedMin\fP 
+.br
+\fIzoomSpeedMax\fP 
+.br
+\fIzoomThr\fP 
+.br
+\fIzoomStopThr_\fP 
+.br
+\fIzoomSpeedInc_\fP 
+.br
+\fIface2shot\fP 
+.br
+\fIbZoom_\fP 
+.br
+\fIbMove_\fP 
+.RE
+.PP
+
+.SH "Методы"
+.PP 
+.SS "Point AutoCamera::getGoldenPoint (const Rect2f &roi, const Rect &face)\fC [private]\fP"
+
+.PP
+getGoldenPoint Ищет координаты прямоугольника так, чтобы внитри него располагалось лицо по правилу третей 
+.PP
+\fBАргументы:\fP
+.RS 4
+\fIroi\fP Область интереса, кадр 
+.br
+\fIface\fP лицо 
+.RE
+.PP
+\fBВозвращает:\fP
+.RS 4
+Абсолютные координаты нового положения кадра 
+.RE
+.PP
+если лицо крупное, то держать его в центре кадра 
+.SS "\fBAutoPan\fP AutoCamera::getMoveX () const"
+
+.SS "\fBAutoPan\fP AutoCamera::getMoveY () const"
+
+.SS "Rect2f AutoCamera::getRoi () const"
+
+.SS "Rect2f AutoCamera::getRoiFullSize ()\fC [inline]\fP"
+
+.PP
+масштабирует размеры ROI под реальные размеры, чтобы из исходного видео высокого качества вырезать нужную область\&. 
+.PP
+\fBВозвращает:\fP
+.RS 4
+
+.RE
+.PP
+
+.SS "\fBAutoZoom\fP AutoCamera::getZoom () const"
+
+.SS "void AutoCamera::setMoveX (const \fBAutoPan\fP &value)"
+
+.SS "void AutoCamera::setMoveY (const \fBAutoPan\fP &value)"
+
+.SS "void AutoCamera::setRoi (const Rect2f &value)"
+
+.SS "void AutoCamera::setZoom (const \fBAutoZoom\fP &value)"
+
+.SS "Point AutoCamera::topLeftDec (const Rect2f &r)\fC [inline]\fP, \fC [private]\fP"
+
+.PP
+topLeftDec Ищет левую верхнюю точку по правилу третей (в относительных координатах) 
+.PP
+\fBАргументы:\fP
+.RS 4
+\fIr\fP Прямоугольник, в котором ищется точка 
+.RE
+.PP
+\fBВозвращает:\fP
+.RS 4
+Точка, у которой \fCx\fP и \fCy\fP - отступы от левого верхнего края прямоугольника 
+.RE
+.PP
+
+.SS "Point AutoCamera::topMiddleDec (const Rect2f &r)\fC [inline]\fP, \fC [private]\fP"
+
+.PP
+topMiddleDec Ищет точку посередине прямоугольника, отстоящую от верха на одну треть (в относительных координатах) 
+.PP
+\fBАргументы:\fP
+.RS 4
+\fIr\fP Прямоугольник, в котором ищется точка 
+.RE
+.PP
+\fBВозвращает:\fP
+.RS 4
+Точка, у которой \fCx\fP и \fCy\fP - отступы от левого верхнего края прямоугольника 
+.RE
+.PP
+
+.SS "Point AutoCamera::topRightDec (const Rect2f &r)\fC [inline]\fP, \fC [private]\fP"
+
+.PP
+topRightDec Ищет правую верхнюю точку по правилу третей (в относительных координатах) 
+.PP
+\fBАргументы:\fP
+.RS 4
+\fIr\fP Прямоугольник, в котором ищется точка 
+.RE
+.PP
+\fBВозвращает:\fP
+.RS 4
+Точка, у которой \fCx\fP и \fCy\fP - отступы от левого верхнего края прямоугольника 
+.RE
+.PP
+
+.SS "void AutoCamera::update (const Rect &aim)"
+
+.PP
+Анализирует цель aim и на основе этого анализа перемещает и масштабирует кадр\&. 
+.PP
+\fBАргументы:\fP
+.RS 4
+\fIaim\fP - цель, которая должна быть захвачена кадром 
+.RE
+.PP
+
+.SH "Данные класса"
+.PP 
+.SS "const bool AutoCamera::bMove\fC [private]\fP"
+
+.PP
+Установить в значение \fCtrue\fP чтобы перемещать камеру 
+.SS "const bool AutoCamera::bZoom\fC [private]\fP"
+
+.PP
+Использовать ли масштабирование\&. \fCtrue\fP - если использовать\&. 
+.SS "const Size AutoCamera::maxRoiSize\fC [private]\fP"
+
+.PP
+Максимальный размер области захвата кадра\&. Равен размеру сжатого кадра или меньше\&. 
+.SS "\fBAutoPan\fP AutoCamera::moveX\fC [private]\fP"
+
+.PP
+Механизм перемещения камеры по горизонтали 
+.SS "\fBAutoPan\fP AutoCamera::moveY\fC [private]\fP"
+
+.PP
+Механизм перемещения камеры по вертикали 
+.SS "const double AutoCamera::onePerc\fC [private]\fP"
+
+.PP
+Один процент от ширины сжатого кадра 
+.SS "Rect2f AutoCamera::roi\fC [private]\fP"
+
+.SS "const double AutoCamera::scale\fC [private]\fP"
+
+.SS "\fBAutoZoom\fP AutoCamera::zoom\fC [private]\fP"
+
+.PP
+Механизм масштабирования кадра 
+
+.SH "Автор"
+.PP 
+Автоматически создано Doxygen для faceDetect из исходного текста\&.

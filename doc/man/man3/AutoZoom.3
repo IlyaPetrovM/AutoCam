@@ -1,0 +1,178 @@
+.TH "AutoZoom" 3 "Пн 23 Май 2016" "Version v2.0.1" "faceDetect" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+AutoZoom \- 
+.SH SYNOPSIS
+.br
+.PP
+.PP
+\fC#include <autozoom\&.h>\fP
+.PP
+Базовые классы:\fBMotionAutomata\fP\&.
+.SS "Открытые члены"
+
+.in +1c
+.ti -1c
+.RI "\fBAutoZoom\fP (double spdMin, double spdMax, Size maxRoiSize_, float zoomThr_, float stopThr_, float zoomSpeedInc_, double face2shot_)"
+.br
+.RI "\fIКонструктор \fP"
+.ti -1c
+.RI "float \fBupdate\fP (const Rect &aim, Rect2f &roi)"
+.br
+.ti -1c
+.RI "float \fBgetStopThr\fP () const "
+.br
+.in -1c
+.SS "Открытые статические члены"
+
+.in +1c
+.ti -1c
+.RI "static Size \fBgetAspect\fP (const Size &sz)"
+.br
+.RI "\fIgetAspect Определяет соотношение сторон кадра в удобочитаемом виде \fP"
+.in -1c
+.SS "Закрытые члены"
+
+.in +1c
+.ti -1c
+.RI "void \fBscaleRect\fP (Rect2f &r, const float &sc=1\&.0)"
+.br
+.in -1c
+.SS "Закрытые статические члены"
+
+.in +1c
+.ti -1c
+.RI "static int \fBgcd\fP (int a, int b)"
+.br
+.RI "\fIgcd Определяет наибольший общий делитель \fP"
+.in -1c
+.SS "Закрытые данные"
+
+.in +1c
+.ti -1c
+.RI "const double \fBface2shot\fP"
+.br
+.RI "\fIТребуемое отношение высоты лица к высоте кадра \fP"
+.ti -1c
+.RI "const Size \fBaspect\fP"
+.br
+.RI "\fICоотношение сторон кадра в удобочитаемом виде \fP"
+.ti -1c
+.RI "const Size \fBmaxRoiSize\fP"
+.br
+.RI "\fIМаксимальный размер области захвата кадра\&. Равен размеру сжатого кадра или меньше\&. \fP"
+.ti -1c
+.RI "const float \fBstopThr\fP"
+.br
+.RI "\fIТриггерное значение окончания зуммирования \fP"
+.ti -1c
+.RI "const float \fBzoomThr\fP"
+.br
+.RI "\fIТриггер начала зуммирования \fP"
+.in -1c
+.SS "Дополнительные унаследованные члены"
+.SH "Подробное описание"
+.PP 
+Автоматически изменяет линейные размеры кадра в соответствии с размерами детектированного лица 
+.SH "Конструктор(ы)"
+.PP 
+.SS "AutoZoom::AutoZoom (doublespdMin, doublespdMax, SizemaxRoiSize_, floatzoomThr_, floatstopThr_, floatzoomSpeedInc_, doubleface2shot_)\fC [inline]\fP"
+
+.PP
+Конструктор 
+.PP
+\fBАргументы:\fP
+.RS 4
+\fIspdMin\fP Минимальная скорость масштабирования 
+.br
+\fIspdMax\fP Максимальная скорость масштабирования 
+.br
+\fImaxRoiSize_\fP Максимальные линейные размеры захватываемой области 
+.br
+\fIzoomThr_\fP Максимальная разница между высотами лица человека и захватываемого кадра\&. При превышении этого порога начинается масштабирование 
+.br
+\fIstopThr_\fP Триггерное значение окончания зуммирования 
+.br
+\fIzoomSpeedInc_\fP Инкремент\&. Насколько скорость будет увеличена или уменьшена за одну итерацию 
+.br
+\fIface2shot_\fP Отношение высоты кадра к высоте лица\&. Данный класс должен соблюдать это отношение и изменять размер кадра при несоответствии этому отношению\&. 
+.RE
+.PP
+
+.SH "Методы"
+.PP 
+.SS "static int AutoZoom::gcd (inta, intb)\fC [inline]\fP, \fC [static]\fP, \fC [private]\fP"
+
+.PP
+gcd Определяет наибольший общий делитель 
+.PP
+\fBАргументы:\fP
+.RS 4
+\fIa,b\fP числа 
+.RE
+.PP
+\fBВозвращает:\fP
+.RS 4
+Наибольший общий делитель \fCa\fP и \fCb\fP 
+.RE
+.PP
+
+.SS "static Size AutoZoom::getAspect (const Size &sz)\fC [inline]\fP, \fC [static]\fP"
+
+.PP
+getAspect Определяет соотношение сторон кадра в удобочитаемом виде 
+.PP
+\fBАргументы:\fP
+.RS 4
+\fIsz\fP размеры кадра 
+.RE
+.PP
+\fBВозвращает:\fP
+.RS 4
+.RE
+.PP
+
+.SS "float AutoZoom::getStopThr () const"
+
+.SS "void AutoZoom::scaleRect (Rect2f &r, const float &sc = \fC1\&.0\fP)\fC [inline]\fP, \fC [private]\fP"
+Увеличить лиенейные размеры прямоугольника \fCr\fP в \fCsc\fP раз 
+.PP
+\fBАргументы:\fP
+.RS 4
+\fIr\fP 
+.br
+\fIasp\fP (aspect) соотношение сторон прямоугольника в удобочитаемом виде 
+.br
+\fIsc\fP Отношение линейных размеров большего прямоугольника меньшему 
+.RE
+.PP
+from center 
+.SS "float AutoZoom::update (const Rect &aim, Rect2f &roi)"
+
+.SH "Данные класса"
+.PP 
+.SS "const Size AutoZoom::aspect\fC [private]\fP"
+
+.PP
+Cоотношение сторон кадра в удобочитаемом виде 
+.SS "const double AutoZoom::face2shot\fC [private]\fP"
+
+.PP
+Требуемое отношение высоты лица к высоте кадра 
+.SS "const Size AutoZoom::maxRoiSize\fC [private]\fP"
+
+.PP
+Максимальный размер области захвата кадра\&. Равен размеру сжатого кадра или меньше\&. 
+.SS "const float AutoZoom::stopThr\fC [private]\fP"
+
+.PP
+Триггерное значение окончания зуммирования 
+.SS "const float AutoZoom::zoomThr\fC [private]\fP"
+
+.PP
+Триггер начала зуммирования 
+
+.SH "Автор"
+.PP 
+Автоматически создано Doxygen для faceDetect из исходного текста\&.

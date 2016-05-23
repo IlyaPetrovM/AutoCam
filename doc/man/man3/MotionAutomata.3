@@ -1,0 +1,155 @@
+.TH "MotionAutomata" 3 "Пн 23 Май 2016" "Version v2.0.1" "faceDetect" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+MotionAutomata \- 
+.SH SYNOPSIS
+.br
+.PP
+.PP
+\fC#include <statemachine\&.h>\fP
+.PP
+Производные классы:\fBAutoPan\fP и \fBAutoZoom\fP\&.
+.SS "Открытые члены"
+
+.in +1c
+.ti -1c
+.RI "\fBMotionAutomata\fP (double spdMin, double spdMax)"
+.br
+.RI "\fIКонструктор \fP"
+.ti -1c
+.RI "\fBMOTION_STATES\fP \fBgetState\fP ()"
+.br
+.RI "\fIgetState \fP"
+.ti -1c
+.RI "\fBMotionAutomata\fP \fBoperator=\fP (\fBMotionAutomata\fP m)"
+.br
+.ti -1c
+.RI "float \fBgetSign\fP ()"
+.br
+.ti -1c
+.RI "double \fBgetSpeed\fP ()"
+.br
+.in -1c
+.SS "Защищенные данные"
+
+.in +1c
+.ti -1c
+.RI "\fBMOTION_STATES\fP \fBstate\fP"
+.br
+.RI "\fIСостояния движения \fP"
+.ti -1c
+.RI "double \fBspeedMin\fP"
+.br
+.RI "\fIМинимальная скорость перемещения \fP"
+.ti -1c
+.RI "double \fBspeedMax\fP"
+.br
+.RI "\fIМаксимальная скорость перемещения \fP"
+.ti -1c
+.RI "double \fBspeedAim\fP"
+.br
+.RI "\fIЖелаемая скорость перемещения \fP"
+.ti -1c
+.RI "double \fBspeedInc\fP"
+.br
+.RI "\fIИнкремент\&. Насколько скорость будет увеличена или уменьшена \fP"
+.ti -1c
+.RI "double \fBaccelTime\fP"
+.br
+.RI "\fIВремя ускорения \fP"
+.ti -1c
+.RI "double \fBspeed\fP"
+.br
+.RI "\fIТекущая скорость \fP"
+.ti -1c
+.RI "float \fBsign\fP"
+.br
+.RI "\fIЗнак изменения скорости (+/-) \fP"
+.in -1c
+.SH "Конструктор(ы)"
+.PP 
+.SS "MotionAutomata::MotionAutomata (doublespdMin, doublespdMax)"
+
+.PP
+Конструктор 
+.PP
+\fBАргументы:\fP
+.RS 4
+\fIspdMin\fP минимальная скорость движения 
+.br
+\fIspdMax\fP максимальная скорость движения 
+.RE
+.PP
+
+.SH "Методы"
+.PP 
+.SS "float MotionAutomata::getSign ()\fC [inline]\fP"
+
+.PP
+\fBВозвращает:\fP
+.RS 4
+Знак изменения скорости в данный момент 
+.RE
+.PP
+
+.SS "double MotionAutomata::getSpeed ()\fC [inline]\fP"
+
+.PP
+\fBВозвращает:\fP
+.RS 4
+Текущую скорость 
+.RE
+.PP
+
+.SS "\fBMOTION_STATES\fP MotionAutomata::getState ()\fC [inline]\fP"
+
+.PP
+getState 
+.PP
+\fBВозвращает:\fP
+.RS 4
+Текущее состояние движения 
+.RE
+.PP
+
+.SS "\fBMotionAutomata\fP MotionAutomata::operator= (\fBMotionAutomata\fPm)\fC [inline]\fP"
+
+.SH "Данные класса"
+.PP 
+.SS "double MotionAutomata::accelTime\fC [protected]\fP"
+
+.PP
+Время ускорения 
+.SS "float MotionAutomata::sign\fC [protected]\fP"
+
+.PP
+Знак изменения скорости (+/-) 
+.SS "double MotionAutomata::speed\fC [protected]\fP"
+
+.PP
+Текущая скорость 
+.SS "double MotionAutomata::speedAim\fC [protected]\fP"
+
+.PP
+Желаемая скорость перемещения 
+.SS "double MotionAutomata::speedInc\fC [protected]\fP"
+
+.PP
+Инкремент\&. Насколько скорость будет увеличена или уменьшена 
+.SS "double MotionAutomata::speedMax\fC [protected]\fP"
+
+.PP
+Максимальная скорость перемещения 
+.SS "double MotionAutomata::speedMin\fC [protected]\fP"
+
+.PP
+Минимальная скорость перемещения 
+.SS "\fBMOTION_STATES\fP MotionAutomata::state\fC [protected]\fP"
+
+.PP
+Состояния движения 
+
+.SH "Автор"
+.PP 
+Автоматически создано Doxygen для faceDetect из исходного текста\&.

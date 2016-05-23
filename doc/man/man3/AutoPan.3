@@ -1,0 +1,68 @@
+.TH "AutoPan" 3 "Пн 23 Май 2016" "Version v2.0.1" "faceDetect" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+AutoPan \- 
+.SH SYNOPSIS
+.br
+.PP
+.PP
+\fC#include <automotion\&.h>\fP
+.PP
+Базовые классы:\fBMotionAutomata\fP\&.
+.SS "Открытые члены"
+
+.in +1c
+.ti -1c
+.RI "\fBAutoPan\fP (double spdMin, double spdMax)"
+.br
+.RI "\fIКонструктор \fP"
+.ti -1c
+.RI "float \fBupdate\fP (float &x, const int &aim, const double &precision, const bool outOfRoi)"
+.br
+.in -1c
+.SS "Дополнительные унаследованные члены"
+.SH "Подробное описание"
+.PP 
+Измененяет одну из координат вырезаемого кадра 
+.SH "Конструктор(ы)"
+.PP 
+.SS "AutoPan::AutoPan (doublespdMin, doublespdMax)\fC [inline]\fP"
+
+.PP
+Конструктор 
+.PP
+\fBАргументы:\fP
+.RS 4
+\fIspdMin\fP минимальная скорость 
+.br
+\fIspdMax\fP максимальная скорость 
+.RE
+.PP
+
+.SH "Методы"
+.PP 
+.SS "float AutoPan::update (float &x, const int &aim, const double &precision, const booloutOfRoi)"
+Обновить координаты в соответствии с текущей скоростьюи состоянием 
+.PP
+\fBАргументы:\fP
+.RS 4
+\fIx\fP 
+.br
+\fIaim\fP 
+.br
+\fIprecision\fP 
+.br
+\fIoutOfRoi\fP 
+.RE
+.PP
+\fBВозвращает:\fP
+.RS 4
+Текущую скорость изменения координаты 
+.RE
+.PP
+
+
+.SH "Автор"
+.PP 
+Автоматически создано Doxygen для faceDetect из исходного текста\&.

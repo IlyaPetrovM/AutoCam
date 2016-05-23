@@ -1,0 +1,52 @@
+.TH "statemachine.h" 3 "Пн 23 Май 2016" "Version v2.0.1" "faceDetect" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+statemachine.h \- 
+.SH SYNOPSIS
+.br
+.PP
+\fC#include 'stdlib\&.h'\fP
+.br
+\fC#include 'opencv2/core\&.hpp'\fP
+.br
+
+.SS "Классы"
+
+.in +1c
+.ti -1c
+.RI "class \fBMotionAutomata\fP"
+.br
+.in -1c
+.SS "Перечисления"
+
+.in +1c
+.ti -1c
+.RI "enum \fBMOTION_STATES\fP { \fBSTOP\fP, \fBBEGIN\fP, \fBMOVE\fP, \fBEND\fP }"
+.br
+.RI "\fIСостояния движения \fP"
+.in -1c
+.SH "Перечисления"
+.PP 
+.SS "enum \fBMOTION_STATES\fP"
+
+.PP
+Состояния движения 
+.PP
+\fBЭлементы перечислений\fP
+.in +1c
+.TP
+\fB\fISTOP \fP\fP
+Движение прекращено 
+.TP
+\fB\fIBEGIN \fP\fP
+Разгон 
+.TP
+\fB\fIMOVE \fP\fP
+Движение с постоянной максимальной скоростью 
+.TP
+\fB\fIEND \fP\fP
+Торможение 
+.SH "Автор"
+.PP 
+Автоматически создано Doxygen для faceDetect из исходного текста\&.

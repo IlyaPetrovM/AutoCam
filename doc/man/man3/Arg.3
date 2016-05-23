@@ -1,0 +1,177 @@
+.TH "Arg< T >" 3 "Пн 23 Май 2016" "Version v2.0.1" "faceDetect" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+Arg< T > \- 
+.SH SYNOPSIS
+.br
+.PP
+.PP
+\fC#include <arg\&.h>\fP
+.SS "Открытые члены"
+
+.in +1c
+.ti -1c
+.RI "\fBArg\fP (const T defVal, const string opt_, const string format_, const T *greater=NULL, const T *less=NULL)"
+.br
+.RI "\fIКонструктор \fP"
+.ti -1c
+.RI "bool \fBinput\fP (const char *argv)"
+.br
+.RI "\fIВвод параметра Определяет, является ли текущая строка нужным идентефикатором \fP"
+.ti -1c
+.RI "\fBoperator T\fP ()"
+.br
+.RI "\fIoperator T Маскировка данного класса под используемый тип \fP"
+.ti -1c
+.RI "T \fBoperator=\fP (T newVal)"
+.br
+.RI "\fIoperator = Маскировка данного класса под используемый тип \fP"
+.ti -1c
+.RI "bool \fBexists\fP (const char *argv)"
+.br
+.RI "\fIПоиск аргумента Ищет аргумент в заданной строке \fP"
+.ti -1c
+.RI "\fB~Arg\fP ()"
+.br
+.in -1c
+.SS "Закрытые данные"
+
+.in +1c
+.ti -1c
+.RI "T \fBval\fP"
+.br
+.RI "\fIЗначение \fP"
+.ti -1c
+.RI "T * \fBvalDef\fP"
+.br
+.RI "\fIЗначение по-умолчанию \fP"
+.ti -1c
+.RI "string * \fBopt\fP"
+.br
+.RI "\fIКак должен выглядеть аргумент при запуске программы \fP"
+.ti -1c
+.RI "string * \fBformat\fP"
+.br
+.RI "\fIСпецификатор для ввода параметров (см\&. документацию \fCscanf\fP) \fP"
+.ti -1c
+.RI "T * \fBgt\fP"
+.br
+.RI "\fIнижняя граница для параметра (Greater Than) \fP"
+.ti -1c
+.RI "T * \fBlt\fP"
+.br
+.RI "\fIверхняя граница для параметра (Less Than) \fP"
+.in -1c
+.SH "Подробное описание"
+.PP 
+
+.SS "template<typename T>class Arg< T >"
+Этот класс предназначен для ввода числовых параметров программы различных типов 
+.SH "Конструктор(ы)"
+.PP 
+.SS "template<typename T > \fBArg\fP< T >::\fBArg\fP (const TdefVal, const stringopt_, const stringformat_, const T *greater = \fCNULL\fP, const T *less = \fCNULL\fP)\fC [inline]\fP"
+
+.PP
+Конструктор 
+.PP
+\fBАргументы:\fP
+.RS 4
+\fIdefVal\fP Значение параметра по-умолчанию 
+.br
+\fIopt_\fP Как должен выглядеть аргумент при запуске программы 
+.br
+\fIformat_\fP Спецификатор (см\&. документацию \fCscanf\fP) 
+.br
+\fIgreater\fP Нижняя граница для числа\&. По-умолчанию границы нет\&. 
+.br
+\fIless\fP Верхняя граница для числа\&. По-умолчанию границы нет\&. 
+.RE
+.PP
+
+.SS "template<typename T > \fBArg\fP< T >::~\fBArg\fP ()\fC [inline]\fP"
+
+.SH "Методы"
+.PP 
+.SS "template<typename T > bool \fBArg\fP< T >::exists (const char *argv)\fC [inline]\fP"
+
+.PP
+Поиск аргумента Ищет аргумент в заданной строке 
+.PP
+\fBАргументы:\fP
+.RS 4
+\fIargv\fP Один аргумент программы 
+.RE
+.PP
+\fBВозвращает:\fP
+.RS 4
+true, если аргумент найден 
+.RE
+.PP
+
+.SS "template<typename T > bool \fBArg\fP< T >::input (const char *argv)\fC [inline]\fP"
+
+.PP
+Ввод параметра Определяет, является ли текущая строка нужным идентефикатором 
+.PP
+\fBАргументы:\fP
+.RS 4
+\fIargv\fP один аргумент программы 
+.RE
+.PP
+\fBВозвращает:\fP
+.RS 4
+true, если была распознана строка-идентификатор и знчение удалось прочитать 
+.RE
+.PP
+
+.SS "template<typename T > \fBArg\fP< T >::operator T ()\fC [inline]\fP"
+
+.PP
+operator T Маскировка данного класса под используемый тип 
+.SS "template<typename T > T \fBArg\fP< T >::operator= (TnewVal)\fC [inline]\fP"
+
+.PP
+operator = Маскировка данного класса под используемый тип 
+.PP
+\fBАргументы:\fP
+.RS 4
+\fInewVal\fP Новое значение параметра 
+.RE
+.PP
+\fBВозвращает:\fP
+.RS 4
+Новое значение параметра 
+.RE
+.PP
+
+.SH "Данные класса"
+.PP 
+.SS "template<typename T > string* \fBArg\fP< T >::format\fC [private]\fP"
+
+.PP
+Спецификатор для ввода параметров (см\&. документацию \fCscanf\fP) 
+.SS "template<typename T > T* \fBArg\fP< T >::gt\fC [private]\fP"
+
+.PP
+нижняя граница для параметра (Greater Than) 
+.SS "template<typename T > T* \fBArg\fP< T >::lt\fC [private]\fP"
+
+.PP
+верхняя граница для параметра (Less Than) 
+.SS "template<typename T > string* \fBArg\fP< T >::opt\fC [private]\fP"
+
+.PP
+Как должен выглядеть аргумент при запуске программы 
+.SS "template<typename T > T \fBArg\fP< T >::val\fC [private]\fP"
+
+.PP
+Значение 
+.SS "template<typename T > T* \fBArg\fP< T >::valDef\fC [private]\fP"
+
+.PP
+Значение по-умолчанию 
+
+.SH "Автор"
+.PP 
+Автоматически создано Doxygen для faceDetect из исходного текста\&.

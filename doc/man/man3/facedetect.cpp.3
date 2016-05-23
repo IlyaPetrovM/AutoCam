@@ -1,0 +1,227 @@
+.TH "facedetect.cpp" 3 "Пн 23 Май 2016" "Version v2.0.1" "faceDetect" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+facedetect.cpp \- 
+.SH SYNOPSIS
+.br
+.PP
+\fC#include 'opencv2/objdetect\&.hpp'\fP
+.br
+\fC#include 'opencv2/highgui\&.hpp'\fP
+.br
+\fC#include 'opencv2/imgproc\&.hpp'\fP
+.br
+\fC#include <iostream>\fP
+.br
+\fC#include <iomanip>\fP
+.br
+\fC#include <string>\fP
+.br
+\fC#include <sstream>\fP
+.br
+\fC#include <fstream>\fP
+.br
+\fC#include <cstdlib>\fP
+.br
+\fC#include <opencv2/videoio/videoio\&.hpp>\fP
+.br
+\fC#include <ctime>\fP
+.br
+\fC#include 'automotion\&.h'\fP
+.br
+\fC#include 'autozoom\&.h'\fP
+.br
+\fC#include 'autocamera\&.h'\fP
+.br
+\fC#include 'arg\&.h'\fP
+.br
+
+.SS "Функции"
+
+.in +1c
+.ti -1c
+.RI "static void \fBhelp\fP ()"
+.br
+.RI "\fIЗолотое сечение \fP"
+.ti -1c
+.RI "void \fBdrawRects\fP (Mat &img, const vector< Rect > &rects, string t='rect', Scalar color=Scalar(255, 0, 0), float fontScale=1\&.0, float textThickness=1\&.0, int textOffset=0, int thickness=1, int fontFace=CV_FONT_NORMAL)"
+.br
+.RI "\fIНарисовать прямоугольники Рисует несколько прямоугольников, добавляя к ним подпись в виде текста и номера \fP"
+.ti -1c
+.RI "void \fBdrawThirds\fP (Mat &img, const Rect2f &r, Scalar color=Scalar(0, 255, 0), const double &dotsRadius=1)"
+.br
+.RI "\fIРисовать точки правила третей Рисует точки по правилу третей в заданном прямоугольнике \fCr\fP\&. \fP"
+.ti -1c
+.RI "Rect \fBmedian\fP (const vector< Rect > &r)"
+.br
+.RI "\fIМедиана набора прямоугольников \fP"
+.ti -1c
+.RI "int \fBmain\fP (int argc, const char **argv)"
+.br
+.RI "\fIГлавная функция \fP"
+.in -1c
+.SS "Переменные"
+
+.in +1c
+.ti -1c
+.RI "const double \fBFI\fP =1\&.61803398"
+.br
+.in -1c
+.SH "Функции"
+.PP 
+.SS "void drawRects (Mat &img, const vector< Rect > &rects, stringt = \fC'rect'\fP, Scalarcolor = \fCScalar(255,0,0)\fP, floatfontScale = \fC1\&.0\fP, floattextThickness = \fC1\&.0\fP, inttextOffset = \fC0\fP, intthickness = \fC1\fP, intfontFace = \fCCV_FONT_NORMAL\fP)"
+
+.PP
+Нарисовать прямоугольники Рисует несколько прямоугольников, добавляя к ним подпись в виде текста и номера 
+.PP
+\fBАргументы:\fP
+.RS 4
+\fIimg\fP Кадр, в котором будут нарисованы прямоугольники 
+.br
+\fIrects\fP Массив прямоугольников 
+.br
+\fIt\fP Подпись каждого прямоугольника 
+.br
+\fIcolor\fP Цвет прямоугольников и подписей 
+.br
+\fIfontScale\fP Кегль подписи 
+.br
+\fItextThickness\fP Толщина линии подписи 
+.br
+\fItextOffset\fP Отступ подписи от прямоугольника 
+.br
+\fIthickness\fP Толщина прямоугольника 
+.br
+\fIfontFace\fP Шрифт 
+.RE
+.PP
+
+.SS "void drawThirds (Mat &img, const Rect2f &r, Scalarcolor = \fCScalar(0,255,0)\fP, const double &dotsRadius = \fC1\fP)\fC [inline]\fP"
+
+.PP
+Рисовать точки правила третей Рисует точки по правилу третей в заданном прямоугольнике \fCr\fP\&. 
+.PP
+\fBАргументы:\fP
+.RS 4
+\fIimg\fP Изображение, на которое наносятся точки правила третей 
+.br
+\fIr\fP Прямоугольник, в котором определяется правило третей 
+.br
+\fIcolor\fP Цвет точек 
+.br
+\fIdotsRadius\fP Радиус точек 
+.RE
+.PP
+
+.SS "static void help ()\fC [static]\fP"
+
+.PP
+Золотое сечение 
+.SS "int main (intargc, const char **argv)"
+
+.PP
+Главная функция 
+.PP
+\fBАргументы:\fP
+.RS 4
+\fIargc\fP Количество аргументов в программе 
+.br
+\fIargv\fP Массив аргументов 
+.RE
+.PP
+\fBВозвращает:\fP
+.RS 4
+0, если программа завершена удачно 
+.RE
+.PP
+< Путь к файлу видео для обработки\&. Если не введен, то изображение захватывается с камеры ///
+.PP
+Параметры детектора лиц
+.PP
+< Каскады Хаара для детекции лица ///
+.PP
+< Этот параметр отвечает за то, во сколько раз следует сжать кадр перед тем как приступить к детекции лица
+.PP
+< Количество соседних детекций лица в изображении
+.PP
+< шаг изменения размеров лица, которое ожидается детектировать в изображении\&.Чем ближе этот параметр к единице, тем точнее будет определён размер лица, но тем дольше будет работать алгоритм
+.PP
+< Минимальные размеры детектируемого лица
+.PP
+< Период обновления цели (каждые n кадров), к которой будет следоватьвиртуальная камера
+.PP
+< Период детектирования лиц
+.PP
+Запись результата
+.PP
+< Высота результирующего видео (ширина рассчитывается автоматически в соответствии с соотношением сторон)
+.PP
+< Записывать результирующее видео\&.
+.PP
+< Записывать фильтр-скрипт для обработки исходного видео в ffmpeg (см\&. \fCfilter_script\fP)
+.PP
+Визуализация
+.PP
+< Показывать в реальном времени процесс обработки видео с отрисовкой виртуальной камеры и детектированных лиц
+.PP
+< Записывать процесс обработки видео в отдельный файл
+.PP
+Перемещение виртуальной камеры
+.PP
+< Максимальная скорость по координате Х
+.PP
+< Максимальная скорость по координате У
+.PP
+Зум
+.PP
+< Триггерное значение окончания зуммирования
+.PP
+< Триггер начала зуммирования
+.PP
+< Требуемое отношение высоты лица к высоте кадра
+.PP
+< Минимальная скорость зума
+.PP
+< Максимальная скорость зума
+.PP
+< Инкремент скорости зума
+.PP
+Чтение аргументов программы
+.PP
+Характеристики видео
+.PP
+< Количество кадров в секунду ///
+.PP
+< Код кодека, состоящий из 4-х символов (см\&. \fBfourcc\&.org\fP http://www.fourcc.org/codecs.php)
+.PP
+Zoom & movement params (driver)
+.PP
+Test items
+.PP
+<
+.PP
+Вывести время в превью
+.SS "Rect median (const vector< Rect > &r)"
+
+.PP
+Медиана набора прямоугольников 
+.PP
+\fBАргументы:\fP
+.RS 4
+\fIr\fP Массив прямоугольников 
+.RE
+.PP
+\fBВозвращает:\fP
+.RS 4
+Прямоугольник, высота которого - медиана высот, а координаты - медианы координат прямоугольников 
+.RE
+.PP
+
+.SH "Переменные"
+.PP 
+.SS "const double FI =1\&.61803398"
+
+.SH "Автор"
+.PP 
+Автоматически создано Doxygen для faceDetect из исходного текста\&.
