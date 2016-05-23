@@ -1,0 +1,27 @@
+var class_auto_camera =
+[
+    [ "AutoCamera", "class_auto_camera.html#acb682b13d1c7dd24e86c9dfd70677b7f", null ],
+    [ "getGoldenPoint", "class_auto_camera.html#aa95b7cff935cd3addb811e826bc01ea0", null ],
+    [ "getMoveX", "class_auto_camera.html#a7950a814a1a4426aa201874d3293c116", null ],
+    [ "getMoveY", "class_auto_camera.html#a913dcd41ae26d27d140918ca3398a5e3", null ],
+    [ "getRoi", "class_auto_camera.html#a00a7e1679dedeb91d8e427b172565978", null ],
+    [ "getRoiFullSize", "class_auto_camera.html#a13ae28757e654ea1b1a271d18609c011", null ],
+    [ "getZoom", "class_auto_camera.html#a31a58d64bd841b855d64fd4514f750e6", null ],
+    [ "setMoveX", "class_auto_camera.html#a1f60fb97b1a5c7c8b0f390289616c402", null ],
+    [ "setMoveY", "class_auto_camera.html#a43313b41e4ab81be6193fb646535699f", null ],
+    [ "setRoi", "class_auto_camera.html#ad473abcc7303c35f9e321d7718c467c3", null ],
+    [ "setZoom", "class_auto_camera.html#a6588bf82034d3e4746126537fec272e7", null ],
+    [ "topLeftDec", "class_auto_camera.html#a65581708f39dd62283e6bfa6376bcefb", null ],
+    [ "topMiddleDec", "class_auto_camera.html#a7ef6381af6f6e7f0389a40cb62111d88", null ],
+    [ "topRightDec", "class_auto_camera.html#abc207e839f9a134bf320b7b20116a438", null ],
+    [ "update", "class_auto_camera.html#a5a188764482b32a8b5c1d0f0659dcc85", null ],
+    [ "bMove", "class_auto_camera.html#a9076b06c91a03d86cf27a9171962f4af", null ],
+    [ "bZoom", "class_auto_camera.html#a99acbd2f4cf806aca774a4bcbefa129f", null ],
+    [ "maxRoiSize", "class_auto_camera.html#aff13314b604dee6eef10a5f54f79752b", null ],
+    [ "moveX", "class_auto_camera.html#a488360131cf8508ecb2942437b61a113", null ],
+    [ "moveY", "class_auto_camera.html#aa0d4cb31e814ae8689d28b4a93448b09", null ],
+    [ "onePerc", "class_auto_camera.html#a459ed7dd5b1ce33a146195ce33f3ebc3", null ],
+    [ "roi", "class_auto_camera.html#a8efc6a8c638714976f33c8de7f7555db", null ],
+    [ "scale", "class_auto_camera.html#ab089b8a5929437bab62be48a4b27e094", null ],
+    [ "zoom", "class_auto_camera.html#aeee19335af67f9b6b8bf62eef4eddce5", null ]
+];

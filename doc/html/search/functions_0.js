@@ -1,6 +1,7 @@
 var searchData=
 [
   ['arg',['Arg',['../class_arg.html#a89090f9dc935c020f8d6b1caedfc47fc',1,'Arg']]],
-  ['automotion',['autoMotion',['../classauto_motion.html#aa72d1c95862d3559ce8e94a11cf36158',1,'autoMotion']]],
-  ['autozoom',['autoZoom',['../facedetect_8cpp.html#af222249d0230a7c9229b241494535d9c',1,'facedetect.cpp']]]
+  ['autocamera',['AutoCamera',['../class_auto_camera.html#acb682b13d1c7dd24e86c9dfd70677b7f',1,'AutoCamera']]],
+  ['autopan',['AutoPan',['../class_auto_pan.html#a20981983132b12b04c925cb7f0ebe3ff',1,'AutoPan']]],
+  ['autozoom',['AutoZoom',['../class_auto_zoom.html#a05692c0014f28540c9fb2b72ee8b496d',1,'AutoZoom']]]
 ];

@@ -8,6 +8,13 @@
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
+<link href="navtree.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="resize.js"></script>
+<script type="text/javascript" src="navtree.js"></script>
+<script type="text/javascript">
+  $(document).ready(initResizable);
+  $(window).load(resizeHeight);
+</script>
 <link href="search/search.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="search/search.js"></script>
 <script type="text/javascript">
@@ -24,7 +31,7 @@
   <td id="projectlogo"><img alt="Logo" src="petrov_in_studio1.png"/></td>
   <td style="padding-left: 0.5em;">
    <div id="projectname">faceDetect
-   &#160;<span id="projectnumber">v1.0</span>
+   &#160;<span id="projectnumber">v2.0.1</span>
    </div>
    <div id="projectbrief">Autocorrection of Frame Composition in Extra-resolution Video</div>
   </td>
@@ -65,6 +72,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Поиск');
     <ul class="tablist">
       <li><a href="annotated.html"><span>Классы</span></a></li>
       <li><a href="classes.html"><span>Алфавитный&#160;указатель&#160;классов</span></a></li>
+      <li><a href="hierarchy.html"><span>Иерархия&#160;классов</span></a></li>
       <li class="current"><a href="functions.html"><span>Члены&#160;классов</span></a></li>
     </ul>
   </div>
@@ -72,9 +80,38 @@ var searchBox = new SearchBox("searchBox", "search",false,'Поиск');
     <ul class="tablist">
       <li><a href="functions.html"><span>Указатель</span></a></li>
       <li class="current"><a href="functions_func.html"><span>Функции</span></a></li>
+      <li><a href="functions_vars.html"><span>Переменные</span></a></li>
+    </ul>
+  </div>
+  <div id="navrow4" class="tabs3">
+    <ul class="tablist">
+      <li><a href="#index_a"><span>a</span></a></li>
+      <li><a href="#index_e"><span>e</span></a></li>
+      <li><a href="#index_g"><span>g</span></a></li>
+      <li><a href="#index_i"><span>i</span></a></li>
+      <li><a href="#index_m"><span>m</span></a></li>
+      <li><a href="#index_o"><span>o</span></a></li>
+      <li><a href="#index_s"><span>s</span></a></li>
+      <li><a href="#index_t"><span>t</span></a></li>
+      <li><a href="#index_u"><span>u</span></a></li>
+      <li class="current"><a href="#index_~"><span>~</span></a></li>
     </ul>
   </div>
 </div><!-- top -->
+<div id="side-nav" class="ui-resizable side-nav-resizable">
+  <div id="nav-tree">
+    <div id="nav-tree-contents">
+      <div id="nav-sync" class="sync"></div>
+    </div>
+  </div>
+  <div id="splitbar" style="-moz-user-select:none;" 
+       class="ui-resizable-handle">
+  </div>
+</div>
+<script type="text/javascript">
+$(document).ready(function(){initNavTree('functions_func.html','');});
+</script>
+<div id="doc-content">
 <!-- window showing the filter options -->
 <div id="MSearchSelectWindow"
      onmouseover="return searchBox.OnSearchSelectShow()"
@@ -90,47 +127,151 @@ var searchBox = new SearchBox("searchBox", "search",false,'Поиск');
 </div>
 
 <div class="contents">
-&#160;<ul>
+&#160;
+
+<h3><a class="anchor" id="index_a"></a>- a -</h3><ul>
 <li>Arg()
 : <a class="el" href="class_arg.html#a89090f9dc935c020f8d6b1caedfc47fc">Arg&lt; T &gt;</a>
 </li>
-<li>autoMotion()
-: <a class="el" href="classauto_motion.html#aa72d1c95862d3559ce8e94a11cf36158">autoMotion</a>
+<li>AutoCamera()
+: <a class="el" href="class_auto_camera.html#acb682b13d1c7dd24e86c9dfd70677b7f">AutoCamera</a>
 </li>
+<li>AutoPan()
+: <a class="el" href="class_auto_pan.html#a20981983132b12b04c925cb7f0ebe3ff">AutoPan</a>
+</li>
+<li>AutoZoom()
+: <a class="el" href="class_auto_zoom.html#a05692c0014f28540c9fb2b72ee8b496d">AutoZoom</a>
+</li>
+</ul>
+
+
+<h3><a class="anchor" id="index_e"></a>- e -</h3><ul>
 <li>exists()
 : <a class="el" href="class_arg.html#ab8617f74c7eeb311ab51fe1572731f01">Arg&lt; T &gt;</a>
 </li>
+</ul>
+
+
+<h3><a class="anchor" id="index_g"></a>- g -</h3><ul>
+<li>gcd()
+: <a class="el" href="class_auto_zoom.html#a6ca04705422bd58d35fed4f817e43fe8">AutoZoom</a>
+</li>
+<li>getAspect()
+: <a class="el" href="class_auto_zoom.html#a38e5e24b898d4f7616d3eb6c15c707ab">AutoZoom</a>
+</li>
+<li>getGoldenPoint()
+: <a class="el" href="class_auto_camera.html#aa95b7cff935cd3addb811e826bc01ea0">AutoCamera</a>
+</li>
+<li>getMoveX()
+: <a class="el" href="class_auto_camera.html#a7950a814a1a4426aa201874d3293c116">AutoCamera</a>
+</li>
+<li>getMoveY()
+: <a class="el" href="class_auto_camera.html#a913dcd41ae26d27d140918ca3398a5e3">AutoCamera</a>
+</li>
+<li>getRoi()
+: <a class="el" href="class_auto_camera.html#a00a7e1679dedeb91d8e427b172565978">AutoCamera</a>
+</li>
+<li>getRoiFullSize()
+: <a class="el" href="class_auto_camera.html#a13ae28757e654ea1b1a271d18609c011">AutoCamera</a>
+</li>
 <li>getSign()
-: <a class="el" href="classauto_motion.html#ab8e3edf6ab287720bf38de40517687b9">autoMotion</a>
+: <a class="el" href="class_motion_automata.html#ac527b2be98a76289aec09e04e2fdd6c9">MotionAutomata</a>
 </li>
 <li>getSpeed()
-: <a class="el" href="classauto_motion.html#a849755e49aa0f9dfbbc61df91ffd963f">autoMotion</a>
+: <a class="el" href="class_motion_automata.html#a2020a54e4691e2b832c8e942d1f2a16f">MotionAutomata</a>
 </li>
 <li>getState()
-: <a class="el" href="classauto_motion.html#a77c47bdddd346ecb63af08a85c8963c1">autoMotion</a>
+: <a class="el" href="class_motion_automata.html#a4107d9975594a19067530efaae0f6729">MotionAutomata</a>
 </li>
+<li>getStopThr()
+: <a class="el" href="class_auto_zoom.html#ac97cb4f1ae062305b8b0fea34aa94d11">AutoZoom</a>
+</li>
+<li>getZoom()
+: <a class="el" href="class_auto_camera.html#a31a58d64bd841b855d64fd4514f750e6">AutoCamera</a>
+</li>
+</ul>
+
+
+<h3><a class="anchor" id="index_i"></a>- i -</h3><ul>
 <li>input()
 : <a class="el" href="class_arg.html#aded2a97404d7c21fbebc88d7fb0514bf">Arg&lt; T &gt;</a>
 </li>
+</ul>
+
+
+<h3><a class="anchor" id="index_m"></a>- m -</h3><ul>
+<li>MotionAutomata()
+: <a class="el" href="class_motion_automata.html#a1929ff3e3b34b46b0b9555a3b329db68">MotionAutomata</a>
+</li>
+</ul>
+
+
+<h3><a class="anchor" id="index_o"></a>- o -</h3><ul>
 <li>operator T()
 : <a class="el" href="class_arg.html#a56700d1bd778ba6f731cfbe8389c495b">Arg&lt; T &gt;</a>
 </li>
 <li>operator=()
 : <a class="el" href="class_arg.html#a360ad85ad5b00751ed51d70fa77705f8">Arg&lt; T &gt;</a>
+, <a class="el" href="class_motion_automata.html#aa248c7bc2fdee4088c41904421538147">MotionAutomata</a>
 </li>
+</ul>
+
+
+<h3><a class="anchor" id="index_s"></a>- s -</h3><ul>
+<li>scaleRect()
+: <a class="el" href="class_auto_zoom.html#a84b11058fbb63544895c50682e6d4a9f">AutoZoom</a>
+</li>
+<li>setMoveX()
+: <a class="el" href="class_auto_camera.html#a1f60fb97b1a5c7c8b0f390289616c402">AutoCamera</a>
+</li>
+<li>setMoveY()
+: <a class="el" href="class_auto_camera.html#a43313b41e4ab81be6193fb646535699f">AutoCamera</a>
+</li>
+<li>setRoi()
+: <a class="el" href="class_auto_camera.html#ad473abcc7303c35f9e321d7718c467c3">AutoCamera</a>
+</li>
+<li>setZoom()
+: <a class="el" href="class_auto_camera.html#a6588bf82034d3e4746126537fec272e7">AutoCamera</a>
+</li>
+</ul>
+
+
+<h3><a class="anchor" id="index_t"></a>- t -</h3><ul>
+<li>topLeftDec()
+: <a class="el" href="class_auto_camera.html#a65581708f39dd62283e6bfa6376bcefb">AutoCamera</a>
+</li>
+<li>topMiddleDec()
+: <a class="el" href="class_auto_camera.html#a7ef6381af6f6e7f0389a40cb62111d88">AutoCamera</a>
+</li>
+<li>topRightDec()
+: <a class="el" href="class_auto_camera.html#abc207e839f9a134bf320b7b20116a438">AutoCamera</a>
+</li>
+</ul>
+
+
+<h3><a class="anchor" id="index_u"></a>- u -</h3><ul>
 <li>update()
-: <a class="el" href="classauto_motion.html#a0469194368e57a293a220de7dc2e522d">autoMotion</a>
+: <a class="el" href="class_auto_camera.html#a5a188764482b32a8b5c1d0f0659dcc85">AutoCamera</a>
+, <a class="el" href="class_auto_pan.html#ab9989135d3f94f4e23b4728186f42c9a">AutoPan</a>
+, <a class="el" href="class_auto_zoom.html#acd6ac9f4c29c67c3df61db8fff8cd8f2">AutoZoom</a>
 </li>
+</ul>
+
+
+<h3><a class="anchor" id="index_~"></a>- ~ -</h3><ul>
 <li>~Arg()
 : <a class="el" href="class_arg.html#ad3ace51eba55f805a7aab729bb3115a3">Arg&lt; T &gt;</a>
 </li>
 </ul>
 </div><!-- contents -->
+</div><!-- doc-content -->
 <!-- start footer part -->
-<hr class="footer"/><address class="footer"><small>
-Документация по faceDetect. Последние изменения: Вс 15 Май 2016 15:53:21. Создано системой &#160;<a href="http://www.doxygen.org/index.html">
-<img class="footer" src="doxygen.png" alt="doxygen"/>
-</a> 1.8.6
-</small></address>
+<div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
+  <ul>
+    <li class="footer">Документация по faceDetect. Последние изменения: Пн 23 Май 2016 08:38:39. Создано системой
+    <a href="http://www.doxygen.org/index.html">
+    <img class="footer" src="doxygen.png" alt="doxygen"/></a> 1.8.6 </li>
+  </ul>
+</div>
 </body>
 </html>
