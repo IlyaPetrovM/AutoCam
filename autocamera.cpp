@@ -64,18 +64,21 @@ AutoZoom AutoCamera::getZoom() const
 {
     return zoom;
 }
+
 Point AutoCamera::getGoldenPoint(const Rect2f &roi, const Rect &face){
     Point target;
-    if(cvRound((float)roi.width/3.0) - face.width < 0 ) /// если лицо крупное, то держать его в центре кадра
+    if(cvRound((float)roi.width/3.0) - face.width < 0 )
+        /// если лицо крупное, то держать его в центре кадра
         target = topMiddleDec(roi);
     else if(face.x+cvRound((float)face.width/2.0) < topMiddleDec(roi).x
             && face.x < roi.x+topLeftDec(roi).x)
         target = topLeftDec(roi);
-    else if(face.x+face.width > roi.x+topRightDec(roi).x) // Камера посередине не будет реагировать
+    else if(face.x+face.width > roi.x+topRightDec(roi).x)
+        // Камера посередине не будет реагировать
         target = topRightDec(roi);
     else
         target = topMiddleDec(roi);
 
-    Point result = (face+topMiddleDec(face) - target).tl();// Должна быть зависимость только от размеров ROI
+    Point result = (face+topMiddleDec(face) - target).tl();
     return result;
 }

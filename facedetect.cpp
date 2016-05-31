@@ -19,6 +19,7 @@
 #include "autozoom.h"
 #include "autocamera.h"
 #include "arg.h"
+#include "detector.h"
 
 using namespace std;
 using namespace cv;
@@ -213,6 +214,7 @@ int main( int argc, const char** argv )
         help();
         return -1;
     }
+
     bool isWebcam=false; /// \todo 18.05.2016 class InputMan
     VideoCapture capture;
     if( inputName.empty() || (isdigit(inputName.c_str()[0]) && inputName.c_str()[1] == '\0') )
@@ -240,36 +242,25 @@ int main( int argc, const char** argv )
         Mat fullFrame; /// \todo 18.05.2016 class InputMan, class Detector
         Mat result; /// \todo 18.05.2016 class FileSaver
 
-        // Face detection
-        /// \todo 18.05.2016 class Detector
-        Mat smallImg; /// \todo 18.05.2016 class Detector
-        Mat graySmall; /// \todo 18.05.2016 class Detector
-        const Size minfaceSize=Size(minFaceHeight,minFaceHeight);
-
-        bool foundFaces=false;
-        vector<Rect> facesFull,facesProf,faceBuf;
-        /// \todo 18.05.2016 end class Detector
-
         /// Характеристики видео
         const long int videoLength = capture.get(CAP_PROP_FRAME_COUNT);
         const float aspectRatio = (float)capture.get(CV_CAP_PROP_FRAME_WIDTH)/
                                   (float)capture.get(CV_CAP_PROP_FRAME_HEIGHT);
         const Rect2f fullShot(0,0,(int)capture.get(CV_CAP_PROP_FRAME_WIDTH),
-                                (int)capture.get(CV_CAP_PROP_FRAME_HEIGHT)); /// \todo 18.05.2016 class Detector
+                                (int)capture.get(CV_CAP_PROP_FRAME_HEIGHT));
         int fps; ///< Количество кадров в секунду /// \todo 18.05.2016 class FileSaver, class Previewer
         int fourcc; ///< Код кодека, состоящий из 4-х символов (см. \ref fourcc.org http://www.fourcc.org/codecs.php)
         long int frameCounter=0; /// \todo 18.05.2016 class InputMan
 
 
-        const Size smallImgSize = Size((float)fullShot.width/scale, (float)fullShot.height/scale); /// \todo 18.05.2016 class Detector
-        const Size maxRoiSize = smallImgSize;
-        const Size previewSize = smallImgSize; /// \todo 18.05.2016 class Drawer
+        const Size previewSize = Size((float)fullShot.width/scale, (float)fullShot.height/scale);
         const Size resultSize = Size(resultHeight*aspectRatio,resultHeight);
 
         ///Zoom & movement params (driver)
-        Rect aim=Rect(Point(0,0),maxRoiSize); /// \todo 18.05.2016 class Detector, class AutoCamera
-
-        AutoCamera cam(scale,maxRoiSize,maxStepX,maxStepY,zoomSpeedMin,zoomSpeedMax,zoomThr,zoomStopThr_,zoomSpeedInc_,face2shot,1,1);
+        Detector det(cascadeFullName,cascadeProfName,
+                     Size((float)fullShot.width/scale, (float)fullShot.height/scale),
+                     aimUpdatePer,faceDetectPer,minNeighbors,minFaceHeight,scaleFactor);
+        AutoCamera cam(scale,Size((float)fullShot.width/scale, (float)fullShot.height/scale),maxStepX,maxStepY,zoomSpeedMin,zoomSpeedMax,zoomThr,zoomStopThr_,zoomSpeedInc_,face2shot,1,1);
 
         //file writing
         stringstream outTitleStream;
@@ -385,12 +376,16 @@ int main( int argc, const char** argv )
 
         vector<Mat> frames;
         bool end=false;
+        fstream cropFile;
+        if(writeCropFile){ /// \todo 18.05.2016 class FileSaver
+            cropFile.open("results/filter",fstream::out);
+        }
         for(;!end;){
             tmr.push_back(cvGetTickCount());if(frameCounter<2)lines.push_back(__LINE__);
             frames.clear();
             for(register int i=0; i<1;++i){
                 capture >> fullFrame;
-                if(!fullFrame.empty()) {
+                if(!fullFrame.empty() && waitKey(1)!=27) {
                     frames.push_back(fullFrame.clone());
                 }
             }
@@ -400,45 +395,20 @@ int main( int argc, const char** argv )
             {
 
                 tmr.push_back(cvGetTickCount());if(frameCounter<2)lines.push_back(__LINE__);
-                    fullFrame = frames[i]; /// \todo 18.05.2016 class InputMan
-                    tmr.push_back(cvGetTickCount());if(frameCounter<2)lines.push_back(__LINE__);
-                    if(!fullFrame.empty()) {
-                        if(frameCounter>0)pzoom<<',';
-                    }
-                    else{
-                        clog << "Frame is empty" << endl;
-                        end=true;
-                        break;
-                    }
-                    tmr.push_back(cvGetTickCount());if(frameCounter<2)lines.push_back(__LINE__);
-
-                    /// \todo 18.05.2016 class Detector
-                    if(frameCounter%faceDetectPer==0){
-                        resize( fullFrame, smallImg, smallImgSize, 0, 0, INTER_LINEAR );
-                        cvtColor( smallImg, graySmall, COLOR_BGR2GRAY );
-
-                        /* Поиск лиц в анфас */
-                        cascadeFull.detectMultiScale(graySmall, facesFull,
-                                                     scaleFactor, minNeighbors, 0|CASCADE_SCALE_IMAGE,minfaceSize);
-                        /* Поиск лиц в профиль */
-                        cascadeProf.detectMultiScale( graySmall, facesProf,
-                                                      scaleFactor, minNeighbors, 0|CASCADE_SCALE_IMAGE,minfaceSize);
-                        foundFaces = !(facesFull.empty() && facesProf.empty());
-                    }else foundFaces = false;
-                    tmr.push_back(cvGetTickCount());if(frameCounter<2)lines.push_back(__LINE__);
-
-                    if(foundFaces){
-                        if(!facesFull.empty() && ((facesFull[0]&aim).area()>0))faceBuf.push_back(facesFull[0]);
-                        if(!facesProf.empty() && ((facesProf[0]&aim).area()>0))faceBuf.push_back(facesProf[0]);
-                    }
-                    if(frameCounter%aimUpdatePer == 0){
-                        if(!faceBuf.empty()) {
-                            aim = median(faceBuf);
-                            faceBuf.clear();
-                        }
-                    }
+                fullFrame = frames[i]; /// \todo 18.05.2016 class InputMan
                 tmr.push_back(cvGetTickCount());if(frameCounter<2)lines.push_back(__LINE__);
-                cam.update(aim);
+                if(!fullFrame.empty() ) {
+                    if(frameCounter>0)pzoom<<',';
+                }
+                else{
+                    clog << "Frame is empty" << endl;
+                    end=true;
+                    break;
+                }
+                tmr.push_back(cvGetTickCount());if(frameCounter<2)lines.push_back(__LINE__);
+                det.detect(fullFrame);
+                tmr.push_back(cvGetTickCount());if(frameCounter<2)lines.push_back(__LINE__);
+                cam.update(det.getAim());
                 tmr.push_back(cvGetTickCount());if(frameCounter<2)lines.push_back(__LINE__);
                 try{
                     /// \todo 18.05.2016 FileSaver
@@ -452,7 +422,7 @@ int main( int argc, const char** argv )
                 tmr.push_back(cvGetTickCount());if(frameCounter<2)lines.push_back(__LINE__);
                 /// \todo 18.05.2016 class Drawer
                 if(showPreview || recordPreview){ // Отрисовка области интереса
-                    resize(fullFrame, preview, smallImgSize, 0, 0, INTER_NEAREST );
+                    resize(fullFrame, preview, det.getImgSize(), 0, 0, INTER_NEAREST );
 
                     // Рисовать кадр захвата
                     if(cam.getZoom().getState()==BEGIN)rectangle(preview,cam.getRoi(),Scalar(100,255,100),cam.getZoom().getStopThr());
@@ -503,11 +473,11 @@ int main( int argc, const char** argv )
                     }
                     drawThirds(preview,cam.getRoi(),Scalar(0,255,0),dotsRadius);
                     // Рисовать цель
-                    rectangle(preview,aim,Scalar(0,255,0),thickness);
-                    putText(preview, "aim",aim.tl(),CV_FONT_NORMAL,fontScale,Scalar(0,255,0),textThickness);
+                    rectangle(preview,det.getAim(),Scalar(0,255,0),thickness);
+                    putText(preview, "aim",det.getAim().tl(),CV_FONT_NORMAL,fontScale,Scalar(0,255,0),textThickness);
                     //Отрисовка распознаных объектов на превью
-                    drawRects(preview,facesFull,"Full face",Scalar(255,0,0),fontScale,textThickness,textOffset,thickness);
-                    drawRects(preview,facesProf,"Profile",Scalar(255,127,0),fontScale,textThickness,textOffset,thickness);
+                    drawRects(preview,det.getFacesFull(),"Full face",Scalar(255,0,0),fontScale,textThickness,textOffset,thickness);
+                    drawRects(preview,det.getFacesProf(),"Profile",Scalar(255,127,0),fontScale,textThickness,textOffset,thickness);
 
                     /// Вывести время в превью
                     time_t t = time(0);   // get time now
@@ -522,8 +492,8 @@ int main( int argc, const char** argv )
                             << now->tm_min << ":"
                             << now->tm_sec;
                     //                           << frameCounter;
-                    putText(preview,timestring.str(),Point(0,smallImgSize.height-3),CV_FONT_NORMAL,fontScale*1.35,Scalar(0,0,0),textThickness*100);
-                    putText(preview,timestring.str(),Point(0,smallImgSize.height-3),CV_FONT_NORMAL,fontScale*1.35,Scalar(255,255,255),textThickness*2);
+                    putText(preview,timestring.str(),Point(0,det.getImgSize().height-3),CV_FONT_NORMAL,fontScale*1.35,Scalar(0,0,0),textThickness*100);
+                    putText(preview,timestring.str(),Point(0,det.getImgSize().height-3),CV_FONT_NORMAL,fontScale*1.35,Scalar(255,255,255),textThickness*2);
                     stringstream frame;
                     frame << frameCounter;
                     putText(preview,(frame.str()),Point(0,fontScale*20),CV_FONT_NORMAL,fontScale*1.45,Scalar(0,0,0,100),textThickness*10);
@@ -545,14 +515,14 @@ int main( int argc, const char** argv )
                         for (int i = 0; i < lines.size()-1; ++i) {
                             logFile << lines[i] << "-" << lines[i+1] << "\t";
                         }
-                        logFile << "facesFull.x, px"<<"\t"
-                                <<"facesFull.y, px"<<"\t"
-                               << "facesFull.width, px"<<"\t"
-                               <<"facesFull.height, px"<<"\t"
+                        logFile << "det.getFacesFull().x, px"<<"\t"
+                                <<"det.getFacesFull().y, px"<<"\t"
+                               << "det.getFacesFull().width, px"<<"\t"
+                               <<"det.getFacesFull().height, px"<<"\t"
                               << "faceProf.x, px"<<"\t"
                               <<"faceProf.y, px"<<"\t"
-                             << "facesProf.width, px"<<"\t"
-                             <<"facesProf.height, px"<<"\t"
+                             << "det.getFacesProf().width, px"<<"\t"
+                             <<"det.getFacesProf().height, px"<<"\t"
                             << "aim.x, px"<<"\t"
                             <<"aim.y, px"<<"\t"
                            << "aim.width, px"<<"\t"
@@ -566,34 +536,35 @@ int main( int argc, const char** argv )
                     for (int i = 0; i < tmr.size()-1; ++i) {
                         logFile << (double)(tmr[i+1]-tmr[i])/ticksPerMsec <<"\t";
                     }
-                    if(!facesFull.empty())
-                        logFile << facesFull[0].x << "\t"
-                                                  << facesFull[0].y << "\t"
-                                                  << facesFull[0].width << "\t"
-                                                  << facesFull[0].height << "\t";
+                    if(!det.getFacesFull().empty())
+                        logFile << det.getFacesFull()[0].x << "\t"
+                                                  << det.getFacesFull()[0].y << "\t"
+                                                  << det.getFacesFull()[0].width << "\t"
+                                                  << det.getFacesFull()[0].height << "\t";
                     else logFile << "\t\t\t\t";
-                    if(!facesProf.empty())
-                        logFile << facesProf[0].x << "\t"
-                                                  << facesProf[0].y << "\t"
-                                                  << facesProf[0].width << "\t"
-                                                  << facesProf[0].height << "\t";
+                    if(!det.getFacesProf().empty())
+                        logFile << det.getFacesProf()[0].x << "\t"
+                                                  << det.getFacesProf()[0].y << "\t"
+                                                  << det.getFacesProf()[0].width << "\t"
+                                                  << det.getFacesProf()[0].height << "\t";
                     else logFile << "\t\t\t\t";
 
-                    logFile << aim.x << "\t"
-                            << aim.y << "\t"
-                            << aim.width << "\t"
-                            << aim.height << "\t";
+                    logFile << det.getAim().x << "\t"
+                            << det.getAim().y << "\t"
+                            << det.getAim().width << "\t"
+                            << det.getAim().height << "\t";
                     logFile << cam.getRoi().x << "\t"
                             << cam.getRoi().y << "\t"
                             << cam.getRoi().width << "\t"
                             << cam.getRoi().height << endl;
                 }
-                if(writeCropFile){
-                    pzoom << "zoompan=enable=eq(n\\,"<< frameCounter
+                if(writeCropFile && cropFile.is_open()){
+                    cropFile << "zoompan=enable=eq(n\\,"<< frameCounter
                           << "):z=" << fullShot.width/roiFullSize.width
                           << ":x=" << roiFullSize.x
                           << ":y=" << roiFullSize.y << ":d=1";
                 }
+
 
                 cout <<"frame:"<< frameCounter
                     << " fps:" << (int)(1000*(float)ticksPerMsec/(float)(tmr[tmr.size()-1]-tmr[0]))
@@ -608,17 +579,17 @@ int main( int argc, const char** argv )
         }
 
         if(logFile.is_open())logFile.close(); /// \todo 18.05.2016 class StatMan
-
         if(writeCropFile){ /// \todo 18.05.2016 class FileSaver
-            fstream cropFile;
-            cropFile.open(("results/filter_"+outFileTitle).c_str(),fstream::out);
+//            fstream cropFile;
+//            cropFile.open(("results/filter_"/*outFileTitle).c_str()*/,fstream::out);
             if(cropFile.is_open()){
-                cropFile  << pzoom.str();
+//                cropFile  << pzoom.str();
                 cropFile.close();
             }else{
                 clog << "Error with opening the file:" << "results/test_"+outFileTitle+".crop" << endl;
             }
         }
+
         cout << "The results have been written to " << "''"+outFileTitle+"''" << endl;
         cvDestroyAllWindows();
     }

@@ -53,7 +53,7 @@ CMAKE_BINARY_DIR = /home/ilya/Downloads/opencv-3.1.0/workspace/FaceDetect
 # Special rule for the target edit_cache
 edit_cache:
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Running CMake cache editor..."
-	/usr/bin/cmake-gui -H$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR)
+	/usr/bin/ccmake -H$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR)
 .PHONY : edit_cache
 
 # Special rule for the target edit_cache
@@ -210,6 +210,30 @@ autozoom.cpp.s:
 	$(MAKE) -f CMakeFiles/facedetect.dir/build.make CMakeFiles/facedetect.dir/autozoom.cpp.s
 .PHONY : autozoom.cpp.s
 
+detector.o: detector.cpp.o
+.PHONY : detector.o
+
+# target to build an object file
+detector.cpp.o:
+	$(MAKE) -f CMakeFiles/facedetect.dir/build.make CMakeFiles/facedetect.dir/detector.cpp.o
+.PHONY : detector.cpp.o
+
+detector.i: detector.cpp.i
+.PHONY : detector.i
+
+# target to preprocess a source file
+detector.cpp.i:
+	$(MAKE) -f CMakeFiles/facedetect.dir/build.make CMakeFiles/facedetect.dir/detector.cpp.i
+.PHONY : detector.cpp.i
+
+detector.s: detector.cpp.s
+.PHONY : detector.s
+
+# target to generate assembly for a file
+detector.cpp.s:
+	$(MAKE) -f CMakeFiles/facedetect.dir/build.make CMakeFiles/facedetect.dir/detector.cpp.s
+.PHONY : detector.cpp.s
+
 facedetect.o: facedetect.cpp.o
 .PHONY : facedetect.o
 
@@ -279,6 +303,9 @@ help:
 	@echo "... autozoom.o"
 	@echo "... autozoom.i"
 	@echo "... autozoom.s"
+	@echo "... detector.o"
+	@echo "... detector.i"
+	@echo "... detector.s"
 	@echo "... facedetect.o"
 	@echo "... facedetect.i"
 	@echo "... facedetect.s"

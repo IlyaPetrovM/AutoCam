@@ -19,7 +19,8 @@ if(OpenCV_VERSION VERSION_GREATER "2.9.0")
                                    autozoom.cpp
                                     statemachine.cpp
                                     arg.cpp
-                                    autocamera.cpp)
+                                    autocamera.cpp
+                                    detector.cpp)
     target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBS})
 else()
     message(FATAL_ERROR
