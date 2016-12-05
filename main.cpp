@@ -27,7 +27,7 @@ const double FI=1.61803398; /// Золотое сечение
 
 static void help()
 {
-    cout << "Build date:" << __DATE__ << " " << __TIME__
+    clog << "Build date:" << __DATE__ << " " << __TIME__
             "\n\tDuring execution:\n\tHit any key to quit.\n"
             "\tUsing OpenCV version " << CV_VERSION << "\n" << endl;
 }
@@ -114,12 +114,12 @@ int main( int argc, const char** argv )
 
     string inputName; ///< Путь к файлу видео для обработки. Если не введен, то изображение захватывается с камеры /// \todo 18.05.2016 class FileSaver
 
-    cout << "Availible parameters: " << endl;
+    clog << "Availible parameters: " << endl;
     /// Параметры детектора лиц
     CascadeClassifier cascadeFull,cascadeProf; ///< Каскады Хаара для детекции лица /// \todo 18.05.2016 class Detector
-    string cascadeFullName = "haarcascade_frontalface_alt.xml";
-    string cascadeProfName = "haarcascade_profileface.xml";
-    const string cascadeProfOpt = "--cascadeProf";
+    string cascadeFullName = "../haarcascade_frontalface_alt.xml";
+    string cascadeProfName = "../haarcascade_profileface.xml";
+    const string cascadeProfOpt = "--cascadeProf=";
     size_t cascadeProfOptLen = cascadeProfOpt.length();
     const string cascadeFullOpt = "--cascadeFront=";
     size_t cascadeFullOptLen = cascadeFullOpt.length();
@@ -134,6 +134,7 @@ int main( int argc, const char** argv )
     Arg<int> faceDetectPer(1,"--faceDetectPer=","%d", new int(1));///< Период детектирования лиц
 
     ///Запись результата
+    Arg<int> resultWidth(640,"--resultWidth=","%d", new int(1));///< Высота результирующего видео (ширина рассчитывается автоматически в соответствии с соотношением сторон)
     Arg<int> resultHeight(480,"--resultHeight=","%d", new int(1));///< Высота результирующего видео (ширина рассчитывается автоматически в соответствии с соотношением сторон)
     Arg<int> recordResult(1,"--recordResult=","%d",new int(0));///< Записывать результирующее видео.
     Arg<int> writeCropFile(0,"--writeCropFile=","%d",new int(0));///< Записывать фильтр-скрипт для обработки исходного видео в ffmpeg (см. [filter_script](http://ffmpeg.org/ffmpeg.html#Main-options))
@@ -147,27 +148,29 @@ int main( int argc, const char** argv )
     Arg<float>maxStepY(1,"--maxStepY=","%f",new float(0.2));///< Максимальная скорость по координате У
     /// Зум
     Arg<float> zoomStopThr_ (10.0,"--zoomStopThr=","%f",new float(1));///< Триггерное значение окончания зуммирования
-    Arg<float> zoomThr(FI,"--zoomThr=","%f",new float(1));///< Триггер начала зуммирования
+    Arg<float> zoomThr(FI+1.0,"--zoomThr=","%f",new float(1));///< Триггер начала зуммирования
     Arg<double> face2shot(FI,"--face2shot=","%lf",new double(0.1));///< Требуемое отношение высоты лица к высоте кадра
     Arg<double> zoomSpeedMin(0.00,"--zoomSpeedMin=","%lf",new double(0.00));///< Минимальная скорость зума
     Arg<double> zoomSpeedMax(0.03,"--zoomSpeedMax=","%lf",new double(0.001));///< Максимальная скорость зума
-    Arg<double> zoomSpeedInc_(15.0,"--zoomSpeedInc=","%lf",new double(0.001));///< Инкремент скорости зума
+    Arg<double> zoomSpeedInc_(3.0,"--zoomSpeedInc=","%lf",new double(0.001));///< Инкремент скорости зума
+
+    Arg<int> streamToStdOut(0,"--streamToStdOut=","%d",new int(0)); ///< Печатать кадры результирующего видео в стандартный вывод
 
     help();
 
     /// Чтение аргументов программы
     for( int i = 1; i < argc; i++ )
     {
-        cout << "Processing " << i << " " <<  argv[i];
+        clog << "Processing " << i << " " <<  argv[i];
 
         if( cascadeFullOpt.compare( 0, cascadeFullOptLen, argv[i], cascadeFullOptLen ) == 0 )
         {
             cascadeFullName.assign( argv[i] + cascadeFullOptLen );
-            cout << "  from which we have cascadeName= " << cascadeFullName << endl;
+            clog << "  from which we have cascadeName= " << cascadeFullName << endl;
         }
         else if( cascadeProfOpt.compare( 0, cascadeProfOptLen, argv[i], cascadeProfOptLen ) == 0 )
         {
-            cout << "nc" <<endl;
+            clog << "nc" <<endl;
             if( argv[i][cascadeProfOpt.length()] == '=' );
                 cascadeProfName.assign( argv[i] + cascadeProfOpt.length() + 1 );
 
@@ -180,6 +183,7 @@ int main( int argc, const char** argv )
         else if(aimUpdatePer.input(argv[i]));
         else if(faceDetectPer.input(argv[i]));
 
+        else if(resultWidth.input(argv[i]));
         else if(resultHeight.input(argv[i]));
         else if(showPreview.input(argv[i]));
         else if(recordPreview.input(argv[i]));
@@ -195,7 +199,7 @@ int main( int argc, const char** argv )
         else if(zoomSpeedMin.input(argv[i]));
         else if(zoomSpeedMax.input(argv[i]));
         else if(zoomSpeedInc_.input(argv[i]));
-
+        else if(streamToStdOut.input(argv[i]));
         else if(argv[i][0] == '-' )
         {
             cerr << "WARNING: UnkoneIterEndn option %s" << argv[i] << endl;
@@ -222,20 +226,20 @@ int main( int argc, const char** argv )
         isWebcam=true;
         int c = inputName.empty() ? 0 : inputName.c_str()[0] - '0' ;
         if(!capture.open(c))
-            cout << "Capture from camera #" <<  c << " didn't work" << endl;
+            clog << "Capture from camera #" <<  c << " didn't work" << endl;
     }else{
         if(capture.open(inputName)){
-            cout << "Capture file " <<  inputName << endl;
+            clog << "Capture file " <<  inputName << endl;
             isWebcam=false;
         }
         else
-            cout << "Could not capture file " <<  inputName << endl;
+            clog << "Could not capture file " <<  inputName << endl;
     }
 
     if( capture.isOpened() )
     {
         if(isWebcam) writeCropFile=false; /// \todo 18.05.2016 class FileSaver
-        cout << "Video capturing has been started ..." << endl;
+        clog << "Video capturing has been started ..." << endl;
 
    //    MODEL    //
         // Кадры
@@ -245,17 +249,18 @@ int main( int argc, const char** argv )
         /// Характеристики видео
         const long int videoLength = capture.get(CAP_PROP_FRAME_COUNT);
         const float aspectRatio = (float)capture.get(CV_CAP_PROP_FRAME_WIDTH)/
-                                  (float)capture.get(CV_CAP_PROP_FRAME_HEIGHT);
-        const Rect2f fullShot(0,0,(int)capture.get(CV_CAP_PROP_FRAME_WIDTH),
-                                (int)capture.get(CV_CAP_PROP_FRAME_HEIGHT));
+                                  (float)capture.get(CV_CAP_PROP_FRAME_HEIGHT);/// \todo 05/12/2016 При стриминге размеры кадра определяются почему-то неправильно
+        const Rect2f fullShot(0,0,1920,1080);//(int)capture.get(CV_CAP_PROP_FRAME_WIDTH),
+//                                (int)capture.get(CV_CAP_PROP_FRAME_HEIGHT));
         int fps; ///< Количество кадров в секунду /// \todo 18.05.2016 class FileSaver, class Previewer
         int fourcc; ///< Код кодека, состоящий из 4-х символов (см. \ref fourcc.org http://www.fourcc.org/codecs.php)
         long int frameCounter=0; /// \todo 18.05.2016 class InputMan
 
 
         const Size previewSize = Size((float)fullShot.width/scale, (float)fullShot.height/scale);
-        const Size resultSize = Size(resultHeight*aspectRatio,resultHeight);
+//        const Size resultSize = Size(resultHeight*aspectRatio,resultHeight);
 
+        const Size resultSize = Size(resultWidth,resultHeight);
         ///Zoom & movement params (driver)
         Detector det(cascadeFullName,cascadeProfName,
                      Size((float)fullShot.width/scale, (float)fullShot.height/scale),
@@ -354,32 +359,37 @@ int main( int argc, const char** argv )
             fourcc = capture.get(CV_CAP_PROP_FOURCC); // codecs
             fps = capture.get(CAP_PROP_FPS);
         }
-        if(recordResult && !outputVideo.open("results/closeUp_"+outFileTitle+".avi",fourcc,
+        if(recordResult && !outputVideo.open("../results/closeUp_"+outFileTitle+".avi",fourcc,
                                          fps, resultSize, true)){
-            cout << "Could not open the output video ("
-                 << "results/closeUp_"+outFileTitle+".avi" <<") for writing"<<endl;
+            clog << "Could not open the output video ("
+                 << "../results/closeUp_"+outFileTitle+".avi" <<") for writing"<<endl;
             return -1;
         }
         if(recordPreview){
-             if(!previewVideo.open("results/test_"+outFileTitle+".avi",fourcc,
+             if(!previewVideo.open("../results/test_"+outFileTitle+".avi",fourcc,
                                    fps, previewSize, true))
              {
-                 cout << "Could not open the output video ("
-                      << "results/test_"+outFileTitle+".avi" <<") for writing"<<endl;
+                 clog << "Could not open the output video ("
+                      << "../results/test_"+outFileTitle+".avi" <<") for writing"<<endl;
                  return -1;
              }
         }
-        logFile.open(("results/test_"+outFileTitle+".ods").c_str(), fstream::out); /// \todo 18.05.2016 class StatMan
+        logFile.open(("../results/test_"+outFileTitle+".ods").c_str(), fstream::out); /// \todo 18.05.2016 class StatMan
         if(!logFile.is_open()){
-            cout << "Error with opening the file:" << "results/test_"+outFileTitle+".ods" << endl;
+            clog << "Error with opening the file:" << "../results/test_"+outFileTitle+".ods" << endl;
         }
-
+        clog << "!!!";
         vector<Mat> frames;
         bool end=false;
         fstream cropFile;
         if(writeCropFile){ /// \todo 18.05.2016 class FileSaver
-            cropFile.open("results/filter",fstream::out);
+            cropFile.open("../results/filter",fstream::out);
         }
+
+        for(int i=0;i<(resultWidth*resultHeight - (float)resultWidth/5.20)*3;i++){ /// \todo 05.12.2016 Это костыль, который сдвигает пиксели в кадре.
+            cout<<0;
+        }
+
         for(;!end;){
             tmr.push_back(cvGetTickCount());if(frameCounter<2)lines.push_back(__LINE__);
             frames.clear();
@@ -412,12 +422,19 @@ int main( int argc, const char** argv )
                 tmr.push_back(cvGetTickCount());if(frameCounter<2)lines.push_back(__LINE__);
                 try{
                     /// \todo 18.05.2016 FileSaver
-                    if(recordResult){
+                    if(recordResult || streamToStdOut){
                         resize(fullFrame(cam.getRoiFullSize()), result , resultSize, 0,0, INTER_LINEAR );
-                        outputVideo << result ;
+                        if(recordResult){
+                            outputVideo << result;
+                        }
+                        if(streamToStdOut){
+                            Mat array = result.reshape(0,1);
+                            string outstr((char *)array.data,array.total()*array.elemSize());
+                            cout<<outstr;
+                        }
                     }
                 }catch(Exception &mvEx){
-                    cout << "Result saving: "<< mvEx.msg << endl;
+                    clog << "Result saving: "<< mvEx.msg << endl;
                 }
                 tmr.push_back(cvGetTickCount());if(frameCounter<2)lines.push_back(__LINE__);
                 /// \todo 18.05.2016 class Drawer
@@ -566,7 +583,7 @@ int main( int argc, const char** argv )
                 }
 
 
-                cout <<"frame:"<< frameCounter
+                clog <<"frame:"<< frameCounter
                     << " fps:" << (int)(1000*(float)ticksPerMsec/(float)(tmr[tmr.size()-1]-tmr[0]))
                         << " ("<< (int)((100*(float)frameCounter)/(float)videoLength) <<"% of video)"
                         << endl;
@@ -581,16 +598,16 @@ int main( int argc, const char** argv )
         if(logFile.is_open())logFile.close(); /// \todo 18.05.2016 class StatMan
         if(writeCropFile){ /// \todo 18.05.2016 class FileSaver
 //            fstream cropFile;
-//            cropFile.open(("results/filter_"/*outFileTitle).c_str()*/,fstream::out);
+//            cropFile.open(("../results/filter_"/*outFileTitle).c_str()*/,fstream::out);
             if(cropFile.is_open()){
 //                cropFile  << pzoom.str();
                 cropFile.close();
             }else{
-                clog << "Error with opening the file:" << "results/test_"+outFileTitle+".crop" << endl;
+                clog << "Error with opening the file:" << "../results/test_"+outFileTitle+".crop" << endl;
             }
         }
 
-        cout << "The results have been written to " << "''"+outFileTitle+"''" << endl;
+        clog << "The results have been written to " << "''"+outFileTitle+"''" << endl;
         cvDestroyAllWindows();
     }
     return 0;
