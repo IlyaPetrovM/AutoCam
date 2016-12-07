@@ -13,10 +13,10 @@ const Rect &Detector::detect(const Mat& fullFrame)
         /* Поиск лиц в профиль */
         cascadeProf.detectMultiScale( graySmall, facesProf,
                                       scaleFactor, minNeighbors, 0|CASCADE_SCALE_IMAGE,minfaceSize);
-        foundFaces = !(facesFull.empty() && facesProf.empty());
-    }else foundFaces = false;
+        bFoundSomeFaces = !(facesFull.empty() && facesProf.empty());
+    }else bFoundSomeFaces = false;
 
-    if(foundFaces){
+    if(bFoundSomeFaces){
         if(!facesFull.empty() && ((facesFull[0]&aim).area()>0))faceBuf.push_back(facesFull[0]);
         if(!facesProf.empty() && ((facesProf[0]&aim).area()>0))faceBuf.push_back(facesProf[0]);
     }
@@ -24,8 +24,10 @@ const Rect &Detector::detect(const Mat& fullFrame)
         if(!faceBuf.empty()) {
             aim = median(faceBuf);
             faceBuf.clear();
+            bAimDetected=true;
         }
     }
+    frameCounter++;
     return aim;
 }
 
@@ -53,9 +55,9 @@ Detector::Detector(string cascadeFullName_, string cascadeProfName_, Size smallI
       scaleFactor(scaleFactor_),
       minfaceSize(Size(minFaceHeight_,minFaceHeight_)),
       aim(Rect(Point(0,0),smallImgSize_)),
-      foundFaces(false),
+      bFoundSomeFaces(false),
       frameCounter(0),
-      aimUpdatePer(aimUpdatePer_)
+      aimUpdatePer(aimUpdatePer_), bAimDetected(false)
 {
     if( !cascadeFull.load( cascadeFullName_ ) )
     {

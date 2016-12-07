@@ -14,7 +14,9 @@ class Detector
     int frameCounter;
     int faceDetectPer;
     int aimUpdatePer;
-    bool foundFaces;
+    bool bFoundSomeFaces;
+    bool bAimDetected;
+
 
     const Size smallImgSize;
     CascadeClassifier cascadeFull,cascadeProf; ///< Каскады Хаара для детекции лица
@@ -55,6 +57,16 @@ public:
     }
     const vector<Rect>& getFacesProf(){
         return facesProf;
+    }
+    bool foundFaces(){
+        return bFoundSomeFaces;
+    }
+    bool aimDetected(){
+        return bAimDetected;
+    }
+    void resetAim(){
+        aim = Rect(Point(0,0),smallImgSize);
+        bAimDetected=false;
     }
 };
 
