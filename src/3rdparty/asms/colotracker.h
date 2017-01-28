@@ -6,7 +6,7 @@
 #include "region.h"
 #include "histogram.h"
 #include <iostream>
-
+using namespace std;
 
 //#define SHOWDEBUGWIN
 
