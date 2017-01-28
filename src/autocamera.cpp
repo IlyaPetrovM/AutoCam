@@ -1,19 +1,17 @@
 #include "autocamera.h"
 
-AutoCamera::AutoCamera(double scale_, Size maxRoiSize_, double maxStepX,
+AutoCamera::AutoCamera(Size maxRoiSize_, double maxStepX,
                        double maxStepY,
                        double zoomSpeedMin,
                        double zoomSpeedMax,
                        double zoomThr,
-                       double zoomStopThr_,
                        double zoomSpeedInc_,
                        double face2shot,
                        bool bZoom_,
                        bool bMove_) :
-    scale(scale_),
     maxRoiSize(maxRoiSize_),
     onePerc((double)maxRoiSize_.width/100.0),
-    zoom(zoomSpeedMin,zoomSpeedMax,maxRoiSize_,zoomThr,cvRound(zoomStopThr_*((double)maxRoiSize_.width/100.0)),zoomSpeedInc_,face2shot),
+    zoom(zoomSpeedMin,zoomSpeedMax,maxRoiSize_,zoomThr,zoomSpeedInc_,face2shot),
     roi(Rect2f(Point(0,0),maxRoiSize_)),
     moveX(0.0,maxStepX*(double)maxRoiSize_.width/100.0),
     moveY(0.0,maxStepY*(double)maxRoiSize_.width/100.0),

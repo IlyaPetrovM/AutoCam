@@ -11,7 +11,6 @@ class AutoZoom : public MotionAutomata
     const double face2shot; ///< Требуемое отношение высоты лица к высоте кадра
     const Size aspect;      ///< Cоотношение сторон кадра в удобочитаемом виде
     const Size maxRoiSize;   ///< Максимальный размер области захвата кадра. Равен размеру сжатого кадра или меньше.
-    const float stopThr;    ///< Триггерное значение окончания зуммирования
     const float zoomThr;    ///< Триггер начала зуммирования
     /**
      * @brief gcd Определяет наибольший общий делитель
@@ -50,14 +49,15 @@ public:
      * @param zoomSpeedInc_ Инкремент. Насколько скорость будет увеличена или уменьшена за одну итерацию
      * @param face2shot_ Отношение высоты кадра к высоте лица. Данный класс должен соблюдать это отношение и изменять размер кадра при несоответствии этому отношению.
      */
-    AutoZoom(double spdMin, double spdMax, Size maxRoiSize_, float zoomThr_, float stopThr_,float zoomSpeedInc_, double face2shot_)
+    AutoZoom(double spdMin, double spdMax, Size maxRoiSize_, float zoomThr_,float zoomSpeedInc_, double face2shot_)
         : MotionAutomata(spdMin,spdMax),
           maxRoiSize(maxRoiSize_),
           zoomThr(zoomThr_),
-          stopThr(stopThr_),
           face2shot(face2shot_),
           aspect(getAspect(maxRoiSize_))
-    {speedInc=((spdMax-spdMin)/zoomSpeedInc_);}
+    {
+        speedInc=zoomSpeedInc_;
+    }
     /**
      * @brief getAspect Определяет соотношение сторон кадра в удобочитаемом виде
      * @param[in] sz размеры кадра

@@ -1,10 +1,5 @@
 #include "autozoom.h"
 
-
-float AutoZoom::getStopThr() const
-{
-    return stopThr;
-}
 float AutoZoom::update(const Rect& aim,
                        Rect2f& roi)
 {    
@@ -12,11 +7,11 @@ float AutoZoom::update(const Rect& aim,
 
     switch (state) {
     case STOP:
-        if(aimH>roi.height*zoomThr){
+        if(aimH>roi.height*(1.0+zoomThr)){ /// zoomThr показывает насколько точно масштабирование/зум должны совпасть с целевым
             sign=1;
             state=BEGIN;
         }
-        if(aimH<roi.height/zoomThr){
+        if(aimH<roi.height*(1.0-zoomThr)){
             sign=-1;
             state=BEGIN;
         }
@@ -33,7 +28,7 @@ float AutoZoom::update(const Rect& aim,
         break;
     case MOVE:
         scaleRect(roi,sign*speed);
-        if((abs(aimH-roi.height) < stopThr) || cvRound(roi.height) <= aim.height)state=END;
+        if(aimH<roi.height*(1.0+zoomThr) && aimH>roi.height*(1.0-zoomThr))state=END;
         if(roi.height > maxRoiSize.height) {
             roi.height=maxRoiSize.height;
             roi.width=maxRoiSize.width;

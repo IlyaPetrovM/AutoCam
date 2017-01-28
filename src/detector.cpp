@@ -23,12 +23,13 @@ const Rect &Detector::detect(const Mat& fullFrame)
     if(frameCounter%aimUpdatePer == 0){
         if(!faceBuf.empty()) {
             aim = median(faceBuf);
+            // \todo 28.01.2017 Вернуть значение aim в абсолютные единицы (то есть так как в полном исходном кадре)
             faceBuf.clear();
             bAimDetected=true;
         }
     }
     frameCounter++;
-    return aim;
+    return getAim();
 }
 
 
@@ -48,7 +49,7 @@ Rect Detector::median(const vector<Rect> &r){
     return Rect(x[x.size()/2],y[y.size()/2],h[h.size()/2],h[h.size()/2]);
 }
 
-Detector::Detector(string cascadeFullName_, string cascadeProfName_, Size smallImgSize_, int aimUpdatePer_, int faceDetectPer_, int minNeighbors_, int minFaceHeight_, double scaleFactor_)
+Detector::Detector(string cascadeFullName_, string cascadeProfName_, Size smallImgSize_, int aimUpdatePer_, int faceDetectPer_, int minNeighbors_, int minFaceHeight_, double scaleFactor_, double scale_)
     : faceDetectPer(faceDetectPer_),
       smallImgSize(smallImgSize_),
       minNeighbors(minNeighbors_),
@@ -57,7 +58,7 @@ Detector::Detector(string cascadeFullName_, string cascadeProfName_, Size smallI
       aim(Rect(Point(0,0),smallImgSize_)),
       bFoundSomeFaces(false),
       frameCounter(0),
-      aimUpdatePer(aimUpdatePer_), bAimDetected(false)
+      aimUpdatePer(aimUpdatePer_), bAimDetected(false),scale(scale_)
 {
     if( !cascadeFull.load( cascadeFullName_ ) )
     {

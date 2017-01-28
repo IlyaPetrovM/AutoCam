@@ -12,7 +12,7 @@
 #include <sstream>
 #include <fstream>
 #include <cstdlib>
-#include <opencv2/videoio/videoio.hpp>  // Video write
+#include <opencv2/video/video.hpp>  // Video write
 #include <ctime>
 
 #include "automotion.h"
@@ -24,6 +24,8 @@
 
 using namespace std;
 using namespace cv;
+
+
 const double FI=1.61803398; /// Золотое сечение
 
 static void help()
@@ -148,12 +150,11 @@ int main( int argc, const char** argv )
     Arg<float>maxStepX(1,"--maxStepX=","%f",new float(0.2));///< Максимальная скорость по координате Х
     Arg<float>maxStepY(1,"--maxStepY=","%f",new float(0.2));///< Максимальная скорость по координате У
     /// Зум
-    Arg<float> zoomStopThr_ (10.0,"--zoomStopThr=","%f",new float(1));///< Триггерное значение окончания зуммирования
-    Arg<float> zoomThr(FI+1.0,"--zoomThr=","%f",new float(1));///< Триггер начала зуммирования
+    Arg<float> zoomStartThr(0.1,"--zoomThr=","%f",new float(0.001), new float(0.9999));///< zoomStartThr показывает насколько точно масштабирование/зум должны совпасть с целевым 1- должно быть один в один; 3 - может быть чуть больше или чуть меньше aimH>roi.height*zoomThr в относительных единицах
     Arg<double> face2shot(FI,"--face2shot=","%lf",new double(0.1));///< Требуемое отношение высоты лица к высоте кадра
     Arg<double> zoomSpeedMin(0.00,"--zoomSpeedMin=","%lf",new double(0.00));///< Минимальная скорость зума
-    Arg<double> zoomSpeedMax(0.03,"--zoomSpeedMax=","%lf",new double(0.001));///< Максимальная скорость зума
-    Arg<double> zoomSpeedInc_(15.0,"--zoomSpeedInc=","%lf",new double(0.001));///< Инкремент скорости зума
+    Arg<double> zoomSpeedMax(1.00,"--zoomSpeedMax=","%lf",new double(0.001));///< Максимальная скорость зума
+    Arg<double> zoomSpeedInc_(0.1,"--zoomSpeedInc=","%lf",new double(0.001));///< Инкремент скорости зума
 
     Arg<int> streamToStdOut(0,"--streamToStdOut=","%d",new int(0)); ///< Печатать кадры результирующего видео в стандартный вывод
 
@@ -190,12 +191,11 @@ int main( int argc, const char** argv )
         else if(recordPreview.input(argv[i]));
         else if(maxStepX.input(argv[i]));
         else if(maxStepY.input(argv[i]));
-        else if(zoomStopThr_.input(argv[i]));
 
         else if(writeCropFile.input(argv[i]));
         else if(recordResult.input(argv[i]));
 
-        else if(zoomThr.input(argv[i]));
+        else if(zoomStartThr.input(argv[i]));
         else if(face2shot.input(argv[i]));
         else if(zoomSpeedMin.input(argv[i]));
         else if(zoomSpeedMax.input(argv[i]));
@@ -246,6 +246,7 @@ int main( int argc, const char** argv )
         // Кадры
         Mat fullFrame; /// \todo 18.05.2016 class InputMan, class Detector
         Mat result; /// \todo 18.05.2016 class FileSaver
+        Mat smIm;
         /// Характеристики видео
         const long int videoLength = isWebcam ? 1 : capture.get(CAP_PROP_FRAME_COUNT);
         const float aspectRatio = (float)capture.get(CV_CAP_PROP_FRAME_WIDTH)/
@@ -256,15 +257,15 @@ int main( int argc, const char** argv )
         int fourcc; ///< Код кодека, состоящий из 4-х символов (см. \ref fourcc.org http://www.fourcc.org/codecs.php)
         long int frameCounter=0; /// \todo 18.05.2016 class InputMan
 
-        const Size previewSize = Size((float)fullShot.width/scale, (float)fullShot.height/scale);
+        const Size previewSize = Size((float)fullShot.width, (float)fullShot.height);
 //        const Size resultSize = Size(resultHeight*aspectRatio,resultHeight);
 
         const Size resultSize = Size(resultWidth,resultHeight);
         ///Zoom & movement params (driver)
         Detector det(cascadeFullName,cascadeProfName,
                      Size((float)fullShot.width/scale, (float)fullShot.height/scale),
-                     aimUpdatePer,faceDetectPer,minNeighbors,minFaceHeight,scaleFactor);
-        AutoCamera cam(scale,Size((float)fullShot.width/scale, (float)fullShot.height/scale),maxStepX,maxStepY,zoomSpeedMin,zoomSpeedMax,zoomThr,zoomStopThr_,zoomSpeedInc_,face2shot,1,1);
+                     aimUpdatePer,faceDetectPer,minNeighbors,minFaceHeight,scaleFactor,scale);
+        AutoCamera cam(fullShot.size(),maxStepX,maxStepY,zoomSpeedMin,zoomSpeedMax,zoomStartThr,zoomSpeedInc_,face2shot,1,1); /// \todo 28.01.2017 убрать отсюда параметр scale. См. класс Detector
 
         ColorTracker* tracker = NULL;
         BBox* bb = NULL;
@@ -318,10 +319,9 @@ int main( int argc, const char** argv )
                           << recordPreview
                           << maxStepX
                          << maxStepY
-                         << zoomStopThr_
                          << writeCropFile
                          << recordResult
-                         << zoomThr
+                         << zoomStartThr
                          << face2shot
                          << zoomSpeedMin
                          << zoomSpeedMax
@@ -340,10 +340,9 @@ int main( int argc, const char** argv )
             << recordPreview << "_"
             << maxStepX << "_"
            << maxStepY << "_"
-           << zoomStopThr_ << "_"
            << writeCropFile << "_"
            << recordResult << "_"
-           << zoomThr << "_"
+           << zoomStartThr << "_"
            << face2shot << "_"
            << zoomSpeedMin << "_"
            << zoomSpeedMax << "_"
@@ -388,8 +387,10 @@ int main( int argc, const char** argv )
             cropFile.open("../results/filter",fstream::out);
         }
 
+        if(streamToStdOut){
         for(int i=0;i<(resultWidth*resultHeight - (float)resultWidth/5.20)*3;i++){ /// \todo 05.12.2016 Это костыль, который сдвигает пиксели в кадре.
             cout<<0;
+        }
         }
 
         for(;!end;){
@@ -427,7 +428,6 @@ int main( int argc, const char** argv )
                     end=true;
                     break;
                 }
-                clog << __LINE__ <<endl;
                 if(bTrackerInitialized && tracker != NULL){
                     if(bb !=NULL) {delete bb; bb=NULL;}
                     bb = new BBox();
@@ -457,7 +457,7 @@ int main( int argc, const char** argv )
                 try{
                     /// \todo 18.05.2016 FileSaver
                     if(recordResult || streamToStdOut){
-                        resize(fullFrame(cam.getRoiFullSize()), result , resultSize, 0,0, INTER_LINEAR );
+                        resize(fullFrame(cam.getRoi()), result , resultSize, 0,0, INTER_LINEAR );
                         if(recordResult){
                             outputVideo << result;
                         }
@@ -470,16 +470,14 @@ int main( int argc, const char** argv )
                 }catch(Exception &mvEx){
                     clog << "Result saving: "<< mvEx.msg << endl;
                 }
+                clog<< __LINE__ << endl;
 
   //    VIEW    //
                 /// \todo 18.05.2016 class Drawer
                 if(showPreview || recordPreview){ // Отрисовка области интереса
-                    resize(fullFrame, preview, det.getImgSize(), 0, 0, INTER_NEAREST );
+                    resize(fullFrame, preview, fullShot.size(), 0, 0, INTER_NEAREST ); ///< \todo 28.01.2017 !!! Отрисовка всех превью не должна зависеть от параметра scale, нужен только для детектора Viola Jones
 
                     // Рисовать кадр захвата
-                    if(cam.getZoom().getState()==BEGIN)rectangle(preview,cam.getRoi(),Scalar(100,255,100),cam.getZoom().getStopThr());
-                    if(cam.getZoom().getState()==MOVE)rectangle(preview,cam.getRoi(),Scalar(255,255,255),thickness+cam.getZoom().getStopThr());
-                    if(cam.getZoom().getState()==END)rectangle(preview,cam.getRoi(),Scalar(100,100,255),thickness+cam.getZoom().getStopThr());
                     rectangle(preview,cam.getRoi(),Scalar(0,0,255),thickness);
                     Scalar colorX;
                     switch (cam.getMoveX().getState()){
@@ -549,8 +547,8 @@ int main( int argc, const char** argv )
                             << now->tm_min << ":"
                             << now->tm_sec;
                     //                           << frameCounter;
-                    putText(preview,timestring.str(),Point(0,det.getImgSize().height-3),CV_FONT_NORMAL,fontScale*1.35,Scalar(0,0,0),textThickness*100);
-                    putText(preview,timestring.str(),Point(0,det.getImgSize().height-3),CV_FONT_NORMAL,fontScale*1.35,Scalar(255,255,255),textThickness*2);
+//                    putText(preview,timestring.str(),Point(0,previewSize.height-3),CV_FONT_NORMAL,fontScale*1.35,Scalar(0,0,0),textThickness*10);
+//                    putText(preview,timestring.str(),Point(0,previewSize.height-3),CV_FONT_NORMAL,fontScale*1.35,Scalar(255,255,255),textThickness*2);
                     stringstream frame;
                     frame << frameCounter;
                     putText(preview,(frame.str()),Point(0,fontScale*20),CV_FONT_NORMAL,fontScale*1.45,Scalar(0,0,0,100),textThickness*10);
@@ -562,13 +560,12 @@ int main( int argc, const char** argv )
                     if(showPreview)
                         imshow(prevWindTitle.c_str(),preview);
                 } /// \todo 18.05.2016 end class Drawer
-                clog << __LINE__ <<endl;
+                clog<< __LINE__ << endl;
 
 
 // Сохранение статистики
                 /// \todo 18.05.2016 class StatMan
                 if(logFile.is_open()) {
-                    clog << __LINE__ <<endl;
                     if(frameCounter<1){
                         logFile << "frame\t";
                         logFile << "det.getFacesFull().x, px"<<"\t"

@@ -13,7 +13,6 @@ class AutoCamera
     const bool bZoom; ///< Использовать ли масштабирование. \c true - если использовать.
     const bool bMove; ///< Установить в значение \c true чтобы перемещать камеру
     const Size maxRoiSize; ///< Максимальный размер области захвата кадра. Равен размеру сжатого кадра или меньше.
-    const double scale;
 
     AutoPan moveX; ///< Механизм перемещения камеры по горизонтали
     AutoPan moveY; ///< Механизм перемещения камеры по вертикали
@@ -61,14 +60,12 @@ public:
      * @param bZoom_
      * @param bMove_
      */
-    AutoCamera(double scale_,
-               Size maxRoiSize_,
+    AutoCamera(Size maxRoiSize_,
                double maxStepX,
                double maxStepY,
                double zoomSpeedMin,
                double zoomSpeedMax,
                double zoomThr,
-               double zoomStopThr_,
                double zoomSpeedInc_,
                double face2shot,
                bool bZoom_,
@@ -82,9 +79,6 @@ public:
      * @brief масштабирует размеры ROI под реальные размеры, чтобы из исходного видео высокого качества вырезать нужную область.
      * @return
      */
-    Rect2f getRoiFullSize() {
-        return Rect2f(Point(roi.x*scale,roi.y*scale),Size(roi.width*scale,roi.height*scale));
-    }
     Rect2f getRoi() const;
     void setRoi(const Rect2f &value);
     AutoPan getMoveX() const;

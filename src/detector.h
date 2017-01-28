@@ -19,6 +19,7 @@ class Detector
 
 
     const Size smallImgSize;
+    const double scale;
     CascadeClassifier cascadeFull,cascadeProf; ///< Каскады Хаара для детекции лица
     const int minNeighbors;
     const double scaleFactor;
@@ -43,20 +44,32 @@ public:
              int faceDetectPer_=1,
              int minNeighbors_=1,
              int minFaceHeight_=5,
-             double scaleFactor_=1.1);
+             double scaleFactor_=1.1,
+             double scale_ = 1.0);
 
     const Rect& detect(const Mat& fullFrame);
-    const Rect& getAim(){
-        return aim;
+    const Rect getAim(){
+        return rescale(aim,scale);
     }
     const Size& getImgSize(){
         return smallImgSize;
     }
-    const vector<Rect>& getFacesFull(){
-        return facesFull;
+    Rect rescale(Rect r,double scale){
+        return Rect(r.x*scale,r.y*scale,r.width*scale,r.height*scale);
     }
-    const vector<Rect>& getFacesProf(){
-        return facesProf;
+    const vector<Rect> getFacesFull(){
+        vector<Rect> ffReal;
+        for(unsigned int i=0;i<facesFull.size();i++){
+            ffReal.push_back(rescale(facesFull[i],scale));
+        }
+        return ffReal;
+    }
+    const vector<Rect> getFacesProf(){
+        vector<Rect> fpReal;
+        for(unsigned int i=0;i<facesProf.size();i++){
+            fpReal.push_back(rescale(facesProf[i],scale));
+        }
+        return fpReal;
     }
     bool foundFaces(){
         return bFoundSomeFaces;
@@ -68,6 +81,7 @@ public:
         aim = Rect(Point(0,0),smallImgSize);
         bAimDetected=false;
     }
+
 };
 
 #endif // DETECTOR_H
