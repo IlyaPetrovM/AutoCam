@@ -4,7 +4,7 @@
 const Rect &Detector::detect(const Mat& fullFrame)
 {
     if(frameCounter%faceDetectPer==0){
-        resize( fullFrame, smallImg, smallImgSize, 0, 0, INTER_LINEAR );
+        resize( fullFrame, smallImg, Size(), 1./scale, 1./scale, INTER_LINEAR );
         cvtColor( smallImg, graySmall, COLOR_BGR2GRAY );
 
         /* Поиск лиц в анфас */

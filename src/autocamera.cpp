@@ -31,15 +31,15 @@ void AutoCamera::update(const Rect &aim){
         outOfRoi = ((Rect2f)aim&roi).area()<aim.area();
         gp = getGoldenPoint(roi,aim);
         moveX.update(roi.x,gp.x,roi.width/15.0,outOfRoi);
-        moveY.update(roi.y,gp.y,roi.height/3.0,outOfRoi);
+        moveY.update(roi.y,gp.y,roi.height/10.0,outOfRoi);
     }
 
-    if(roi.x<0) roi.x = 0;
+    if(roi.x<0){ roi.x = 0; moveX.stop();}
     if(maxRoiSize.width < roi.x+roi.width)
-        roi.x = maxRoiSize.width-roi.width;
-    if(roi.y<0)roi.y = 0;
+    { roi.x = maxRoiSize.width-roi.width; moveX.stop();}
+    if(roi.y<0){roi.y = 0; moveY.stop();}
     if(maxRoiSize.height < roi.y+roi.height)
-        roi.y=maxRoiSize.height-roi.height;
+        {roi.y=maxRoiSize.height-roi.height; moveY.stop();}
 }
 
 

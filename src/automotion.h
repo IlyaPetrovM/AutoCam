@@ -25,6 +25,10 @@ public:
      * @return Текущую скорость изменения координаты
      */
     float update(float& x,const int& aim, const double& precision, const bool outOfRoi);
+    void stop(){
+        state=STOP;
+        speed=speedMin;
+    }
 };
 
 #endif // AUTOMOTION_H

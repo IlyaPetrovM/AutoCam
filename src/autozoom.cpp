@@ -39,7 +39,7 @@ float AutoZoom::update(const Rect& aim,
         speed-=speedInc;
         scaleRect(roi,sign*speed);
         if(speed< speedMin) {state=STOP; speed=speedMin;}
-        if(roi.height > maxRoiSize.height) {
+        if(roi.height > maxRoiSize.height || roi.width > maxRoiSize.width) {
             roi.height=maxRoiSize.height;
             roi.width=maxRoiSize.width;
             state=STOP;

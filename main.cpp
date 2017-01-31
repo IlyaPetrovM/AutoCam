@@ -136,6 +136,10 @@ int main( int argc, const char** argv )
     Arg<int> aimUpdatePer(15,"--aimUpdatePer=","%d",new int(1));///< Период обновления цели (каждые n кадров), к которой будет следоватьвиртуальная камера
     Arg<int> faceDetectPer(1,"--faceDetectPer=","%d", new int(1));///< Период детектирования лиц
 
+    Arg<int> aimCheckerPer(10,"--aimCheckerPeriod=","%d",new int(1)); ///< период редетекции лица внутри прямоугольника, который создаёт трекер/ задаётся в кадрах
+    Arg<int> detWarningLimit(3,"--detWarningLimit=","%d",new int(1));
+    Arg<unsigned int> focusEx(25,"--aimEx=","%d",0); /// на сколько пикселей расширять область редетекции, чтобы попытаться найти цель
+
     ///Запись результата
     Arg<int> resultWidth(640,"--resultWidth=","%d", new int(1));///< Высота результирующего видео (ширина рассчитывается автоматически в соответствии с соотношением сторон)
     Arg<int> resultHeight(480,"--resultHeight=","%d", new int(1));///< Высота результирующего видео (ширина рассчитывается автоматически в соответствии с соотношением сторон)
@@ -157,7 +161,6 @@ int main( int argc, const char** argv )
     Arg<double> zoomSpeedInc_(0.1,"--zoomSpeedInc=","%lf",new double(0.001));///< Инкремент скорости зума
 
     Arg<int> streamToStdOut(0,"--streamToStdOut=","%d",new int(0)); ///< Печатать кадры результирующего видео в стандартный вывод
-
     help();
 
     /// Чтение аргументов программы
@@ -271,6 +274,7 @@ int main( int argc, const char** argv )
         BBox* bb = NULL;
         bool bTrackerInitialized = false;
         Rect aim;
+        Rect focus;
 
 
         //file writing
@@ -392,7 +396,7 @@ int main( int argc, const char** argv )
             cout<<0;
         }
         }
-
+        unsigned int detWarning=0;
         for(;!end;){
 
             frames.clear();
@@ -428,7 +432,7 @@ int main( int argc, const char** argv )
                     end=true;
                     break;
                 }
-                if(bTrackerInitialized && tracker != NULL){
+                if(bTrackerInitialized && tracker != NULL && detWarning < detWarningLimit){
                     if(bb !=NULL) {delete bb; bb=NULL;}
                     bb = new BBox();
                     bb = tracker->track(fullFrame);
@@ -437,12 +441,41 @@ int main( int argc, const char** argv )
                                    bb->y,
                                    bb->width,
                                    bb->height);
+
+                        if(frameCounter%aimCheckerPer == 0){
+                            clog << __LINE__ << endl;
+
+                            det.detect(fullFrame((focus&Rect(0,0,fullShot.width,fullShot.height))));
+                            clog << __LINE__ << endl;
+
+                            if(det.foundFaces()){
+                                if(detWarning>0){detWarning--;// -1 к предупреждению;
+                                    focus+=Point(focusEx,focusEx);
+                                    focus+=Size(-focusEx,-focusEx);
+                                }
+                                /// \todo 30.01.2017 надо подправить размер
+                            }else{
+                                if(detWarning<255){detWarning++;// +1 предупреждение
+                                    focus+=Point(-focusEx,-focusEx);
+                                    focus+=Size(focusEx,focusEx);
+                                }
+                            }
+                            /// конкретные действия, что делать если мы теряем лицо
+                            if(detWarning >= detWarningLimit){
+                                    bTrackerInitialized=false; // запускаем детекцию заново
+                                    det.resetAim();
+                                    focus=aim;
+                            }
+
+                        }
                         cam.update(aim);
+                        focus=Rect(aim.x-(focus.width-aim.width)*0.5,aim.y-(focus.height-aim.height)*0.5,focus.width,focus.height);
                     }
                 }else{
                     det.detect(fullFrame);
                     if(det.aimDetected()){
                         aim = det.getAim();
+                        focus=aim;
                         if(tracker != NULL)delete tracker;
                         tracker = new ColorTracker();
                         tracker->init(fullFrame,
@@ -450,9 +483,10 @@ int main( int argc, const char** argv )
                                      aim.tl().y,
                                      aim.br().x,
                                      aim.br().y);
-                        aim = Rect();
                         bTrackerInitialized = true;
+                        detWarning=0;
                     }
+                    cam.update(aim);
                 }
                 try{
                     /// \todo 18.05.2016 FileSaver
@@ -524,8 +558,15 @@ int main( int argc, const char** argv )
                     drawThirds(preview,cam.getRoi(),Scalar(0,255,0),dotsRadius);
                     // Рисовать цель
                     if(bTrackerInitialized){
-                        rectangle(preview,aim,Scalar(0,255,255),thickness);
-                        putText(preview, "aim tracking",aim.tl(),CV_FONT_NORMAL,fontScale,Scalar(0,255,255),textThickness);
+                        stringstream strDetWarn;
+                        strDetWarn << detWarning;
+                        rectangle(preview,aim,Scalar(255-detWarning,255-detWarning,255),thickness);
+                        if(frameCounter % aimCheckerPer!=0){
+                            putText(preview, "aim tracking"+strDetWarn.str(),aim.tl(),CV_FONT_NORMAL,fontScale,Scalar(255,255,255),textThickness);
+                        }
+                        else{
+                            putText(preview, "redetection",aim.tl(),CV_FONT_NORMAL,fontScale,Scalar(0,255,255),textThickness);
+                        }
                     }else{
                         rectangle(preview,aim,Scalar(0,255,0),thickness);
                         putText(preview, "aim detection",aim.tl(),CV_FONT_NORMAL,fontScale,Scalar(0,255,0),textThickness);
@@ -533,6 +574,8 @@ int main( int argc, const char** argv )
                         drawRects(preview,det.getFacesFull(),"Full face",Scalar(255,0,0),fontScale,textThickness,textOffset,thickness);
                         drawRects(preview,det.getFacesProf(),"Profile",Scalar(255,127,0),fontScale,textThickness,textOffset,thickness);
                     }
+                    // Рисовать фокус детекции
+                    rectangle(preview,focus,Scalar(0,255,255),thickness*0.8);
 
                     /// Вывести время в превью
                     time_t t = time(0);   // get time now
