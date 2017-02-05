@@ -225,19 +225,21 @@ int main( int argc, const char** argv )
 
     bool isWebcam=false; /// \todo 18.05.2016 class InputMan
     VideoCapture capture;
-    if( inputName.empty() || (isdigit(inputName.c_str()[0]) && inputName.c_str()[1] == '\0') )
-    {
-        isWebcam=true;
-        int c = inputName.empty() ? 0 : inputName.c_str()[0] - '0' ;
-        if(!capture.open(c))
-            clog << "Capture from camera #" <<  c << " didn't work" << endl;
-    }else{
-        if(capture.open(inputName)){
-            clog << "Capture file " <<  inputName << endl;
-            isWebcam=false;
+    while(!capture.isOpened()){
+        if( inputName.empty() || (isdigit(inputName.c_str()[0]) && inputName.c_str()[1] == '\0') )
+        {
+            isWebcam=true;
+            int c = inputName.empty() ? 0 : inputName.c_str()[0] - '0' ;
+            if(!capture.open(c))
+                clog << "Capture from camera #" <<  c << " didn't work" << endl;
+        }else{
+            if(capture.open(inputName)){
+                clog << "Capture file " <<  inputName << endl;
+                isWebcam=false;
+            }
+            else
+                clog << "Could not capture file " <<  inputName << endl;
         }
-        else
-            clog << "Could not capture file " <<  inputName << endl;
     }
 
     if( capture.isOpened() )
@@ -251,7 +253,7 @@ int main( int argc, const char** argv )
         Mat result; /// \todo 18.05.2016 class FileSaver
         Mat smIm;
         /// Характеристики видео
-        const long int videoLength = isWebcam ? 1 : capture.get(CAP_PROP_FRAME_COUNT);
+        const long int videoLength = /*isWebcam ? 1 :*/ capture.get(CAP_PROP_FRAME_COUNT);
         const float aspectRatio = (float)capture.get(CV_CAP_PROP_FRAME_WIDTH)/
                                   (float)capture.get(CV_CAP_PROP_FRAME_HEIGHT);/// \todo 05/12/2016 При стриминге размеры кадра определяются почему-то неправильно
         const Rect2f fullShot(0,0,(int)capture.get(CV_CAP_PROP_FRAME_WIDTH),
@@ -312,44 +314,44 @@ int main( int argc, const char** argv )
                           << now->tm_hour <<"-"
                           << now->tm_min << "_"
                           << __DATE__ <<"_"<< __TIME__ <<"_arg"
-                          << scale
-                          << minNeighbors
-                          << scaleFactor
-                          << minFaceHeight
-                          << aimUpdatePer
-                          << faceDetectPer
-                          << resultHeight
-                          << showPreview
-                          << recordPreview
-                          << maxStepX
-                         << maxStepY
-                         << writeCropFile
-                         << recordResult
-                         << zoomStartThr
-                         << face2shot
-                         << zoomSpeedMin
-                         << zoomSpeedMax
+//                          << scale
+//                          << minNeighbors
+//                          << scaleFactor
+//                          << minFaceHeight
+//                          << aimUpdatePer
+//                          << faceDetectPer
+//                          << resultHeight
+//                          << showPreview
+//                          << recordPreview
+//                          << maxStepX
+//                         << maxStepY
+//                         << writeCropFile
+//                         << recordResult
+//                         << zoomStartThr
+//                         << face2shot
+//                         << zoomSpeedMin
+//                         << zoomSpeedMax
                          << zoomSpeedInc_;
         }else{
             outTitleStream << inputName.substr(inputName.find_last_of('/')+1)
             << "_" <<__DATE__ <<"_"<< __TIME__<<"_arg"
-            << scale<< "_"
-            << minNeighbors << "_"
-            << scaleFactor << "_"
-            << minFaceHeight << "_"
-            << aimUpdatePer << "_"
-            << faceDetectPer << "_"
-            << resultHeight << "_"
-            << showPreview << "_"
-            << recordPreview << "_"
-            << maxStepX << "_"
-           << maxStepY << "_"
-           << writeCropFile << "_"
-           << recordResult << "_"
-           << zoomStartThr << "_"
-           << face2shot << "_"
-           << zoomSpeedMin << "_"
-           << zoomSpeedMax << "_"
+//            << scale<< "_"
+//            << minNeighbors << "_"
+//            << scaleFactor << "_"
+//            << minFaceHeight << "_"
+//            << aimUpdatePer << "_"
+//            << faceDetectPer << "_"
+//            << resultHeight << "_"
+//            << showPreview << "_"
+//            << recordPreview << "_"
+//            << maxStepX << "_"
+//           << maxStepY << "_"
+//           << writeCropFile << "_"
+//           << recordResult << "_"
+//           << zoomStartThr << "_"
+//           << face2shot << "_"
+//           << zoomSpeedMin << "_"
+//           << zoomSpeedMax << "_"
            << zoomSpeedInc_;
         }
         outFileTitle=outTitleStream.str();
@@ -357,26 +359,28 @@ int main( int argc, const char** argv )
         replace(outFileTitle.begin(),outFileTitle.end(),':','-');
 
         if(isWebcam){
-            fps = capture.get(CAP_PROP_FPS)/5.0;
-            fourcc = VideoWriter::fourcc('M','J','P','G'); // codecs
+            fps = capture.get(CAP_PROP_FPS);
+            fourcc = VideoWriter::fourcc('M','P','4','2'); // codecs
         }
         else{
             fourcc = capture.get(CV_CAP_PROP_FOURCC); // codecs
             fps = capture.get(CAP_PROP_FPS);
         }
-        if(recordResult && !outputVideo.open("../results/closeUp_"+outFileTitle+".avi",fourcc,
+        if(recordResult && !outputVideo.open("closeUp_"+outFileTitle+".avi",fourcc,
                                          fps, resultSize, true)){
-            clog << "Could not open the output video ("
-                 << "../results/closeUp_"+outFileTitle+".avi" <<") for writing"<<endl;
-            return -1;
+            cerr << "Could not open the output video ("
+                 << "closeUp_"+outFileTitle+".avi" <<") for writing"<<endl;
+            recordResult=false;
+//            return -1;
         }
         if(recordPreview){
              if(!previewVideo.open("../results/test_"+outFileTitle+".avi",fourcc,
                                    fps, previewSize, true))
              {
-                 clog << "Could not open the output video ("
+                 cerr << "Could not open the output video ("
                       << "../results/test_"+outFileTitle+".avi" <<") for writing"<<endl;
-                 return -1;
+                 recordPreview=false;
+//                 return -1;
              }
         }
         logFile.open(("../results/test_"+outFileTitle+".ods").c_str(), fstream::out); /// \todo 18.05.2016 class StatMan
@@ -402,7 +406,9 @@ int main( int argc, const char** argv )
             frames.clear();
             for(register int i=0; i<1;++i){
                 capture >> fullFrame;
-                char c=waitKey(1);
+
+                char c;
+                c=waitKey(1);
                 if(!fullFrame.empty() && c!=27) {
                     frames.push_back(fullFrame.clone());
                     switch (c) {
