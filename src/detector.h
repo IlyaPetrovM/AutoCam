@@ -57,14 +57,14 @@ public:
     Rect rescale(Rect r,double scale){
         return Rect(r.x*scale,r.y*scale,r.width*scale,r.height*scale);
     }
-    const vector<Rect> getFacesFull(){
+    vector<Rect> getFacesFull(){
         vector<Rect> ffReal;
         for(unsigned int i=0;i<facesFull.size();i++){
             ffReal.push_back(rescale(facesFull[i],scale));
         }
         return ffReal;
     }
-    const vector<Rect> getFacesProf(){
+    vector<Rect> getFacesProf(){
         vector<Rect> fpReal;
         for(unsigned int i=0;i<facesProf.size();i++){
             fpReal.push_back(rescale(facesProf[i],scale));

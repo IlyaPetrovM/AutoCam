@@ -21,6 +21,7 @@
 #include "arg.h"
 #include "detector.h"
 #include "3rdparty/asms/colotracker.h"
+#include "preview.h"
 
 using namespace std;
 using namespace cv;
@@ -34,78 +35,6 @@ static void help()
             "\n\tDuring execution:\n\tHit any key to quit.\n"
             "\tUsing OpenCV version " << CV_VERSION << "\n" << endl;
 }
-/**
- * @brief Нарисовать прямоугольники
- * Рисует несколько прямоугольников, добавляя к ним подпись в виде текста и номера
- * @param[in,out] img Кадр, в котором будут нарисованы прямоугольники
- * @param[in] rects Массив прямоугольников
- * @param[in] t Подпись каждого прямоугольника
- * @param[in] color Цвет прямоугольников и подписей
- * @param[in] fontScale Кегль подписи
- * @param[in] textThickness Толщина линии подписи
- * @param[in] textOffset Отступ подписи от прямоугольника
- * @param[in] thickness Толщина прямоугольника
- * @param[in] fontFace Шрифт
- */
-void drawRects(Mat& img, const vector<Rect>& rects,
-               string t="rect", Scalar color=Scalar(255,0,0),
-               float fontScale=1.0,
-               float textThickness=1.0,
-               int textOffset=0,
-               int thickness=1,
-               int fontFace=CV_FONT_NORMAL){ /// \todo 18.05.2016 class Drawer
-    for (int i = 0; i < rects.size(); ++i)
-    {
-        stringstream title;
-        title << t<<" "<< i;
-        putText(img, title.str(),
-                Point(rects[i].x,
-                      rects[i].y-textOffset),
-                fontFace, fontScale,color,textThickness);
-        rectangle(img,rects[i],
-                  color, thickness, 8, 0);
-    }
-}
-/**
- * @brief Рисовать точки правила третей
- * Рисует точки по правилу третей в заданном прямоугольнике \c r
- * @param[in,out] img Изображение, на которое наносятся точки правила третей
- * @param[in] r Прямоугольник, в котором определяется правило третей
- * @param[in] color Цвет точек
- * @param[in] dotsRadius Радиус точек
- */
-inline void drawThirds(Mat& img, const Rect2f& r,Scalar color=Scalar(0,255,0),const double& dotsRadius=1){ /// \todo 18.05.2016 class Drawer
-    circle(img,Point(r.x + r.width/3.0,
-                              r.y + r.height/3.0), 1,Scalar(0,255,0), dotsRadius);
-    circle(img,Point(r.x + 2.0*r.width/3.0,
-                              r.y + r.height/3.0),1,Scalar(0,255,0), dotsRadius);
-    circle(img,Point(r.x + r.width/3.0,
-                              r.y + 2.0*r.height/3.0),1,Scalar(0,255,0),dotsRadius);
-    circle(img,Point(r.x + 2.0*r.width/3.0,
-                              r.y + 2.0*r.height/3.0),1,Scalar(0,255,0),dotsRadius);
-}
-/**
- * @brief Медиана набора прямоугольников
- * @param[in] r Массив прямоугольников
- * @return Прямоугольник, высота которого - медиана высот, а координаты - медианы координат прямоугольников
- */
-Rect median(const vector<Rect>& r){ /// \todo 18.05.2016 class Detector
-    static vector<int> x,y,h;
-    x.resize(r.size());
-    y.resize(r.size());
-    h.resize(r.size());
-    for (int i = 0; i < r.size(); ++i) {
-        x[i]=r[i].x;
-        y[i]=r[i].y;
-        h[i]=r[i].height;
-    }
-    sort(x.begin(),x.end());
-    sort(y.begin(),y.end());
-    sort(h.begin(),h.end());
-    return Rect(x[x.size()/2],y[y.size()/2],h[h.size()/2],h[h.size()/2]);
-}
-
-
 /**
  * @brief Главная функция
  * @param[in] argc Количество аргументов в программе
@@ -126,41 +55,41 @@ int main( int argc, const char** argv )
     size_t cascadeProfOptLen = cascadeProfOpt.length();
     const string cascadeFullOpt = "--cascadeFront=";
     size_t cascadeFullOptLen = cascadeFullOpt.length();
-
-    Arg<double> scale(3,"--scale=","%lf", new double(1)); ///< Этот параметр отвечает за то, во сколько раз следует сжать кадр перед тем как приступить к детекции лица
-    Arg<int>minNeighbors(1,"--minNeighbors=","%d",new int(1)); ///<  Количество соседних детекций лица в изображении
-    Arg<double> scaleFactor(1.1,"--scaleFactor=","%lf", new double(1.1));/**< шаг изменения размеров лица, которое ожидается детектировать
+    int manualInput=0;
+    Arg<double> scale(argv, argc,manualInput,3,"--scale=","%lf", new double(1)); ///< Этот параметр отвечает за то, во сколько раз следует сжать кадр перед тем как приступить к детекции лица
+    Arg<int>minNeighbors(argv, argc,manualInput,1,"--minNeighbors=","%d",new int(1)); ///<  Количество соседних детекций лица в изображении
+    Arg<double> scaleFactor(argv, argc,manualInput,1.1,"--scaleFactor=","%lf", new double(1.1));/**< шаг изменения размеров лица, которое ожидается детектировать
                                                                             в изображении.Чем ближе этот параметр к единице,
                                                                         тем точнее будет определён размер лица, но тем дольше будет работать алгоритм*/
-    Arg<int> minFaceHeight(25,"--minFaceHeight=","%d", new int(1));///< Минимальные размеры детектируемого лица
-    Arg<int> aimUpdatePer(15,"--aimUpdatePer=","%d",new int(1));///< Период обновления цели (каждые n кадров), к которой будет следоватьвиртуальная камера
-    Arg<int> faceDetectPer(1,"--faceDetectPer=","%d", new int(1));///< Период детектирования лиц
+    Arg<int> minFaceHeight(argv, argc,manualInput,25,"--minFaceHeight=","%d", new int(1));///< Минимальные размеры детектируемого лица
+    Arg<int> aimUpdatePer(argv, argc,manualInput,15,"--aimUpdatePer=","%d",new int(1));///< Период обновления цели (каждые n кадров), к которой будет следоватьвиртуальная камера
+    Arg<int> faceDetectPer(argv, argc,manualInput,1,"--faceDetectPer=","%d", new int(1));///< Период детектирования лиц
 
-    Arg<int> aimCheckerPer(10,"--aimCheckerPeriod=","%d",new int(1)); ///< период редетекции лица внутри прямоугольника, который создаёт трекер/ задаётся в кадрах
-    Arg<int> detWarningLimit(3,"--detWarningLimit=","%d",new int(1));
-    Arg<unsigned int> focusEx(25,"--aimEx=","%d",0); /// на сколько пикселей расширять область редетекции, чтобы попытаться найти цель
+    Arg<int> aimCheckerPer(argv, argc,manualInput,10,"--aimCheckerPeriod=","%d",new int(1)); ///< период редетекции лица внутри прямоугольника, который создаёт трекер/ задаётся в кадрах
+    Arg<int> detWarningLimit(argv, argc,manualInput,3,"--detWarningLimit=","%d",new int(1));
+    Arg<unsigned int> focusEx(argv, argc,manualInput,25,"--aimEx=","%d",0); /// на сколько пикселей расширять область редетекции, чтобы попытаться найти цель
 
     ///Запись результата
-    Arg<int> resultWidth(640,"--resultWidth=","%d", new int(1));///< Высота результирующего видео (ширина рассчитывается автоматически в соответствии с соотношением сторон)
-    Arg<int> resultHeight(480,"--resultHeight=","%d", new int(1));///< Высота результирующего видео (ширина рассчитывается автоматически в соответствии с соотношением сторон)
-    Arg<int> recordResult(1,"--recordResult=","%d",new int(0));///< Записывать результирующее видео.
-    Arg<int> writeCropFile(0,"--writeCropFile=","%d",new int(0));///< Записывать фильтр-скрипт для обработки исходного видео в ffmpeg (см. [filter_script](http://ffmpeg.org/ffmpeg.html#Main-options))
+    Arg<int> resultWidth(argv, argc,manualInput,640,"--resultWidth=","%d", new int(1));///< Высота результирующего видео (ширина рассчитывается автоматически в соответствии с соотношением сторон)
+    Arg<int> resultHeight(argv, argc,manualInput,480,"--resultHeight=","%d", new int(1));///< Высота результирующего видео (ширина рассчитывается автоматически в соответствии с соотношением сторон)
+    Arg<int> recordResult(argv, argc,manualInput,1,"--recordResult=","%d",new int(0));///< Записывать результирующее видео.
+    Arg<int> writeCropFile(argv, argc,manualInput,0,"--writeCropFile=","%d",new int(0));///< Записывать фильтр-скрипт для обработки исходного видео в ffmpeg (см. [filter_script](http://ffmpeg.org/ffmpeg.html#Main-options))
 
     /// Визуализация
-    Arg<int> showPreview(0,"--showPreview=","%d",new int(0));///< Показывать в реальном времени процесс обработки видео с отрисовкой виртуальной камеры и детектированных лиц
-    Arg<int> recordPreview(0,"--recordPreview=","%d",new int(0));///< Записывать процесс обработки видео в отдельный файл
+    Arg<int> showPreview(argv, argc,manualInput,0,"--showPreview=","%d",new int(0));///< Показывать в реальном времени процесс обработки видео с отрисовкой виртуальной камеры и детектированных лиц
+    Arg<int> recordPreview(argv, argc,manualInput,0,"--recordPreview=","%d",new int(0));///< Записывать процесс обработки видео в отдельный файл
 
     /// Перемещение виртуальной камеры
-    Arg<float>maxStepX(1,"--maxStepX=","%f",new float(0.2));///< Максимальная скорость по координате Х
-    Arg<float>maxStepY(1,"--maxStepY=","%f",new float(0.2));///< Максимальная скорость по координате У
+    Arg<float>maxStepX(argv, argc,manualInput,1,"--maxStepX=","%f",new float(0.2));///< Максимальная скорость по координате Х
+    Arg<float>maxStepY(argv, argc,manualInput,1,"--maxStepY=","%f",new float(0.2));///< Максимальная скорость по координате У
     /// Зум
-    Arg<float> zoomStartThr(0.1,"--zoomThr=","%f",new float(0.001), new float(0.9999));///< zoomStartThr показывает насколько точно масштабирование/зум должны совпасть с целевым 1- должно быть один в один; 3 - может быть чуть больше или чуть меньше aimH>roi.height*zoomThr в относительных единицах
-    Arg<double> face2shot(FI,"--face2shot=","%lf",new double(0.1));///< Требуемое отношение высоты лица к высоте кадра
-    Arg<double> zoomSpeedMin(0.00,"--zoomSpeedMin=","%lf",new double(0.00));///< Минимальная скорость зума
-    Arg<double> zoomSpeedMax(1.00,"--zoomSpeedMax=","%lf",new double(0.001));///< Максимальная скорость зума
-    Arg<double> zoomSpeedInc_(0.1,"--zoomSpeedInc=","%lf",new double(0.001));///< Инкремент скорости зума
+    Arg<float> zoomStartThr(argv, argc,manualInput,0.1,"--zoomThr=","%f",new float(0.001), new float(0.9999));///< zoomStartThr показывает насколько точно масштабирование/зум должны совпасть с целевым 1- должно быть один в один; 3 - может быть чуть больше или чуть меньше aimH>roi.height*zoomThr в относительных единицах
+    Arg<double> face2shot(argv, argc,manualInput,FI,"--face2shot=","%lf",new double(0.1));///< Требуемое отношение высоты лица к высоте кадра
+    Arg<double> zoomSpeedMin(argv, argc,manualInput,0.00,"--zoomSpeedMin=","%lf",new double(0.00));///< Минимальная скорость зума
+    Arg<double> zoomSpeedMax(argv, argc,manualInput,1.00,"--zoomSpeedMax=","%lf",new double(0.001));///< Максимальная скорость зума
+    Arg<double> zoomSpeedInc_(argv, argc,manualInput,0.1,"--zoomSpeedInc=","%lf",new double(0.001));///< Инкремент скорости зума
 
-    Arg<int> streamToStdOut(0,"--streamToStdOut=","%d",new int(0)); ///< Печатать кадры результирующего видео в стандартный вывод
+    Arg<int> streamToStdOut(argv, argc,manualInput,0,"--streamToStdOut=","%d",new int(0)); ///< Печатать кадры результирующего видео в стандартный вывод
     help();
 
     /// Чтение аргументов программы
@@ -180,35 +109,7 @@ int main( int argc, const char** argv )
                 cascadeProfName.assign( argv[i] + cascadeProfOpt.length() + 1 );
 
         }
-        else if(scale.input(argv[i]));
-        else if(minNeighbors.input(argv[i]));
-        else if(scaleFactor.input(argv[i]));
-        else if(minFaceHeight.input((argv[i])));
-
-        else if(aimUpdatePer.input(argv[i]));
-        else if(faceDetectPer.input(argv[i]));
-
-        else if(resultWidth.input(argv[i]));
-        else if(resultHeight.input(argv[i]));
-        else if(showPreview.input(argv[i]));
-        else if(recordPreview.input(argv[i]));
-        else if(maxStepX.input(argv[i]));
-        else if(maxStepY.input(argv[i]));
-
-        else if(writeCropFile.input(argv[i]));
-        else if(recordResult.input(argv[i]));
-
-        else if(zoomStartThr.input(argv[i]));
-        else if(face2shot.input(argv[i]));
-        else if(zoomSpeedMin.input(argv[i]));
-        else if(zoomSpeedMax.input(argv[i]));
-        else if(zoomSpeedInc_.input(argv[i]));
-        else if(streamToStdOut.input(argv[i]));
-        else if(argv[i][0] == '-' )
-        {
-            cerr << "WARNING: UnkoneIterEndn option %s" << argv[i] << endl;
-        }
-        else inputName.assign( argv[i] );
+        else if(argv[i][0]!='-' && argv[i][1]!='-') inputName.assign( argv[i] );
     }
     if( !cascadeFull.load( cascadeFullName ) )
     {
@@ -291,16 +192,9 @@ int main( int argc, const char** argv )
 
 
         //    VIEW    //
-        /// \todo 18.05.2016 class Drawer ///
-        Mat preview; ///<
         Rect2f roiFullSize;
         //drawing
-        const float thickness = 0.5*previewSize.width/100.0;
-        const int dotsRadius = thickness*2;
-        const int textOffset = thickness*2;
-        const int textThickness = thickness/2.0;
-        const double fontScale = thickness/5;
-        string prevWindTitle = "Preview";
+        Preview pre(previewSize.width,previewSize.height,"Preview");
         /// \todo 18.05.2016 end class Drawer ///
 
          // SetUp
@@ -515,101 +409,13 @@ int main( int argc, const char** argv )
   //    VIEW    //
                 /// \todo 18.05.2016 class Drawer
                 if(showPreview || recordPreview){ // Отрисовка области интереса
-                    resize(fullFrame, preview, fullShot.size(), 0, 0, INTER_NEAREST ); ///< \todo 28.01.2017 !!! Отрисовка всех превью не должна зависеть от параметра scale, нужен только для детектора Viola Jones
-
-                    // Рисовать кадр захвата
-                    rectangle(preview,cam.getRoi(),Scalar(0,0,255),thickness);
-                    Scalar colorX;
-                    switch (cam.getMoveX().getState()){
-                    case BEGIN:
-                        colorX = Scalar(127,255,127);break;
-                    case MOVE:
-                        colorX = Scalar(255,255,255);break;
-                    case END:
-                        colorX = Scalar(127,127,255);break;
-                    }
-                    Scalar colorY;
-                    switch (cam.getMoveY().getState()){
-                    case BEGIN:
-                        colorY = Scalar(127,255,127);break;
-                    case MOVE:
-                        colorY = Scalar(255,255,255);break;
-                    case END:
-                        colorY = Scalar(127,127,255);break;
-                    }
-                    if(cam.getMoveX().getState()!=STOP){
-                        if(cam.getMoveX().getSign()<0)
-                            arrowedLine(preview,
-                                        Point(cam.getRoi().x,cam.getRoi().y+cam.getRoi().height/2),
-                                        Point(cam.getRoi().x-cam.getMoveX().getSpeed()*2,cam.getRoi().y+cam.getRoi().height/2),
-                                        colorX,thickness,8,0,1);
-                        else
-                            arrowedLine(preview,
-                                        Point(cam.getRoi().x+cam.getRoi().width,cam.getRoi().y+cam.getRoi().height/2),
-                                        Point(cam.getRoi().x+cam.getRoi().width+cam.getMoveX().getSpeed()*2,cam.getRoi().y+cam.getRoi().height/2),
-                                        colorX,thickness,8,0,1);
-                    }
-                    if(cam.getMoveY().getState()!=STOP){
-                        if(cam.getMoveY().getSign()<0)
-                            arrowedLine(preview,
-                                        Point(cam.getRoi().x+cam.getRoi().width/2,cam.getRoi().y),
-                                        Point(cam.getRoi().x+cam.getRoi().width/2,cam.getRoi().y-cam.getMoveY().getSpeed()*2),
-                                        colorY,thickness,8,0,1);
-                        else
-                            arrowedLine(preview,
-                                        Point(cam.getRoi().x+cam.getRoi().width/2,cam.getRoi().br().y),
-                                        Point(cam.getRoi().x+cam.getRoi().width/2,cam.getRoi().br().y+cam.getMoveY().getSpeed()*2),
-                                        colorY,thickness,8,0,1);
-                    }
-                    drawThirds(preview,cam.getRoi(),Scalar(0,255,0),dotsRadius);
-                    // Рисовать цель
-                    if(bTrackerInitialized){
-                        stringstream strDetWarn;
-                        strDetWarn << detWarning;
-                        rectangle(preview,aim,Scalar(255-detWarning,255-detWarning,255),thickness);
-                        if(frameCounter % aimCheckerPer!=0){
-                            putText(preview, "aim tracking"+strDetWarn.str(),aim.tl(),CV_FONT_NORMAL,fontScale,Scalar(255,255,255),textThickness);
-                        }
-                        else{
-                            putText(preview, "redetection",aim.tl(),CV_FONT_NORMAL,fontScale,Scalar(0,255,255),textThickness);
-                        }
-                    }else{
-                        rectangle(preview,aim,Scalar(0,255,0),thickness);
-                        putText(preview, "aim detection",aim.tl(),CV_FONT_NORMAL,fontScale,Scalar(0,255,0),textThickness);
-                        //Отрисовка распознаных объектов на превью
-                        drawRects(preview,det.getFacesFull(),"Full face",Scalar(255,0,0),fontScale,textThickness,textOffset,thickness);
-                        drawRects(preview,det.getFacesProf(),"Profile",Scalar(255,127,0),fontScale,textThickness,textOffset,thickness);
-                    }
-                    // Рисовать фокус детекции
-                    rectangle(preview,focus,Scalar(0,255,255),thickness*0.8);
-
-                    /// Вывести время в превью
-                    time_t t = time(0);   // get time now
-                    struct tm * now = localtime( & t );
-                    stringstream timestring;
-                    timestring
-                            << __DATE__ <<" "<< __TIME__
-                               "|"<< (now->tm_year + 1900) << '.'
-                            << (now->tm_mon + 1) << '.'
-                            << now->tm_mday << " "
-                            << now->tm_hour <<":"
-                            << now->tm_min << ":"
-                            << now->tm_sec;
-                    //                           << frameCounter;
-//                    putText(preview,timestring.str(),Point(0,previewSize.height-3),CV_FONT_NORMAL,fontScale*1.35,Scalar(0,0,0),textThickness*10);
-//                    putText(preview,timestring.str(),Point(0,previewSize.height-3),CV_FONT_NORMAL,fontScale*1.35,Scalar(255,255,255),textThickness*2);
-                    stringstream frame;
-                    frame << frameCounter;
-                    putText(preview,(frame.str()),Point(0,fontScale*20),CV_FONT_NORMAL,fontScale*1.45,Scalar(0,0,0,100),textThickness*10);
-                    putText(preview,(frame.str()),Point(0,fontScale*20),CV_FONT_NORMAL,fontScale*1.45,Scalar(255,255,255),textThickness*5);
-
+                    pre.drawPreview(fullFrame,cam,bTrackerInitialized,focus,aim,det,detWarning,aimCheckerPer,frameCounter);
+                    if(showPreview)
+                        pre.show();
                     // Сохранение кадра
                     if(recordPreview)
-                        previewVideo << preview;
-                    if(showPreview)
-                        imshow(prevWindTitle.c_str(),preview);
+                        previewVideo << pre.getPreview();
                 } /// \todo 18.05.2016 end class Drawer
-                clog<< __LINE__ << endl;
 
 
 // Сохранение статистики

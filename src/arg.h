@@ -39,6 +39,21 @@ public:
         if(less)    lt = new T(*less);    else lt=NULL;
         cout << "\t" << *opt << "[" << val << "]" << endl;
     }
+    Arg(const char** argv, int argc, int& manualInput, const T defVal, const string opt_, const string format_,  const T* greater=NULL,const T* less=NULL)
+        : val(defVal) {
+        opt = new string(opt_);
+        format = new string(format_);
+        valDef = new T(defVal);
+        if(greater) gt = new T(*greater); else gt=NULL;
+        if(less)    lt = new T(*less);    else lt=NULL;
+        cout << "\t" << *opt << "[" << val << "]" << endl;
+        for(int i=0; i<argc; ++i){
+            if(this->input(argv[i])){
+                manualInput++;
+                break;}
+        }
+    }
+
     /**
      * @brief Ввод параметра
      * Определяет, является ли текущая строка нужным идентефикатором
