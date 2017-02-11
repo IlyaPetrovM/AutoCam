@@ -37,7 +37,7 @@ public:
         valDef = new T(defVal);
         if(greater) gt = new T(*greater); else gt=NULL;
         if(less)    lt = new T(*less);    else lt=NULL;
-        cout << "\t" << *opt << "[" << val << "]" << endl;
+        clog << "\t" << *opt << "[" << val << "]" << endl;
     }
     Arg(const char** argv, int argc, int& manualInput, const T defVal, const string opt_, const string format_,  const T* greater=NULL,const T* less=NULL)
         : val(defVal) {
@@ -46,7 +46,7 @@ public:
         valDef = new T(defVal);
         if(greater) gt = new T(*greater); else gt=NULL;
         if(less)    lt = new T(*less);    else lt=NULL;
-        cout << "\t" << *opt << "[" << val << "]" << endl;
+        clog << "\t" << *opt << "[" << val << "]" << endl;
         for(int i=0; i<argc; ++i){
             if(this->input(argv[i])){
                 manualInput++;
@@ -68,8 +68,9 @@ public:
                     val=*valDef;
                 else if((lt!=NULL && *lt<val))
                     val=*valDef;
-                cout << " and " << val << " assigned."<<endl;
-                delete format, opt;
+                clog << " and " << val << " assigned."<<endl;
+                delete format;
+                delete opt;
                 delete valDef;
                 return true;
             }
@@ -103,7 +104,8 @@ public:
         return (opt->compare(0,opt->length(),argv,opt->length())==0);
     }
     ~Arg(){
-        delete gt,lt;
+        delete gt;
+        delete lt;
     }
 };
 

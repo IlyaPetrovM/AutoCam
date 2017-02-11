@@ -1,7 +1,7 @@
 #include "detector.h"
 
 
-const Rect &Detector::detect(const Mat& fullFrame)
+const Rect Detector::detect(const Mat& fullFrame)
 {
     if(frameCounter%faceDetectPer==0){
         resize( fullFrame, smallImg, Size(), 1./scale, 1./scale, INTER_LINEAR );
@@ -38,7 +38,7 @@ Rect Detector::median(const vector<Rect> &r){
     x.resize(r.size());
     y.resize(r.size());
     h.resize(r.size());
-    for (int i = 0; i < r.size(); ++i) {
+    for (unsigned int i = 0; i < r.size(); ++i) {
         x[i]=r[i].x;
         y[i]=r[i].y;
         h[i]=r[i].height;
@@ -55,10 +55,10 @@ Detector::Detector(string cascadeFullName_, string cascadeProfName_, Size smallI
       minNeighbors(minNeighbors_),
       scaleFactor(scaleFactor_),
       minfaceSize(Size(minFaceHeight_,minFaceHeight_)),
-      aim(Rect(Point(0,0),smallImgSize_)),
       bFoundSomeFaces(false),
       frameCounter(0),
-      aimUpdatePer(aimUpdatePer_), bAimDetected(false),scale(scale_)
+      aimUpdatePer(aimUpdatePer_), bAimDetected(false),scale(scale_),
+     aim(Rect(Point(0,0),smallImgSize_))
 {
     if( !cascadeFull.load( cascadeFullName_ ) )
     {

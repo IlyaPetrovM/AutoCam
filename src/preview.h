@@ -26,6 +26,9 @@ class Preview
     Size size;
 public:
     Preview(const unsigned int width, const unsigned int height, string windowTitle);
+    ~Preview(){
+        cvDestroyAllWindows();
+    }
 
     void show();
 
@@ -39,6 +42,7 @@ private:
     Rect median(const vector<Rect> &r);
     void drawThirds(Mat &img, const Rect2f &r, Scalar color = Scalar(0,255,0), const double &dotsRadius = 1);
     void drawRects(Mat &img, vector<Rect> rects, string t = "rect", Scalar color = Scalar(255,0,0), float fontScale = 1.0, float textThickness = 1.0, int textOffset = 0, int thickness = 1, int fontFace = CV_FONT_NORMAL);
+
 };
 
 #endif // PREVIEW_H

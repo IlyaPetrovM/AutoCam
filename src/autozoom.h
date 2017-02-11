@@ -8,10 +8,10 @@
  */
 class AutoZoom : public MotionAutomata
 {
-    const double face2shot; ///< Требуемое отношение высоты лица к высоте кадра
-    const Size aspect;      ///< Cоотношение сторон кадра в удобочитаемом виде
     const Size maxRoiSize;   ///< Максимальный размер области захвата кадра. Равен размеру сжатого кадра или меньше.
     const float zoomThr;    ///< Триггер начала зуммирования
+    const double face2shot; ///< Требуемое отношение высоты лица к высоте кадра
+    const Size aspect;      ///< Cоотношение сторон кадра в удобочитаемом виде
     /**
      * @brief gcd Определяет наибольший общий делитель
      * @param[in] a, b числа

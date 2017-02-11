@@ -20,7 +20,8 @@ class Detector
 
     const Size smallImgSize;
     const double scale;
-    CascadeClassifier cascadeFull,cascadeProf; ///< Каскады Хаара для детекции лица
+    CascadeClassifier cascadeFull,
+                      cascadeProf; ///< Каскады Хаара для детекции лица
     const int minNeighbors;
     const double scaleFactor;
     const Size minfaceSize;
@@ -47,7 +48,7 @@ public:
              double scaleFactor_=1.1,
              double scale_ = 1.0);
 
-    const Rect& detect(const Mat& fullFrame);
+    const Rect detect(const Mat& fullFrame);
     const Rect getAim(){
         return rescale(aim,scale);
     }

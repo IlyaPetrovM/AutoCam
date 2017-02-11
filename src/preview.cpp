@@ -6,13 +6,13 @@ Mat Preview::getPreview() const
 }
 
 Preview::Preview(const unsigned int width, const unsigned int height, string windowTitle):
-    size(Size(width,height)),
     thickness(0.5*width/100.0),
     dotsRadius(thickness*2),
     textOffset(thickness*2),
     textThickness(thickness/2.0),
     fontScale(thickness/5),
-    title(windowTitle)
+    title(windowTitle),
+    size(Size(width,height))
 {
 
 }
@@ -45,6 +45,8 @@ void Preview::drawPreview(
         colorX = Scalar(255,255,255);break;
     case END:
         colorX = Scalar(127,127,255);break;
+    case STOP:
+        colorX = Scalar(0,0,0);break;
     }
     Scalar colorY;
     switch (cam.getMoveY().getState()){
@@ -54,6 +56,8 @@ void Preview::drawPreview(
         colorY = Scalar(255,255,255);break;
     case END:
         colorY = Scalar(127,127,255);break;
+    case STOP:
+        colorX = Scalar(0,0,0);break;
     }
     if(cam.getMoveX().getState()!=STOP){
         if(cam.getMoveX().getSign()<0)
@@ -146,7 +150,7 @@ void Preview::drawRects(
        int textOffset,
        int thickness,
        int fontFace) { /// \todo 18.05.2016 class Drawer
-    for (int i = 0; i < rects.size(); ++i)
+    for (unsigned int i = 0; i < rects.size(); ++i)
     {
         stringstream title;
         title << t<<" "<< i;
@@ -186,7 +190,7 @@ Rect Preview::median(const vector<Rect>& r){ /// \todo 18.05.2016 class Detector
     x.resize(r.size());
     y.resize(r.size());
     h.resize(r.size());
-    for (int i = 0; i < r.size(); ++i) {
+    for (unsigned int i = 0; i < r.size(); ++i) {
         x[i]=r[i].x;
         y[i]=r[i].y;
         h[i]=r[i].height;

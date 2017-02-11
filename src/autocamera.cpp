@@ -9,13 +9,14 @@ AutoCamera::AutoCamera(Size maxRoiSize_, double maxStepX,
                        double face2shot,
                        bool bZoom_,
                        bool bMove_) :
-    maxRoiSize(maxRoiSize_),
     onePerc((double)maxRoiSize_.width/100.0),
-    zoom(zoomSpeedMin,zoomSpeedMax,maxRoiSize_,zoomThr,zoomSpeedInc_,face2shot),
-    roi(Rect2f(Point(0,0),maxRoiSize_)),
+    bZoom(bZoom_),
+    bMove(bMove_),
+    maxRoiSize(maxRoiSize_),
     moveX(0.0,maxStepX*(double)maxRoiSize_.width/100.0),
     moveY(0.0,maxStepY*(double)maxRoiSize_.width/100.0),
-    bZoom(bZoom_), bMove(bMove_)
+    zoom(zoomSpeedMin,zoomSpeedMax,maxRoiSize_,zoomThr,zoomSpeedInc_,face2shot),
+    roi(Rect2f(Point(0,0),maxRoiSize_))
 {
 }
 
