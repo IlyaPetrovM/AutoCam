@@ -62,14 +62,20 @@ void* captureFrame(void* inputName_){
         capture.set(CV_CAP_PROP_BUFFERSIZE,1024);
         clog << "fps:" << capture.get(CV_CAP_PROP_FPS) << endl;
         int fps = capture.get(CV_CAP_PROP_FPS);
+        if(fps==0)fps=25;
+        int delay=0;
         while(true){
             clog << "msec:" << capture.get(CV_CAP_PROP_POS_MSEC) << endl;
             clog << "frames:" << capture.get(CV_CAP_PROP_POS_FRAMES) << endl;
             frameCounter++;
-            if(capture.grab() && fps*t<=1000){
+            if(1000/fps - t/1000 > 0){
+                delay+=1000/fps - t/1000;
+            }
+            if(capture.grab() && delay < 1000/fps){
                 capture.retrieve(fullFrame);
             }else{
                 capture.grab();
+                delay=0;
                 frameCounter++;
             }
 
