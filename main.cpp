@@ -1,7 +1,6 @@
 /**
-  * \brief Программа для детекции лиц в видео с повышенным разрешением
+  * \brief Программа для детекции и трекинга лиц в видео с повышенным разрешением
   * \author Ilya Petrov
-  * \date Май 2016 года
   */
 #include "opencv2/objdetect.hpp"
 #include "opencv2/highgui.hpp"
@@ -26,6 +25,7 @@
 #include "detector.h"
 #include "3rdparty/asms/colotracker.h"
 #include "preview.h"
+#include "viewfinder.h"
 
 using namespace std;
 using namespace cv;
@@ -37,17 +37,18 @@ long int frameCounter=0; /// \todo 18.05.2016 class InputMan
 void* captureFrame(void* inputName_){
     string inputName = *((string*)inputName_);
     VideoCapture capture;
+    bool isWebcam=false;
     while(!capture.isOpened()){
         if( inputName.empty() || (isdigit(inputName.c_str()[0]) && inputName.c_str()[1] == '\0') )
         {
-//            isWebcam=true;
+            isWebcam=true;
             int c = inputName.empty() ? 0 : inputName.c_str()[0] - '0' ;
             if(!capture.open(c))
                 clog << "Capture from camera #" <<  c << " didn't work" << endl;
         }else{
             if(capture.open(inputName)){
                 clog << "Capture file " <<  inputName << endl;
-//                isWebcam=false;
+                isWebcam=false;
             }
             else
                 clog << "Could not capture file " <<  inputName << endl;
@@ -57,8 +58,8 @@ void* captureFrame(void* inputName_){
 
     if(capture.isOpened() )
     {
-        int64 ct,pt;
-        unsigned int t;
+        int64 ct=0,pt=0;
+        unsigned int t=0;
         capture.set(CV_CAP_PROP_BUFFERSIZE,1024);
         clog << "fps:" << capture.get(CV_CAP_PROP_FPS) << endl;
         int fps = capture.get(CV_CAP_PROP_FPS);
@@ -68,11 +69,11 @@ void* captureFrame(void* inputName_){
             clog << "msec:" << capture.get(CV_CAP_PROP_POS_MSEC) << endl;
             clog << "frames:" << capture.get(CV_CAP_PROP_POS_FRAMES) << endl;
             frameCounter++;
-            if(1000/fps - t/1000 > 0){
+            if(!isWebcam && 1000/fps - t/1000 > 0){
                 delay+=1000/fps - t/1000;
             }
             if(capture.grab() && delay < 1000/fps){
-                capture.retrieve(fullFrame);
+                capture.retrieve(fullFrame); /// \todo 13.02.2017 Добавить мьютекс или семафор
             }else{
                 capture.grab();
                 delay=0;
@@ -86,6 +87,7 @@ void* captureFrame(void* inputName_){
         }
     }
     pthread_exit(NULL);
+    return 0;
 }
 
 static void help()
@@ -126,7 +128,7 @@ int main( int argc, const char** argv )
 
     Arg<int> aimCheckerPer(argv, argc,manualInput,10,"--aimCheckerPeriod=","%d",new int(1)); ///< период редетекции лица внутри прямоугольника, который создаёт трекер/ задаётся в кадрах
     Arg<unsigned int> detWarningLimit(argv, argc,manualInput,3,"--detWarningLimit=","%d",new unsigned int(1));
-    Arg<unsigned int> focusEx(argv, argc,manualInput,25,"--aimEx=","%d",new unsigned int(0)); /// на сколько пикселей расширять область редетекции, чтобы попытаться найти цель
+    Arg<float> focusEx_(argv, argc,manualInput,0.3,"--aimEx=","%f",new float(0.0), new float(1.0)); /// на сколько процентов от высоты исходного кадра расширять область редетекции, чтобы попытаться найти цель
 
     ///Запись результата
     Arg<int> resultWidth(argv, argc,manualInput,640,"--resultWidth=","%d", new int(1));///< Высота результирующего видео (ширина рассчитывается автоматически в соответствии с соотношением сторон)
@@ -203,7 +205,6 @@ int main( int argc, const char** argv )
                 clog << "Could not capture file " <<  inputName << endl;
         }
     }
-
     ///Создание нити захвата кадров
     pthread_t captureThread;
     int ret=0;
@@ -355,28 +356,20 @@ int main( int argc, const char** argv )
             cropFile.open("../results/filter",fstream::out);
         }
 
-//        if(streamToStdOut){
-//        for(int i=0;i<(resultWidth*resultHeight - (float)resultWidth/5.20)*3;i++){ /// \todo 05.12.2016 Это костыль, который сдвигает пиксели в кадре.
-//            cout<<0;
-//        }
-//        }
         unsigned int detWarning=0;
-        int waitKeyOff=1;
         int64 startIterationTime, endIterationTime;
         int64 startCapTime, endCapTime;
         int64 startProcessTime, endProcessTime;
         int64 st, et;
         int64 startOutputTime, endOutputTime;
         double timeOfIteration=40000.0;
-        double timeOfCapture=20000.0, timeOfProcess, timeOfOutput;
+        double timeOfCapture=20000.0, timeOfProcess=2000.0, timeOfOutput;
         double freeTime = 0.0;
-        double t;
 
         // Main cycle
         for(;!end;){
 
                 startCapTime = startIterationTime = cvGetTickCount();
-//                capture >> fullFrame;
 
                 if(showPreview){
                     char c;
@@ -394,7 +387,7 @@ int main( int argc, const char** argv )
                     }
                 }
 
-                if(!fullFrame.empty() ) {
+                if(!fullFrame.empty() ) { /// \todo 13.02.2017 Добавить мьютекс или семафор
                     if(frameCounter>0)pzoom<<',';
                 }
                 else{
@@ -412,15 +405,16 @@ int main( int argc, const char** argv )
                         delete bb; bb=NULL;
                         bb = new BBox();
                     }
-                    bb = tracker->track(fullFrame);
+                    bb = tracker->track(fullFrame); /// \todo 13.02.2017 Добавить мьютекс или семафор
                     if(bb!=NULL){
                         st=cvGetTickCount();
                         aim = Rect(bb->x,
                                    bb->y,
                                    bb->width,
                                    bb->height);
-                        if(frameCounter%aimCheckerPer == 0 && 0){////!!!!
-                            det.detect(fullFrame((focus&Rect(0,0,fullShot.width,fullShot.height))));
+                        if(frameCounter%aimCheckerPer == 0){ /// \todo 14.02.2017 изменение размеров лица должно происходить и в меньшую сторону
+                            det.detect(fullFrame((focus&Rect(0,0,fullShot.width,fullShot.height)))); /// \todo 13.02.2017 Добавить мьютекс или семафор
+                            static unsigned int focusEx = focus.height*focusEx_;
                             if(det.foundFaces()){
                                 if(detWarning>0){detWarning--;// -1 к предупреждению;
                                     focus+=Point(focusEx,focusEx);
@@ -440,34 +434,37 @@ int main( int argc, const char** argv )
                                 focus=aim;
                             }
                         }
-                        cam.update(aim);
+                        cam.update(aim); /// Сделать так, чтобы aim всегда держал нужные границы
                         focus=Rect(aim.x-(focus.width-aim.width)*0.5,aim.y-(focus.height-aim.height)*0.5,focus.width,focus.height);
                         et=cvGetTickCount();
                         clog << "some Time: " << (et-st)/cvGetTickFrequency() << endl;
                     }
                 }else{
-                    det.detect(fullFrame);
+                    det.detect(fullFrame); /// \todo 13.02.2017 Добавить мьютекс или семафор
                     if(det.aimDetected()){
                         aim = det.getAim();
                         focus=aim;
+                        static unsigned int focusEx = focus.height*focusEx_;
+                        focus+=Point(focusEx,focusEx);
+                        focus+=Size(-focusEx,-focusEx);
                         if(tracker != NULL)delete tracker;
                         tracker = new ColorTracker();
-                        tracker->init(fullFrame,
+                        tracker->init(fullFrame, /// \todo 13.02.2017 Добавить мьютекс или семафор
                                      aim.tl().x,
                                      aim.tl().y,
                                      aim.br().x,
                                      aim.br().y);
                         bTrackerInitialized = true;
                         detWarning=0;
+                        cam.update(aim);
                     }
-                    cam.update(aim);
                 }
                 }
                 startOutputTime = endProcessTime = cvGetTickCount();
                 try{
                     /// \todo 18.05.2016 FileSaver
                     if(recordResult || streamToStdOut){
-                        resize(fullFrame(cam.getRoi()), result , resultSize, 0,0, INTER_LINEAR );
+                        resize(fullFrame(cam.getRoi()), result , resultSize, 0,0, INTER_LINEAR ); /// \todo 13.02.2017 Добавить мьютекс или семафор
                         if(recordResult){
                             outputVideo << result;
                         }
@@ -484,7 +481,7 @@ int main( int argc, const char** argv )
   //    VIEW    //
                 /// \todo 18.05.2016 class Drawer
                 if(showPreview || recordPreview){ // Отрисовка области интереса
-                    pre.drawPreview(fullFrame,cam,bTrackerInitialized,focus,aim,det,detWarning,aimCheckerPer,frameCounter);
+                    pre.drawPreview(fullFrame,cam,bTrackerInitialized,focus,aim,det,detWarning,aimCheckerPer,frameCounter); /// \todo 13.02.2017 Добавить мьютекс или семафор
                     if(showPreview)
                         pre.show();
                     // Сохранение кадра

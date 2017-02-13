@@ -8,14 +8,14 @@
  */
 class AutoPan : public MotionAutomata
 {
-
+    const float maxVal;
 public:
      /**
      * @brief Конструктор
      * @param[in] spdMin минимальная скорость
      * @param[in] spdMax максимальная скорость
      */
-    AutoPan(double spdMin,double spdMax) : MotionAutomata(spdMin, spdMax){}
+    AutoPan(double spdMin,double spdMax, float maxVal_) : MotionAutomata(spdMin, spdMax), maxVal(maxVal_){}
     /**
      * Обновить координаты в соответствии с текущей скоростьюи состоянием
      * @param[in,out] x
@@ -24,7 +24,7 @@ public:
      * @param outOfRoi
      * @return Текущую скорость изменения координаты
      */
-    float update(float& x,const int& aim, const double& precision, const bool outOfRoi);
+    float update(const float &preVal_, const int& aim, const double& precision, const bool outOfRoi);
     void stop(){
         state=STOP;
         speed=speedMin;

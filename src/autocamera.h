@@ -2,6 +2,7 @@
 #define AUTOCAMERA_H
 #include "autozoom.h"
 #include "automotion.h"
+#include "viewfinder.h"
 #include <iostream>
 /**
   @class AutoCamera
@@ -17,7 +18,7 @@ class AutoCamera
     AutoPan moveX; ///< Механизм перемещения камеры по горизонтали
     AutoPan moveY; ///< Механизм перемещения камеры по вертикали
     AutoZoom zoom; ///< Механизм масштабирования кадра
-    Rect2f roi;
+    ViewFinder roi;
 
     /**
      * @brief topMiddleDec Ищет точку посередине прямоугольника, отстоящую от верха на одну треть (в относительных координатах)
@@ -43,7 +44,7 @@ class AutoCamera
      * @param[in] face лицо
      * @return Абсолютные координаты нового положения кадра
      */
-    Point getGoldenPoint(const Rect2f& roi,const Rect& face);
+    Point getGoldenPoint(const Rect2f &roi, const Rect& face);
 public:
     /**
      * @brief Конструктор
@@ -74,7 +75,7 @@ public:
      * @brief Анализирует цель aim и на основе этого анализа перемещает и масштабирует кадр.
      * @param[in] aim - цель, которая должна быть захвачена кадром
      */
-    void update(const Rect& aim);
+    void update(const Rect aim);
     /**
      * @brief масштабирует размеры ROI под реальные размеры, чтобы из исходного видео высокого качества вырезать нужную область.
      * @return

@@ -24,8 +24,8 @@ if(OpenCV_VERSION VERSION_GREATER "3.0.0")
     include_directories(${OpenCV_INCLUDE_DIRS}) ## Добавление директорий
     include_directories(${CMAKE_SOURCE_DIR}/src/)
     add_subdirectory(src)
-    add_executable(${PROJECT_NAME} main.cpp ${SRC_DIR})
-    target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBS} autocam_lib color -pthread)
+    add_executable(${PROJECT_NAME} "main.cpp" ${SRC_DIR})
+    target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBS} "autocam_lib" "color" "-pthread")
 else()
     message(FATAL_ERROR
           "OpenCV version is less than 2.4.12 (current is ${OpenCV_VERSION}) \n

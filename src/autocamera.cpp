@@ -13,15 +13,15 @@ AutoCamera::AutoCamera(Size maxRoiSize_, double maxStepX,
     bZoom(bZoom_),
     bMove(bMove_),
     maxRoiSize(maxRoiSize_),
-    moveX(0.0,maxStepX*(double)maxRoiSize_.width/100.0),
-    moveY(0.0,maxStepY*(double)maxRoiSize_.width/100.0),
+    moveX(0.0,maxStepX*(double)maxRoiSize_.width/100.0,maxRoiSize_.width),
+    moveY(0.0,maxStepY*(double)maxRoiSize_.width/100.0,maxRoiSize_.height),
     zoom(zoomSpeedMin,zoomSpeedMax,maxRoiSize_,zoomThr,zoomSpeedInc_,face2shot),
-    roi(Rect2f(Point(0,0),maxRoiSize_))
+    roi(Rect(Point(0,0),maxRoiSize_))
 {
 }
 
 
-void AutoCamera::update(const Rect &aim){
+void AutoCamera::update(const Rect aim){
     static Point gp;
     register bool outOfRoi;
     if(bZoom){
@@ -29,24 +29,37 @@ void AutoCamera::update(const Rect &aim){
     }
 
     if(bMove) {
-        outOfRoi = ((Rect2f)aim&roi).area()<aim.area();
-        gp = getGoldenPoint(roi,aim);
-        moveX.update(roi.x,gp.x,roi.width/15.0,outOfRoi);
-        moveY.update(roi.y,gp.y,roi.height/10.0,outOfRoi);
+        outOfRoi = (aim&roi.getRect()).area()<aim.area();
+        gp = getGoldenPoint(roi.getRect2f(),aim);
+        roi.setX(moveX.update(roi.getX(),gp.x,roi.getWidth()/15.0,outOfRoi));
+        roi.setY(moveY.update(roi.getY(),gp.y,roi.getHeight()/10.0,outOfRoi));
     }
 
-    if(roi.x<0){ roi.x = 0; moveX.stop();}
-    if(maxRoiSize.width < roi.x+roi.width)
-    { roi.x = maxRoiSize.width-roi.width; moveX.stop();}
-    if(roi.y<0){roi.y = 0; moveY.stop();}
-    if(maxRoiSize.height < roi.y+roi.height)
-        {roi.y=maxRoiSize.height-roi.height; moveY.stop();}
+
+//    if(roi.x<0){
+//        moveX.stop();
+//        roi.x = 0;
+//    }
+//    if(maxRoiSize.width < roi.x+roi.width)
+//    {
+//        moveX.stop();
+//        roi.x = maxRoiSize.width-roi.width;
+//    }
+//    if(roi.y<0){
+//        moveY.stop();
+//        roi.y = 0;
+//    }
+//    if(maxRoiSize.height < roi.y+roi.height)
+//    {
+//        moveY.stop();
+//        roi.y=maxRoiSize.height-roi.height;
+//    }
 }
 
 
 Rect2f AutoCamera::getRoi() const
 {
-    return roi;
+    return roi.getRect2f();
 }
 
 AutoPan AutoCamera::getMoveX() const
