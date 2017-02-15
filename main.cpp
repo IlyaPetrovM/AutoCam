@@ -2,6 +2,11 @@
   * \brief Программа для детекции и трекинга лиц в видео с повышенным разрешением
   * \author Ilya Petrov
   */
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
+
 #include "opencv2/objdetect.hpp"
 #include "opencv2/highgui.hpp"
 #include "opencv2/imgproc.hpp"
@@ -252,6 +257,14 @@ int main( int argc, const char** argv )
         string outFileTitle;
         VideoWriter previewVideo;
         VideoWriter outputVideo;
+	
+	if(!mkfifo("fifvideo",O_NONBLOCK|S_IRWXU))
+        {
+		cerr<<"could not create fifo fifvideo"<<endl;	
+		return -1; 
+	}
+	int fifvideo = open("fifvideo",O_RDWR,S_IRWXU);
+	if(fifvideo<0){cerr<<"Could not open fifvideo"<<endl;return -1;}
 
         ///Test items
         fstream logFile;
@@ -473,7 +486,8 @@ int main( int argc, const char** argv )
                         if(streamToStdOut){
                             Mat array = result.reshape(0,1);
                             string outstr((char *)array.data,array.total()*array.elemSize());
-                            cout<<outstr;
+			write(fifvideo,outstr.c_str(),outstr.length());
+			//fflush(fifvideo);	
                         }
                     }
                 }catch(Exception &mvEx){
@@ -565,7 +579,9 @@ int main( int argc, const char** argv )
             delete bb;
             bb = NULL;
         }
-        if(tracker!=NULL){
+	if(fifvideo)close(fifvideo);
+        
+	if(tracker!=NULL){
             delete tracker;
         }
         if(logFile.is_open()){
