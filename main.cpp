@@ -110,8 +110,8 @@ int main( int argc, const char** argv )
     clog << "Availible parameters: " << endl;
     /// Параметры детектора лиц
     CascadeClassifier cascadeFull,cascadeProf; ///< Каскады Хаара для детекции лица /// \todo 18.05.2016 class Detector
-    string cascadeFullName = "../haarcascade_frontalface_alt.xml";
-    string cascadeProfName = "../haarcascade_profileface.xml";
+    string cascadeFullName;// = "../haarcascade_frontalface_alt.xml";
+    string cascadeProfName;// = "../haarcascade_profileface.xml";
     const string cascadeProfOpt = "--cascadeProf=";
     size_t cascadeProfOptLen = cascadeProfOpt.length();
     const string cascadeFullOpt = "--cascadeFront=";
@@ -158,18 +158,20 @@ int main( int argc, const char** argv )
     /// Чтение аргументов программы
     for( int i = 1; i < argc; i++ )
     {
-        clog << "Processing " << i << " " <<  argv[i];
+        clog << "\nProcessing " << i << " " <<  argv[i];
 
         if( cascadeFullOpt.compare( 0, cascadeFullOptLen, argv[i], cascadeFullOptLen ) == 0 )
         {
             cascadeFullName.assign( argv[i] + cascadeFullOptLen );
-            clog << "  from which we have cascadeName= " << cascadeFullName << endl;
+            clog << " assigned:" << cascadeFullOpt << cascadeFullName << endl;
         }
         else if( cascadeProfOpt.compare( 0, cascadeProfOptLen, argv[i], cascadeProfOptLen ) == 0 )
         {
-            clog << "nc" <<endl;
-            if( argv[i][cascadeProfOpt.length()] == '=' )
-                cascadeProfName.assign( argv[i] + cascadeProfOpt.length() + 1 );
+            clog << "\n nc: " <<endl;
+            //if( argv[i][cascadeProfOpt.length()] == '=' )
+            cascadeProfName.assign( argv[i] + cascadeProfOptLen );
+            clog << " assigned:" << cascadeProfOpt << cascadeProfName << endl;
+
 
         }
         else if(argv[i][0]!='-' && argv[i][1]!='-') inputName.assign( argv[i] );
