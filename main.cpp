@@ -257,15 +257,27 @@ int main( int argc, const char** argv )
         string outFileTitle;
         VideoWriter previewVideo;
         VideoWriter outputVideo;
-	
+
+
+	int fifvideo,fifprev;
+	if(streamToStdOut){	
 	if(!mkfifo("fifvideo",O_NONBLOCK|S_IRWXU))
         {
 		cerr<<"could not create fifo fifvideo"<<endl;	
 		return -1; 
 	}
-	int fifvideo = open("fifvideo",O_RDWR,S_IRWXU);
+	fifvideo = open("fifvideo",O_RDWR,S_IRWXU);
 	if(fifvideo<0){cerr<<"Could not open fifvideo"<<endl;return -1;}
 
+
+	if(!mkfifo("fifprev",O_NONBLOCK|S_IRWXU))
+        {
+                cerr<<"could not create fifo fifprev"<<endl;   
+                return -1; 
+        }
+        fifprev = open("fifprev",O_RDWR,S_IRWXU);
+        if(fifprev<0){cerr<<"Could not open fifprev"<<endl;return -1;}
+	}
         ///Test items
         fstream logFile;
         stringstream pzoom;
@@ -380,7 +392,9 @@ int main( int argc, const char** argv )
         double timeOfIteration=40000.0;
         double timeOfCapture=20000.0, timeOfProcess=2000.0, timeOfOutput;
         double freeTime = 0.0;
-
+	if(streamToStdOut){
+		for(int i=0;i<2+resultSize.width*5*0.3333;++i){write(fifvideo,"RGB",3);}
+	}
         // Main cycle
         for(;!end;){
 
@@ -487,8 +501,7 @@ int main( int argc, const char** argv )
                             Mat array = result.reshape(0,1);
                             string outstr((char *)array.data,array.total()*array.elemSize());
 			write(fifvideo,outstr.c_str(),outstr.length());
-			//fflush(fifvideo);	
-                        }
+                     }
                     }
                 }catch(Exception &mvEx){
                     clog << "Result saving: "<< mvEx.msg << endl;
@@ -496,10 +509,16 @@ int main( int argc, const char** argv )
 
   //    VIEW    //
                 /// \todo 18.05.2016 class Drawer
-                if(showPreview || recordPreview){ // Отрисовка области интереса
+                if(showPreview || recordPreview || streamToStdOut){ // Отрисовка области интереса
                     pre.drawPreview(fullFrame,cam,bTrackerInitialized,focus,aim,det,detWarning,aimCheckerPer,frameCounter); /// \todo 13.02.2017 Добавить мьютекс или семафор
                     if(showPreview)
                         pre.show();
+		   /* if(streamToStdOut){
+			Mat array = pre.getPreview().reshape(0,1);
+                        string outstr((char *)array.data,array.total()*array.elemSize());
+                        write(fifprev,outstr.c_str(),outstr.length());
+			}
+			*/
                     // Сохранение кадра
                     if(recordPreview)
                         previewVideo << pre.getPreview();
@@ -580,7 +599,7 @@ int main( int argc, const char** argv )
             bb = NULL;
         }
 	if(fifvideo)close(fifvideo);
-        
+	if(fifprev)close(fifprev);        
 	if(tracker!=NULL){
             delete tracker;
         }
