@@ -34,6 +34,11 @@ Mat fullFrame;
 const double FI=1.61803398; /// Золотое сечение
 
 long int frameCounter=0; /// \todo 18.05.2016 class InputMan
+void stream(Mat mat){
+    Mat array = mat.reshape(0,1);
+    string outstr((char *)array.data,array.total()*array.elemSize());
+    cout<<outstr;
+}
 void* captureFrame(void* inputName_){
     string inputName = *((string*)inputName_);
     VideoCapture capture;
@@ -131,12 +136,18 @@ int main( int argc, const char** argv )
     Arg<float> focusEx_(argv, argc,manualInput,0.3,"--aimEx=","%f",new float(0.0), new float(1.0)); /// на сколько процентов от высоты исходного кадра расширять область редетекции, чтобы попытаться найти цель
 
     ///Запись результата
-    Arg<int> resultWidth(argv, argc,manualInput,640,"--resultWidth=","%d", new int(1));///< Высота результирующего видео (ширина рассчитывается автоматически в соответствии с соотношением сторон)
+    Arg<int> resultWidth(argv, argc,manualInput,640,"--resultWidth=","%d", new int(1));///< Ширина результирующего видео (ширина рассчитывается автоматически в соответствии с соотношением сторон)
     Arg<int> resultHeight(argv, argc,manualInput,480,"--resultHeight=","%d", new int(1));///< Высота результирующего видео (ширина рассчитывается автоматически в соответствии с соотношением сторон)
+
+    Arg<int> previewWidth(argv, argc,manualInput,resultWidth,"--previewWidth=","%d", new int(1));///< Ширина превью видео (ширина рассчитывается автоматически в соответствии с соотношением сторон)
+    Arg<int> previewHeight(argv, argc,manualInput,resultHeight,"--previewHeight=","%d", new int(1));///< Высота превью видео (ширина рассчитывается автоматически в соответствии с соотношением сторон)
+
+
     Arg<int> recordResult(argv, argc,manualInput,1,"--recordResult=","%d",new int(0));///< Записывать результирующее видео.
     Arg<int> writeCropFile(argv, argc,manualInput,0,"--writeCropFile=","%d",new int(0));///< Записывать фильтр-скрипт для обработки исходного видео в ffmpeg (см. [filter_script](http://ffmpeg.org/ffmpeg.html#Main-options))
 
     /// Визуализация
+    Arg<int> showResult(argv, argc,manualInput,0,"--showResult=","%d",new int(0));
     Arg<int> showPreview(argv, argc,manualInput,0,"--showPreview=","%d",new int(0));///< Показывать в реальном времени процесс обработки видео с отрисовкой виртуальной камеры и детектированных лиц
     Arg<int> recordPreview(argv, argc,manualInput,0,"--recordPreview=","%d",new int(0));///< Записывать процесс обработки видео в отдельный файл
 
@@ -150,9 +161,10 @@ int main( int argc, const char** argv )
     Arg<double> zoomSpeedMax(argv, argc,manualInput,1.00,"--zoomSpeedMax=","%lf",new double(0.001));///< Максимальная скорость зума
     Arg<double> zoomSpeedInc_(argv, argc,manualInput,0.1,"--zoomSpeedInc=","%lf",new double(0.001));///< Инкремент скорости зума
 
-    Arg<int> streamToStdOut(argv, argc,manualInput,0,"--streamToStdOut=","%d",new int(0)); ///< Печатать кадры результирующего видео в стандартный вывод
+    Arg<int> streamResult(argv, argc,manualInput,0,"--streamToStdOut=","%d",new int(0)); ///< Печатать кадры результирующего видео в стандартный вывод
     Arg<int>writeLogFile(argv, argc,manualInput,0,"--writeLogFile=","%d",new int(0),new int(1));
 
+    Arg<int> streamPreview(argv, argc,manualInput,0,"--streamPreview=","%d",new int(0));
     help();
 
     /// Чтение аргументов программы
@@ -230,10 +242,8 @@ int main( int argc, const char** argv )
         int fourcc; ///< Код кодека, состоящий из 4-х символов (см. \ref fourcc.org http://www.fourcc.org/codecs.php)
 
 
-        const Size previewSize = Size((float)fullShot.width, (float)fullShot.height);
-//        const Size resultSize = Size(resultHeight*aspectRatio,resultHeight);
-
         const Size resultSize = Size(resultWidth,resultHeight);
+        const Size previewSize = Size(previewWidth, previewHeight);
         ///Zoom & movement params (driver)
         Detector det(cascadeFullName,cascadeProfName,
                      Size((float)fullShot.width/scale, (float)fullShot.height/scale),
@@ -465,27 +475,32 @@ int main( int argc, const char** argv )
                 startOutputTime = endProcessTime = cvGetTickCount();
                 try{
                     /// \todo 18.05.2016 FileSaver
-                    if(recordResult || streamToStdOut){
+                    if(recordResult || streamResult || showResult){
                         resize(fullFrame(cam.getRoi()), result , resultSize, 0,0, INTER_LINEAR ); /// \todo 13.02.2017 Добавить мьютекс или семафор
                         if(recordResult){
                             outputVideo << result;
                         }
-                        if(streamToStdOut){
-                            Mat array = result.reshape(0,1);
-                            string outstr((char *)array.data,array.total()*array.elemSize());
-                            cout<<outstr;
+                        if(streamResult && !streamPreview){
+                            stream(result);
+                        }
+                        if(showResult){
+                            imshow("Result",result);
                         }
                     }
                 }catch(Exception &mvEx){
                     clog << "Result saving: "<< mvEx.msg << endl;
                 }
 
+
   //    VIEW    //
                 /// \todo 18.05.2016 class Drawer
-                if(showPreview || recordPreview){ // Отрисовка области интереса
+                if(showPreview || streamPreview || recordPreview){ // Отрисовка области интереса
                     pre.drawPreview(fullFrame,cam,bTrackerInitialized,focus,aim,det,detWarning,aimCheckerPer,frameCounter); /// \todo 13.02.2017 Добавить мьютекс или семафор
                     if(showPreview)
                         pre.show();
+                    if(streamPreview && !streamResult){
+                        stream(pre.getPreview());
+                    }
                     // Сохранение кадра
                     if(recordPreview)
                         previewVideo << pre.getPreview();

@@ -33,10 +33,10 @@ void Preview::drawPreview(
         const int &aimCheckerPer,
         const unsigned int frameCounter)
 {
-    resize(fullFrame, preview, this->size, 0, 0, INTER_NEAREST ); ///< \todo 28.01.2017 !!! Отрисовка всех превью не должна зависеть от параметра scale, нужен только для детектора Viola Jones
+    Mat previewBig = fullFrame.clone();
 
     // Рисовать кадр захвата
-    rectangle(preview,cam.getRoi(),Scalar(0,0,255),thickness);
+    rectangle(previewBig,cam.getRoi(),Scalar(0,0,255),thickness);
     Scalar colorX;
     switch (cam.getMoveX().getState()){
     case BEGIN:
@@ -61,49 +61,49 @@ void Preview::drawPreview(
     }
     if(cam.getMoveX().getState()!=STOP){
         if(cam.getMoveX().getSign()<0)
-            arrowedLine(preview,
+            arrowedLine(previewBig,
                         Point(cam.getRoi().x,cam.getRoi().y+cam.getRoi().height/2),
                         Point(cam.getRoi().x-cam.getMoveX().getSpeed()*2,cam.getRoi().y+cam.getRoi().height/2),
                         colorX,thickness,8,0,1);
         else
-            arrowedLine(preview,
+            arrowedLine(previewBig,
                         Point(cam.getRoi().x+cam.getRoi().width,cam.getRoi().y+cam.getRoi().height/2),
                         Point(cam.getRoi().x+cam.getRoi().width+cam.getMoveX().getSpeed()*2,cam.getRoi().y+cam.getRoi().height/2),
                         colorX,thickness,8,0,1);
     }
     if(cam.getMoveY().getState()!=STOP){
         if(cam.getMoveY().getSign()<0)
-            arrowedLine(preview,
+            arrowedLine(previewBig,
                         Point(cam.getRoi().x+cam.getRoi().width/2,cam.getRoi().y),
                         Point(cam.getRoi().x+cam.getRoi().width/2,cam.getRoi().y-cam.getMoveY().getSpeed()*2),
                         colorY,thickness,8,0,1);
         else
-            arrowedLine(preview,
+            arrowedLine(previewBig,
                         Point(cam.getRoi().x+cam.getRoi().width/2,cam.getRoi().br().y),
                         Point(cam.getRoi().x+cam.getRoi().width/2,cam.getRoi().br().y+cam.getMoveY().getSpeed()*2),
                         colorY,thickness,8,0,1);
     }
-    drawThirds(preview,cam.getRoi(),Scalar(0,255,0),dotsRadius);
+    drawThirds(previewBig,cam.getRoi(),Scalar(0,255,0),dotsRadius);
     // Рисовать цель
     if(bTrackerInitialized){
         stringstream strDetWarn;
         strDetWarn << detWarning;
-        rectangle(preview,aim,Scalar(255-detWarning,255-detWarning,255),thickness);
+        rectangle(previewBig,aim,Scalar(255-detWarning,255-detWarning,255),thickness);
         if(frameCounter % aimCheckerPer!=0){
-            putText(preview, "aim tracking"+strDetWarn.str(),aim.tl(),CV_FONT_NORMAL,fontScale,Scalar(255,255,255),textThickness);
+            putText(previewBig, "aim tracking"+strDetWarn.str(),aim.tl(),CV_FONT_NORMAL,fontScale,Scalar(255,255,255),textThickness);
         }
         else{
-            putText(preview, "redetection",aim.tl(),CV_FONT_NORMAL,fontScale,Scalar(0,255,255),textThickness);
+            putText(previewBig, "redetection",aim.tl(),CV_FONT_NORMAL,fontScale,Scalar(0,255,255),textThickness);
         }
     }else{
-        rectangle(preview,aim,Scalar(0,255,0),thickness);
-        putText(preview, "aim detection",aim.tl(),CV_FONT_NORMAL,fontScale,Scalar(0,255,0),textThickness);
+        rectangle(previewBig,aim,Scalar(0,255,0),thickness);
+        putText(previewBig, "aim detection",aim.tl(),CV_FONT_NORMAL,fontScale,Scalar(0,255,0),textThickness);
         //Отрисовка распознаных объектов на превью
-        drawRects(preview,det.getFacesFull(),"Full face",Scalar(255,0,0),fontScale,textThickness,textOffset,thickness);
-        drawRects(preview,det.getFacesProf(),"Profile",Scalar(255,127,0),fontScale,textThickness,textOffset,thickness);
+        drawRects(previewBig,det.getFacesFull(),"Full face",Scalar(255,0,0),fontScale,textThickness,textOffset,thickness);
+        drawRects(previewBig,det.getFacesProf(),"Profile",Scalar(255,127,0),fontScale,textThickness,textOffset,thickness);
     }
     // Рисовать фокус детекции
-    rectangle(preview,focus,Scalar(0,255,255),thickness*0.8);
+    rectangle(previewBig,focus,Scalar(0,255,255),thickness*0.8);
 
     /// Вывести время в превью
     time_t t = time(0);   // get time now
@@ -122,9 +122,10 @@ void Preview::drawPreview(
 //                    putText(preview,timestring.str(),Point(0,previewSize.height-3),CV_FONT_NORMAL,fontScale*1.35,Scalar(255,255,255),textThickness*2);
     stringstream frame;
     frame << frameCounter;
-    putText(preview,(frame.str()),Point(0,fontScale*20),CV_FONT_NORMAL,fontScale*1.45,Scalar(0,0,0,100),textThickness*10);
-    putText(preview,(frame.str()),Point(0,fontScale*20),CV_FONT_NORMAL,fontScale*1.45,Scalar(255,255,255),textThickness*5);
+    putText(previewBig,(frame.str()),Point(0,fontScale*20),CV_FONT_NORMAL,fontScale*1.45,Scalar(0,0,0,100),textThickness*10);
+    putText(previewBig,(frame.str()),Point(0,fontScale*20),CV_FONT_NORMAL,fontScale*1.45,Scalar(255,255,255),textThickness*5);
 
+    resize(previewBig, preview, this->size, 0, 0, INTER_LINEAR ); ///< \todo 28.01.2017 !!! Отрисовка всех превью не должна зависеть от параметра scale, нужен только для детектора Viola Jones
 }
 
 /**
