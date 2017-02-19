@@ -2,6 +2,11 @@
   * \brief Программа для детекции и трекинга лиц в видео с повышенным разрешением
   * \author Ilya Petrov
   */
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
+
 #include "opencv2/objdetect.hpp"
 #include "opencv2/highgui.hpp"
 #include "opencv2/imgproc.hpp"
@@ -107,6 +112,7 @@ static void help()
  * @param[in] argv Массив аргументов
  * @return 0, если программа завершена удачно
  */
+
 int main( int argc, const char** argv )
 {
 
@@ -263,6 +269,7 @@ int main( int argc, const char** argv )
         VideoWriter previewVideo;
         VideoWriter outputVideo;
 
+
         ///Test items
         fstream logFile;
         stringstream pzoom;
@@ -376,8 +383,6 @@ int main( int argc, const char** argv )
         int64 startOutputTime, endOutputTime;
         double timeOfIteration=40000.0;
         double timeOfCapture=20000.0, timeOfProcess=2000.0, timeOfOutput;
-        double freeTime = 0.0;
-
         // Main cycle
         for(;!end;){
 
@@ -568,19 +573,18 @@ int main( int argc, const char** argv )
             timeOfCapture = (endCapTime - startCapTime)/cvGetTickFrequency();
             timeOfProcess = (endProcessTime - startProcessTime)/cvGetTickFrequency();
             timeOfOutput = (endOutputTime - startOutputTime)/cvGetTickFrequency();
-            freeTime = timeOfIteration - timeOfCapture - timeOfOutput;
 
 
 
-            clog << "Time: " << timeOfIteration << " us\n";
+//            clog << "Time: " << timeOfIteration << " us\n";
             clog << "FrameRate: " << 0.04*1000000 / timeOfIteration<< " fps\n";
         }
         pthread_exit(NULL);
         if(bb!=NULL){
             delete bb;
             bb = NULL;
-        }
-        if(tracker!=NULL){
+        }      
+	if(tracker!=NULL){
             delete tracker;
         }
         if(logFile.is_open()){
