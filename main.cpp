@@ -46,34 +46,33 @@ typedef cv::Point3_<uint8_t> Pixel;
 void stream(Mat mat, fstream &f){
     if(!mat.empty())
         for (Pixel &p : cv::Mat_<Pixel>(mat)) {
-           f << p.x;
-           f << p.y;
-           f << p.z;
+            f << p.x;
+            f << p.y;
+            f << p.z;
         }
     f.flush();
 }
-void streamInThread(const char *filename, Mat* mat){
+void streamInThread(const char *filename, Mat* mat, bool* finish = new bool(0)){
     fstream fifoFdRes;
     int fifresult=0;
     try{
         unlink(filename);
         fifresult = mkfifo(filename,O_RDWR|S_IRWXU|O_NONBLOCK);
         fifoFdRes.open(filename,fstream::out|fstream::trunc);
-        while(1){
+        while(!(*finish)){
             if(mat!=NULL) {
                 stream(mat->clone(),fifoFdRes);
             }
         }
     }catch(exception e){
-
         cerr << e.what() <<endl;
     }
     fifoFdRes.close();
     unlink(filename);
+    clog << "thread " << filename << " finished" << endl;
 }
 
-void* captureFrame(void* inputName_){
-    string inputName = *((string*)inputName_);
+void captureFrame(string inputName, bool* finish = new bool(0)){
     VideoCapture capture;
     bool isWebcam=false;
     while(!capture.isOpened()){
@@ -103,29 +102,27 @@ void* captureFrame(void* inputName_){
         int fps = capture.get(CV_CAP_PROP_FPS);
         if(fps==0)fps=25;
         int delay=0;
-        while(true){
-            clog << "msec:" << capture.get(CV_CAP_PROP_POS_MSEC) << endl;
-            clog << "frames:" << capture.get(CV_CAP_PROP_POS_FRAMES) << endl;
+        while(!(*finish)){
             frameCounter++;
             if(!isWebcam && 1000/fps - t/1000 > 0){
                 delay+=(1000/fps - t/1000);
             }
-            if(capture.grab() && delay < 1000/fps){
-                capture.retrieve(fullFrame); /// \todo 13.02.2017 Добавить мьютекс или семафор
-            }else{
-                capture.grab();
-                delay=0;
-                frameCounter++;
+            if(capture.grab()){
+                if(delay < 1000/fps){
+                    capture.retrieve(fullFrame); /// \todo 13.02.2017 Добавить мьютекс или семафор
+                }else{
+                    capture.grab();
+                    delay=0;
+                    frameCounter++;
+                }
             }
 
             pt=ct;
             ct=cvGetTickCount();
             t=(ct-pt)/cvGetTickFrequency();
-            clog << "input delay between frames: " << t << "us" << endl;
         }
+        clog << "capture Thread finished" << endl;
     }
-    pthread_exit(NULL);
-    return 0;
 }
 
 static void help()
@@ -254,403 +251,408 @@ int main( int argc, const char** argv )
         }
     }
     ///Создание нити захвата кадров
-    pthread_t captureThread;
-    int ret=0;
-    ret = pthread_create(&captureThread,NULL,&captureFrame,&inputName);
+    bool capThreadFinish=false;
+    thread captureThread(captureFrame,inputName,&capThreadFinish);
+    if(isWebcam) writeCropFile=false; /// \todo 18.05.2016 class FileSaver
+    clog << "Video capturing has been started ..." << endl;
 
-    if(ret==0)
-    {
-        if(isWebcam) writeCropFile=false; /// \todo 18.05.2016 class FileSaver
-        clog << "Video capturing has been started ..." << endl;
-
-   //    MODEL    //
-        // Кадры
-//        Mat fullFrame; /// \todo 18.05.2016 class InputMan, class Detector
-//        Mat result; /// \todo 18.05.2016 class FileSaver
-        /// Характеристики видео
-        const long int videoLength = /*isWebcam ? 1 :*/ capture.get(CAP_PROP_FRAME_COUNT);
-        /// \todo 05/12/2016 При стриминге размеры кадра определяются почему-то неправильно
-        const Rect2f fullShot(0,0,(int)capture.get(CV_CAP_PROP_FRAME_WIDTH),
-                                (int)capture.get(CV_CAP_PROP_FRAME_HEIGHT));
-        int fps; ///< Количество кадров в секунду /// \todo 18.05.2016 class FileSaver, class Previewer
-        int fourcc; ///< Код кодека, состоящий из 4-х символов (см. \ref fourcc.org http://www.fourcc.org/codecs.php)
+    //    MODEL    //
+    // Кадры
+    //        Mat fullFrame; /// \todo 18.05.2016 class InputMan, class Detector
+    //        Mat result; /// \todo 18.05.2016 class FileSaver
+    /// Характеристики видео
+    const long int videoLength = /*isWebcam ? 1 :*/ capture.get(CAP_PROP_FRAME_COUNT);
+    /// \todo 05/12/2016 При стриминге размеры кадра определяются почему-то неправильно
+    const Rect2f fullShot(0,0,(int)capture.get(CV_CAP_PROP_FRAME_WIDTH),
+                          (int)capture.get(CV_CAP_PROP_FRAME_HEIGHT));
+    int fps; ///< Количество кадров в секунду /// \todo 18.05.2016 class FileSaver, class Previewer
+    int fourcc; ///< Код кодека, состоящий из 4-х символов (см. \ref fourcc.org http://www.fourcc.org/codecs.php)
 
 
-        const Size resultSize = Size(resultWidth,resultHeight);
-        const Size previewSize = Size(previewWidth, previewHeight);
-        ///Zoom & movement params (driver)
-        Detector det(cascadeFullName,cascadeProfName,
-                     Size((float)fullShot.width/scale, (float)fullShot.height/scale),
-                     aimUpdatePer,faceDetectPer,minNeighbors,minFaceHeight,scaleFactor,scale);
-        AutoCamera cam(fullShot.size(),maxStepX,maxStepY,zoomSpeedMin,zoomSpeedMax,zoomStartThr,zoomSpeedInc_,face2shot,1,1); /// \todo 28.01.2017 убрать отсюда параметр scale. См. класс Detector
+    const Size resultSize = Size(resultWidth,resultHeight);
+    const Size previewSize = Size(previewWidth, previewHeight);
+    ///Zoom & movement params (driver)
+    Detector det(cascadeFullName,cascadeProfName,
+                 Size((float)fullShot.width/scale, (float)fullShot.height/scale),
+                 aimUpdatePer,faceDetectPer,minNeighbors,minFaceHeight,scaleFactor,scale);
+    AutoCamera cam(fullShot.size(),maxStepX,maxStepY,zoomSpeedMin,zoomSpeedMax,zoomStartThr,zoomSpeedInc_,face2shot,1,1); /// \todo 28.01.2017 убрать отсюда параметр scale. См. класс Detector
 
-        ColorTracker* tracker = NULL;
-        BBox* bb = NULL;
-        bool bTrackerInitialized = false;
-        Rect aim;
-        Rect focus;
-
-
-        //file writing
-        stringstream outTitleStream;
-        string outFileTitle;
-        VideoWriter previewVideo;
-        VideoWriter outputVideo;
+    ColorTracker* tracker = NULL;
+    BBox* bb = NULL;
+    bool bTrackerInitialized = false;
+    Rect aim;
+    Rect focus;
 
 
-        ///Test items
-        fstream logFile;
-        stringstream pzoom;
+    //file writing
+    stringstream outTitleStream;
+    string outFileTitle;
+    VideoWriter previewVideo;
+    VideoWriter outputVideo;
+
+
+    ///Test items
+    fstream logFile;
+    stringstream pzoom;
+
+
+    //    VIEW    //
+    Rect2f roiFullSize;
+    //drawing
+    Preview pre(previewSize.width,previewSize.height,"Preview");
+    /// \todo 18.05.2016 end class Drawer ///
+
+    // SetUp
+    if(isWebcam){ /// \todo 18.05.2016 class InputMan
+        time_t t = time(0);   // get time now
+        struct tm * now = localtime( & t );
+        outTitleStream << "webcam"
+                       << (now->tm_year + 1900) << '_'
+                       << (now->tm_mon + 1) << '_'
+                       << now->tm_mday << "_"
+                       << now->tm_hour <<"-"
+                       << now->tm_min << "_"
+                       << __DATE__ <<"_"<< __TIME__ <<"_arg"
+                          //                          << scale
+                          //                          << minNeighbors
+                          //                          << scaleFactor
+                          //                          << minFaceHeight
+                          //                          << aimUpdatePer
+                          //                          << faceDetectPer
+                          //                          << resultHeight
+                          //                          << showPreview
+                          //                          << recordPreview
+                          //                          << maxStepX
+                          //                         << maxStepY
+                          //                         << writeCropFile
+                          //                         << recordResult
+                          //                         << zoomStartThr
+                          //                         << face2shot
+                          //                         << zoomSpeedMin
+                          //                         << zoomSpeedMax
+                       << zoomSpeedInc_;
+    }else{
+        outTitleStream << inputName.substr(inputName.find_last_of('/')+1)
+                       << "_" <<__DATE__ <<"_"<< __TIME__<<"_arg"
+                          //            << scale<< "_"
+                          //            << minNeighbors << "_"
+                          //            << scaleFactor << "_"
+                          //            << minFaceHeight << "_"
+                          //            << aimUpdatePer << "_"
+                          //            << faceDetectPer << "_"
+                          //            << resultHeight << "_"
+                          //            << showPreview << "_"
+                          //            << recordPreview << "_"
+                          //            << maxStepX << "_"
+                          //           << maxStepY << "_"
+                          //           << writeCropFile << "_"
+                          //           << recordResult << "_"
+                          //           << zoomStartThr << "_"
+                          //           << face2shot << "_"
+                          //           << zoomSpeedMin << "_"
+                          //           << zoomSpeedMax << "_"
+                       << zoomSpeedInc_;
+    }
+    outFileTitle=outTitleStream.str();
+    replace(outFileTitle.begin(),outFileTitle.end(),' ','_');
+    replace(outFileTitle.begin(),outFileTitle.end(),':','-');
+
+    if(isWebcam){
+        fps = capture.get(CAP_PROP_FPS);
+        fourcc = VideoWriter::fourcc('M','P','4','2'); // codecs
+    }
+    else{
+        fourcc = capture.get(CV_CAP_PROP_FOURCC); // codecs
+        fps = capture.get(CAP_PROP_FPS);
+    }
+    //        int fifresult=0;
+    //        fstream fifoFdRes;
+    result = new Mat(resultWidth,resultHeight,CV_8UC3);
+    std::thread* resultThread;
+    bool resultThreadFinish=0;
+    if(streamResult){
+        resultThread = new thread(streamInThread,"result",result,&resultThreadFinish);
+    }
+
+    if(recordResult){
+        if(!outputVideo.open("rtsp://:5252/result.sdp",fourcc,
+                             fps, resultSize, true)){
+            cerr << "Could not open the output video for writing"<<endl;
+            recordResult=false;
+            return -1;
+        }
+    }
+    if(recordPreview){
+        if(!previewVideo.open("../results/test_"+outFileTitle+".avi",fourcc,
+                              fps, previewSize, true))
+        {
+            cerr << "Could not open the output video ("
+                 << "../results/test_"+outFileTitle+".avi" <<") for writing"<<endl;
+            recordPreview=false;
+            //                 return -1;
+        }
+    }
+    if(writeLogFile){
+        logFile.open(("../results/test_"+outFileTitle+".ods").c_str(), fstream::out); /// \todo 18.05.2016 class StatMan
+        if(!logFile.is_open()){
+            clog << "Error with opening the file:" << "../results/test_"+outFileTitle+".ods" << endl;
+        }
+    }
+    clog << "!!!";
+    vector<Mat> frames;
+    bool end=false;
+    fstream cropFile;
+    if(writeCropFile){ /// \todo 18.05.2016 class FileSaver
+        cropFile.open("../results/filter",fstream::out);
+    }
+
+    unsigned int detWarning=0;
+    int64 startIterationTime, endIterationTime;
+    int64 startCapTime, endCapTime;
+    int64 startProcessTime, endProcessTime;
+    int64 st, et;
+    int64 startOutputTime, endOutputTime;
+    double timeOfIteration=40000.0;
+    double timeOfCapture=20000.0, timeOfProcess=2000.0, timeOfOutput;
+    // Main cycle
+    for(;!end;){
+
+        startCapTime = startIterationTime = cvGetTickCount();
+
+        if(showPreview || showResult){
+            char c;
+            c=waitKey(1);
+            if(!fullFrame.empty()) {
+                switch (c) {
+                case 'r':
+                    bTrackerInitialized=false;
+                    det.resetAim();
+                    aim = det.getAim();
+                    break;
+                case 27:
+                    end=true;
+                    resultThreadFinish=true;
+                    capThreadFinish=true;
+                    break;
+                default:
+                    break;
+                }
+            }
+        }
+
+        if(!fullFrame.empty() ) { /// \todo 13.02.2017 Добавить мьютекс или семафор
+            if(frameCounter>0)pzoom<<',';
+        }
+        else{
+            clog << "Frame is empty" << endl;
+            //                    end=true;
+            continue;
+        }
+        startProcessTime = endCapTime = cvGetTickCount();
+
+
+        ///// DETECTION AND TRACKING /////
+        if(1){
+            if(bTrackerInitialized && tracker != NULL && detWarning < detWarningLimit){
+                if(bb !=NULL) {
+                    delete bb; bb=NULL;
+                    bb = new BBox();
+                }
+                bb = tracker->track(fullFrame); /// \todo 13.02.2017 Добавить мьютекс или семафор
+                if(bb!=NULL){
+                    st=cvGetTickCount();
+                    aim = Rect(bb->x,
+                               bb->y,
+                               bb->width,
+                               bb->height);
+                    if(frameCounter%aimCheckerPer == 0){ /// \todo 14.02.2017 изменение размеров лица должно происходить и в меньшую сторону
+                        det.detect(fullFrame((focus&Rect(0,0,fullShot.width,fullShot.height)))); /// \todo 13.02.2017 Добавить мьютекс или семафор
+                        static unsigned int focusEx = focus.height*focusEx_;
+                        if(det.foundFaces()){
+                            if(detWarning>0){detWarning--;// -1 к предупреждению;
+                                focus+=Point(focusEx,focusEx);
+                                focus+=Size(-focusEx,-focusEx);
+                            }
+                            /// \todo 30.01.2017 надо подправить размер
+                        }else{
+                            if(detWarning<255){detWarning++;// +1 предупреждение
+                                focus+=Point(-focusEx,-focusEx);
+                                focus+=Size(focusEx,focusEx);
+                            }
+                        }
+                        /// конкретные действия, что делать если мы теряем лицо
+                        if(detWarning >= detWarningLimit){
+                            bTrackerInitialized=false; // запускаем детекцию заново
+                            det.resetAim();
+                            focus=aim;
+                        }
+                    }
+                    cam.update(aim); /// Сделать так, чтобы aim всегда держал нужные границы
+                    focus=Rect(aim.x-(focus.width-aim.width)*0.5,aim.y-(focus.height-aim.height)*0.5,focus.width,focus.height);
+                    et=cvGetTickCount();
+                    clog << "some Time: " << (et-st)/cvGetTickFrequency() << endl;
+                }
+            }else{
+                det.detect(fullFrame); /// \todo 13.02.2017 Добавить мьютекс или семафор
+                if(det.aimDetected()){
+                    aim = det.getAim();
+                    focus=aim;
+                    static unsigned int focusEx = focus.height*focusEx_;
+                    focus+=Point(focusEx,focusEx);
+                    focus+=Size(-focusEx,-focusEx);
+                    if(tracker != NULL)delete tracker;
+                    tracker = new ColorTracker();
+                    tracker->init(fullFrame, /// \todo 13.02.2017 Добавить мьютекс или семафор
+                                  aim.tl().x,
+                                  aim.tl().y,
+                                  aim.br().x,
+                                  aim.br().y);
+                    bTrackerInitialized = true;
+                    detWarning=0;
+                    cam.update(aim);
+                }
+            }
+        }
+        startOutputTime = endProcessTime = cvGetTickCount();
+        try{
+            /// \todo 18.05.2016 FileSaver
+            if(recordResult || streamResult || showResult){
+                resize(fullFrame(cam.getRoi()), *result , resultSize, 0,0, INTER_LINEAR ); /// \todo 13.02.2017 Добавить мьютекс или семафор
+                if(recordResult){
+                    outputVideo << *result;
+                }
+                if(streamResult){
+                    //                            stream(result);
+                    //                            clog<<"Writing result>>>>>>>>>>>>>"<< endl;
+                    //                            Mat mat = result.clone();
+                    //                            for(int col=0; col< mat.cols; ++col){
+                    //                                for(int row=0;row,mat.rows;++row){
+                    //                                            cout << (uchar)(col%255);
+                    //                                            cout << (uchar)0;
+                    //                                            cout << (uchar)0;
+                    //                                }
+                    //                            }
+                }
+                if(showResult){
+                    imshow("Result",*result);
+                }
+            }
+        }catch(Exception &mvEx){
+            clog << "Result saving: "<< mvEx.msg << endl;
+        }
 
 
         //    VIEW    //
-        Rect2f roiFullSize;
-        //drawing
-        Preview pre(previewSize.width,previewSize.height,"Preview");
-        /// \todo 18.05.2016 end class Drawer ///
-
-         // SetUp
-        if(isWebcam){ /// \todo 18.05.2016 class InputMan
-            time_t t = time(0);   // get time now
-            struct tm * now = localtime( & t );
-             outTitleStream << "webcam"
-                          << (now->tm_year + 1900) << '_'
-                          << (now->tm_mon + 1) << '_'
-                          << now->tm_mday << "_"
-                          << now->tm_hour <<"-"
-                          << now->tm_min << "_"
-                          << __DATE__ <<"_"<< __TIME__ <<"_arg"
-//                          << scale
-//                          << minNeighbors
-//                          << scaleFactor
-//                          << minFaceHeight
-//                          << aimUpdatePer
-//                          << faceDetectPer
-//                          << resultHeight
-//                          << showPreview
-//                          << recordPreview
-//                          << maxStepX
-//                         << maxStepY
-//                         << writeCropFile
-//                         << recordResult
-//                         << zoomStartThr
-//                         << face2shot
-//                         << zoomSpeedMin
-//                         << zoomSpeedMax
-                         << zoomSpeedInc_;
-        }else{
-            outTitleStream << inputName.substr(inputName.find_last_of('/')+1)
-            << "_" <<__DATE__ <<"_"<< __TIME__<<"_arg"
-//            << scale<< "_"
-//            << minNeighbors << "_"
-//            << scaleFactor << "_"
-//            << minFaceHeight << "_"
-//            << aimUpdatePer << "_"
-//            << faceDetectPer << "_"
-//            << resultHeight << "_"
-//            << showPreview << "_"
-//            << recordPreview << "_"
-//            << maxStepX << "_"
-//           << maxStepY << "_"
-//           << writeCropFile << "_"
-//           << recordResult << "_"
-//           << zoomStartThr << "_"
-//           << face2shot << "_"
-//           << zoomSpeedMin << "_"
-//           << zoomSpeedMax << "_"
-           << zoomSpeedInc_;
-        }
-        outFileTitle=outTitleStream.str();
-        replace(outFileTitle.begin(),outFileTitle.end(),' ','_');
-        replace(outFileTitle.begin(),outFileTitle.end(),':','-');
-
-        if(isWebcam){
-            fps = capture.get(CAP_PROP_FPS);
-            fourcc = VideoWriter::fourcc('M','P','4','2'); // codecs
-        }
-        else{
-            fourcc = capture.get(CV_CAP_PROP_FOURCC); // codecs
-            fps = capture.get(CAP_PROP_FPS);
-        }
-//        int fifresult=0;
-//        fstream fifoFdRes;
-        result = new Mat(resultWidth,resultHeight,CV_8UC3);
-        std::thread* resultThread;
-        if(streamResult){
-            resultThread = new thread(streamInThread,"result",result);
-        }
-
-        if(recordResult){
-                if(!outputVideo.open("rtsp://:5252/result.sdp",fourcc,
-                                     fps, resultSize, true)){
-                    cerr << "Could not open the output video for writing"<<endl;
-                    recordResult=false;
-                    return -1;
+        /// \todo 18.05.2016 class Drawer
+        if(showPreview || streamPreview || recordPreview){ // Отрисовка области интереса
+            pre.drawPreview(fullFrame,cam,bTrackerInitialized,focus,aim,det,detWarning,aimCheckerPer,frameCounter); /// \todo 13.02.2017 Добавить мьютекс или семафор
+            if(showPreview)
+                pre.show();
+            if(streamPreview && !streamResult){
+                //                        stream(pre.getPreview());
             }
-        }
-        if(recordPreview){
-             if(!previewVideo.open("../results/test_"+outFileTitle+".avi",fourcc,
-                                   fps, previewSize, true))
-             {
-                 cerr << "Could not open the output video ("
-                      << "../results/test_"+outFileTitle+".avi" <<") for writing"<<endl;
-                 recordPreview=false;
-//                 return -1;
-             }
-        }
-        if(writeLogFile){
-            logFile.open(("../results/test_"+outFileTitle+".ods").c_str(), fstream::out); /// \todo 18.05.2016 class StatMan
-            if(!logFile.is_open()){
-                clog << "Error with opening the file:" << "../results/test_"+outFileTitle+".ods" << endl;
+            // Сохранение кадра
+            if(recordPreview)
+                previewVideo << pre.getPreview();
+        } /// \todo 18.05.2016 end class Drawer
+
+
+        // Сохранение статистики
+        /// \todo 18.05.2016 class StatMan
+        if(logFile.is_open()) {
+            if(frameCounter<1){
+                logFile << "frame\t";
+                logFile << "det.getFacesFull().x, px"<<"\t"
+                        <<"det.getFacesFull().y, px"<<"\t"
+                       << "det.getFacesFull().width, px"<<"\t"
+                       <<"det.getFacesFull().height, px"<<"\t"
+                      << "faceProf.x, px"<<"\t"
+                      <<"faceProf.y, px"<<"\t"
+                     << "det.getFacesProf().width, px"<<"\t"
+                     <<"det.getFacesProf().height, px"<<"\t"
+                    << "aim.x, px"<<"\t"
+                    <<"aim.y, px"<<"\t"
+                   << "aim.width, px"<<"\t"
+                   <<"aim.height, px"<<"\t"
+                  << "roi.x, px\t"
+                  <<"roi.y, px"<<"\t"
+                 << "roi.width, px\t"
+                 <<"roi.height, px"<< endl;
             }
+            logFile  << frameCounter <<"\t";
+            if(!det.getFacesFull().empty())
+                logFile << det.getFacesFull()[0].x << "\t"
+                                                   << det.getFacesFull()[0].y << "\t"
+                                                   << det.getFacesFull()[0].width << "\t"
+                                                   << det.getFacesFull()[0].height << "\t";
+            else logFile << "\t\t\t\t";
+            if(!det.getFacesProf().empty())
+                logFile << det.getFacesProf()[0].x << "\t"
+                                                   << det.getFacesProf()[0].y << "\t"
+                                                   << det.getFacesProf()[0].width << "\t"
+                                                   << det.getFacesProf()[0].height << "\t";
+            else logFile << "\t\t\t\t";
+
+            logFile << aim.x << "\t"
+                    << aim.y << "\t"
+                    << aim.width << "\t"
+                    << aim.height << "\t";
+            logFile << cam.getRoi().x << "\t"
+                    << cam.getRoi().y << "\t"
+                    << cam.getRoi().width << "\t"
+                    << cam.getRoi().height << endl;
         }
-        clog << "!!!";
-        vector<Mat> frames;
-        bool end=false;
-        fstream cropFile;
-        if(writeCropFile){ /// \todo 18.05.2016 class FileSaver
-            cropFile.open("../results/filter",fstream::out);
+        if(writeCropFile && cropFile.is_open()){
+            cropFile << "zoompan=enable=eq(n\\,"<< frameCounter
+                     << "):z=" << fullShot.width/roiFullSize.width
+                     << ":x=" << roiFullSize.x
+                     << ":y=" << roiFullSize.y << ":d=1";
         }
 
-        unsigned int detWarning=0;
-        int64 startIterationTime, endIterationTime;
-        int64 startCapTime, endCapTime;
-        int64 startProcessTime, endProcessTime;
-        int64 st, et;
-        int64 startOutputTime, endOutputTime;
-        double timeOfIteration=40000.0;
-        double timeOfCapture=20000.0, timeOfProcess=2000.0, timeOfOutput;
-        // Main cycle
-        for(;!end;){
+        clog <<"frame:"<< frameCounter
+            << " ("<< (int)((100*(float)frameCounter)/(float)videoLength) <<"% of video)"
+            << endl;
 
-                startCapTime = startIterationTime = cvGetTickCount();
-
-                if(showPreview || showResult){
-                    char c;
-                    c=waitKey(1);
-                    if(!fullFrame.empty() && c!=27) {
-                        switch (c) {
-                        case 'r':
-                            bTrackerInitialized=false;
-                            det.resetAim();
-                            aim = det.getAim();
-                            break;
-                        default:
-                            break;
-                        }
-                    }
-                }
-
-                if(!fullFrame.empty() ) { /// \todo 13.02.2017 Добавить мьютекс или семафор
-                    if(frameCounter>0)pzoom<<',';
-                }
-                else{
-                    clog << "Frame is empty" << endl;
-//                    end=true;
-                    continue;
-                }
-                startProcessTime = endCapTime = cvGetTickCount();
-
-
-                ///// DETECTION AND TRACKING /////
-                if(1){
-                if(bTrackerInitialized && tracker != NULL && detWarning < detWarningLimit){
-                    if(bb !=NULL) {
-                        delete bb; bb=NULL;
-                        bb = new BBox();
-                    }
-                    bb = tracker->track(fullFrame); /// \todo 13.02.2017 Добавить мьютекс или семафор
-                    if(bb!=NULL){
-                        st=cvGetTickCount();
-                        aim = Rect(bb->x,
-                                   bb->y,
-                                   bb->width,
-                                   bb->height);
-                        if(frameCounter%aimCheckerPer == 0){ /// \todo 14.02.2017 изменение размеров лица должно происходить и в меньшую сторону
-                            det.detect(fullFrame((focus&Rect(0,0,fullShot.width,fullShot.height)))); /// \todo 13.02.2017 Добавить мьютекс или семафор
-                            static unsigned int focusEx = focus.height*focusEx_;
-                            if(det.foundFaces()){
-                                if(detWarning>0){detWarning--;// -1 к предупреждению;
-                                    focus+=Point(focusEx,focusEx);
-                                    focus+=Size(-focusEx,-focusEx);
-                                }
-                                /// \todo 30.01.2017 надо подправить размер
-                            }else{
-                                if(detWarning<255){detWarning++;// +1 предупреждение
-                                    focus+=Point(-focusEx,-focusEx);
-                                    focus+=Size(focusEx,focusEx);
-                                }
-                            }
-                            /// конкретные действия, что делать если мы теряем лицо
-                            if(detWarning >= detWarningLimit){
-                                bTrackerInitialized=false; // запускаем детекцию заново
-                                det.resetAim();
-                                focus=aim;
-                            }
-                        }
-                        cam.update(aim); /// Сделать так, чтобы aim всегда держал нужные границы
-                        focus=Rect(aim.x-(focus.width-aim.width)*0.5,aim.y-(focus.height-aim.height)*0.5,focus.width,focus.height);
-                        et=cvGetTickCount();
-                        clog << "some Time: " << (et-st)/cvGetTickFrequency() << endl;
-                    }
-                }else{
-                    det.detect(fullFrame); /// \todo 13.02.2017 Добавить мьютекс или семафор
-                    if(det.aimDetected()){
-                        aim = det.getAim();
-                        focus=aim;
-                        static unsigned int focusEx = focus.height*focusEx_;
-                        focus+=Point(focusEx,focusEx);
-                        focus+=Size(-focusEx,-focusEx);
-                        if(tracker != NULL)delete tracker;
-                        tracker = new ColorTracker();
-                        tracker->init(fullFrame, /// \todo 13.02.2017 Добавить мьютекс или семафор
-                                     aim.tl().x,
-                                     aim.tl().y,
-                                     aim.br().x,
-                                     aim.br().y);
-                        bTrackerInitialized = true;
-                        detWarning=0;
-                        cam.update(aim);
-                    }
-                }
-                }
-                startOutputTime = endProcessTime = cvGetTickCount();
-                try{
-                    /// \todo 18.05.2016 FileSaver
-                    if(recordResult || streamResult || showResult){
-                        resize(fullFrame(cam.getRoi()), *result , resultSize, 0,0, INTER_LINEAR ); /// \todo 13.02.2017 Добавить мьютекс или семафор
-                        if(recordResult){
-                            outputVideo << *result;
-                        }
-                        if(streamResult){
-//                            stream(result);
-//                            clog<<"Writing result>>>>>>>>>>>>>"<< endl;
-//                            Mat mat = result.clone();
-//                            for(int col=0; col< mat.cols; ++col){
-//                                for(int row=0;row,mat.rows;++row){
-//                                            cout << (uchar)(col%255);
-//                                            cout << (uchar)0;
-//                                            cout << (uchar)0;
-//                                }
-//                            }
-                        }
-                        if(showResult){
-                            imshow("Result",*result);
-                        }
-                    }
-                }catch(Exception &mvEx){
-                    clog << "Result saving: "<< mvEx.msg << endl;
-                }
-
-
-  //    VIEW    //
-                /// \todo 18.05.2016 class Drawer
-                if(showPreview || streamPreview || recordPreview){ // Отрисовка области интереса
-                    pre.drawPreview(fullFrame,cam,bTrackerInitialized,focus,aim,det,detWarning,aimCheckerPer,frameCounter); /// \todo 13.02.2017 Добавить мьютекс или семафор
-                    if(showPreview)
-                        pre.show();
-                    if(streamPreview && !streamResult){
-//                        stream(pre.getPreview());
-                    }
-                    // Сохранение кадра
-                    if(recordPreview)
-                        previewVideo << pre.getPreview();
-                } /// \todo 18.05.2016 end class Drawer
-
-
-// Сохранение статистики
-                /// \todo 18.05.2016 class StatMan
-                if(logFile.is_open()) {
-                    if(frameCounter<1){
-                        logFile << "frame\t";
-                        logFile << "det.getFacesFull().x, px"<<"\t"
-                                <<"det.getFacesFull().y, px"<<"\t"
-                               << "det.getFacesFull().width, px"<<"\t"
-                               <<"det.getFacesFull().height, px"<<"\t"
-                              << "faceProf.x, px"<<"\t"
-                              <<"faceProf.y, px"<<"\t"
-                             << "det.getFacesProf().width, px"<<"\t"
-                             <<"det.getFacesProf().height, px"<<"\t"
-                            << "aim.x, px"<<"\t"
-                            <<"aim.y, px"<<"\t"
-                           << "aim.width, px"<<"\t"
-                           <<"aim.height, px"<<"\t"
-                          << "roi.x, px\t"
-                          <<"roi.y, px"<<"\t"
-                         << "roi.width, px\t"
-                         <<"roi.height, px"<< endl;
-                    }
-                    logFile  << frameCounter <<"\t";
-                    if(!det.getFacesFull().empty())
-                        logFile << det.getFacesFull()[0].x << "\t"
-                                                  << det.getFacesFull()[0].y << "\t"
-                                                  << det.getFacesFull()[0].width << "\t"
-                                                  << det.getFacesFull()[0].height << "\t";
-                    else logFile << "\t\t\t\t";
-                    if(!det.getFacesProf().empty())
-                        logFile << det.getFacesProf()[0].x << "\t"
-                                                  << det.getFacesProf()[0].y << "\t"
-                                                  << det.getFacesProf()[0].width << "\t"
-                                                  << det.getFacesProf()[0].height << "\t";
-                    else logFile << "\t\t\t\t";
-
-                    logFile << aim.x << "\t"
-                            << aim.y << "\t"
-                            << aim.width << "\t"
-                            << aim.height << "\t";
-                    logFile << cam.getRoi().x << "\t"
-                            << cam.getRoi().y << "\t"
-                            << cam.getRoi().width << "\t"
-                            << cam.getRoi().height << endl;
-                }
-                if(writeCropFile && cropFile.is_open()){
-                    cropFile << "zoompan=enable=eq(n\\,"<< frameCounter
-                          << "):z=" << fullShot.width/roiFullSize.width
-                          << ":x=" << roiFullSize.x
-                          << ":y=" << roiFullSize.y << ":d=1";
-                }
-
-                clog <<"frame:"<< frameCounter
-                        << " ("<< (int)((100*(float)frameCounter)/(float)videoLength) <<"% of video)"
-                        << endl;
-
-            endOutputTime = endIterationTime = cvGetTickCount();
-            timeOfIteration = (endIterationTime - startIterationTime)/cvGetTickFrequency();
-            timeOfCapture = (endCapTime - startCapTime)/cvGetTickFrequency();
-            timeOfProcess = (endProcessTime - startProcessTime)/cvGetTickFrequency();
-            timeOfOutput = (endOutputTime - startOutputTime)/cvGetTickFrequency();
+        endOutputTime = endIterationTime = cvGetTickCount();
+        timeOfIteration = (endIterationTime - startIterationTime)/cvGetTickFrequency();
+        timeOfCapture = (endCapTime - startCapTime)/cvGetTickFrequency();
+        timeOfProcess = (endProcessTime - startProcessTime)/cvGetTickFrequency();
+        timeOfOutput = (endOutputTime - startOutputTime)/cvGetTickFrequency();
 
 
 
-//            clog << "Time: " << timeOfIteration << " us\n";
-            clog << "FrameRate: " << 0.04*1000000 / timeOfIteration<< " fps\n";
-        }
-        pthread_exit(NULL);
-        if(bb!=NULL){
-            delete bb;
-            bb = NULL;
-        }
-        if(resultThread!=NULL) delete resultThread;
-        //        fifoFdRes.close();
-        if(tracker!=NULL){
-            delete tracker;
-        }
-        if(logFile.is_open()){
-            logFile.close(); /// \todo 18.05.2016 class StatMan
-            clog << "The results have been written to " << "''"+outFileTitle+"''" << endl;
-        }
-        if(writeCropFile){ /// \todo 18.05.2016 class FileSaver
-            //            fstream cropFile;
-            //            cropFile.open(("../results/filter_"/*outFileTitle).c_str()*/,fstream::out);
-            if(cropFile.is_open()){
-                //                cropFile  << pzoom.str();
-                cropFile.close();
-            }else{
-                clog << "Error with opening the file:" << "../results/test_"+outFileTitle+".crop" << endl;
-            }
-        }
-        if(result!=NULL)delete result;
+        //            clog << "Time: " << timeOfIteration << " us\n";
+        clog << "FrameRate: " << 0.04*1000000 / timeOfIteration<< " fps\n";
     }
+    pthread_exit(NULL);
+    if(bb!=NULL){
+        delete bb;
+        bb = NULL;
+    }
+    if(resultThread!=NULL) {
+        resultThreadFinish = 1;
+        clog << "delete resultThread;" << endl;
+        delete resultThread;
+    }
+    //        fifoFdRes.close();
+    if(tracker!=NULL){
+        delete tracker;
+    }
+    if(logFile.is_open()){
+        logFile.close(); /// \todo 18.05.2016 class StatMan
+        clog << "The results have been written to " << "''"+outFileTitle+"''" << endl;
+    }
+    if(writeCropFile){ /// \todo 18.05.2016 class FileSaver
+        //            fstream cropFile;
+        //            cropFile.open(("../results/filter_"/*outFileTitle).c_str()*/,fstream::out);
+        if(cropFile.is_open()){
+            //                cropFile  << pzoom.str();
+            cropFile.close();
+        }else{
+            clog << "Error with opening the file:" << "../results/test_"+outFileTitle+".crop" << endl;
+        }
+    }
+    if(result!=NULL)delete result;
     cvDestroyAllWindows();
     return 0;
 }
