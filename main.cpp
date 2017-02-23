@@ -6,6 +6,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <thread>
 
 #include "opencv2/objdetect.hpp"
 #include "opencv2/highgui.hpp"
@@ -31,19 +32,46 @@
 #include "3rdparty/asms/colotracker.h"
 #include "preview.h"
 #include "viewfinder.h"
-
+#include <exception>
 using namespace std;
 using namespace cv;
 Mat fullFrame;
+Mat* result;
 
 const double FI=1.61803398; /// Золотое сечение
 
 long int frameCounter=0; /// \todo 18.05.2016 class InputMan
-void stream(Mat mat){
-    Mat array = mat.reshape(0,1);
-    string outstr((char *)array.data,array.total()*array.elemSize());
-    cout<<outstr;
+typedef cv::Point3_<uint8_t> Pixel;
+
+void stream(Mat mat, fstream &f){
+    if(!mat.empty())
+        for (Pixel &p : cv::Mat_<Pixel>(mat)) {
+           f << p.x;
+           f << p.y;
+           f << p.z;
+        }
+    f.flush();
 }
+void streamInThread(const char *filename, Mat* mat){
+    fstream fifoFdRes;
+    int fifresult=0;
+    try{
+        unlink(filename);
+        fifresult = mkfifo(filename,O_RDWR|S_IRWXU|O_NONBLOCK);
+        fifoFdRes.open(filename,fstream::out|fstream::trunc);
+        while(1){
+            if(mat!=NULL) {
+                stream(mat->clone(),fifoFdRes);
+            }
+        }
+    }catch(exception e){
+
+        cerr << e.what() <<endl;
+    }
+    fifoFdRes.close();
+    unlink(filename);
+}
+
 void* captureFrame(void* inputName_){
     string inputName = *((string*)inputName_);
     VideoCapture capture;
@@ -80,7 +108,7 @@ void* captureFrame(void* inputName_){
             clog << "frames:" << capture.get(CV_CAP_PROP_POS_FRAMES) << endl;
             frameCounter++;
             if(!isWebcam && 1000/fps - t/1000 > 0){
-                delay+=1000/fps - t/1000;
+                delay+=(1000/fps - t/1000);
             }
             if(capture.grab() && delay < 1000/fps){
                 capture.retrieve(fullFrame); /// \todo 13.02.2017 Добавить мьютекс или семафор
@@ -93,7 +121,7 @@ void* captureFrame(void* inputName_){
             pt=ct;
             ct=cvGetTickCount();
             t=(ct-pt)/cvGetTickFrequency();
-            clog << "input delay betveen frames: " << t << "us" << endl;
+            clog << "input delay between frames: " << t << "us" << endl;
         }
     }
     pthread_exit(NULL);
@@ -121,8 +149,8 @@ int main( int argc, const char** argv )
     clog << "Availible parameters: " << endl;
     /// Параметры детектора лиц
     CascadeClassifier cascadeFull,cascadeProf; ///< Каскады Хаара для детекции лица /// \todo 18.05.2016 class Detector
-    string cascadeFullName;// = "../haarcascade_frontalface_alt.xml";
-    string cascadeProfName;// = "../haarcascade_profileface.xml";
+    string cascadeFullName;// = "--cascadeFront=../haarcascade_frontalface_alt.xml";
+    string cascadeProfName;// = "--cascadeFront=../haarcascade_frontalface_alt.xml --cascadeProf=../haarcascade_profileface.xml";
     const string cascadeProfOpt = "--cascadeProf=";
     size_t cascadeProfOptLen = cascadeProfOpt.length();
     const string cascadeFullOpt = "--cascadeFront=";
@@ -167,7 +195,7 @@ int main( int argc, const char** argv )
     Arg<double> zoomSpeedMax(argv, argc,manualInput,1.00,"--zoomSpeedMax=","%lf",new double(0.001));///< Максимальная скорость зума
     Arg<double> zoomSpeedInc_(argv, argc,manualInput,0.1,"--zoomSpeedInc=","%lf",new double(0.001));///< Инкремент скорости зума
 
-    Arg<int> streamResult(argv, argc,manualInput,0,"--streamToStdOut=","%d",new int(0)); ///< Печатать кадры результирующего видео в стандартный вывод
+    Arg<int> streamResult(argv, argc,manualInput,0,"--streamResult=","%d",new int(0)); ///< Печатать кадры результирующего видео в стандартный вывод
     Arg<int>writeLogFile(argv, argc,manualInput,0,"--writeLogFile=","%d",new int(0),new int(1));
 
     Arg<int> streamPreview(argv, argc,manualInput,0,"--streamPreview=","%d",new int(0));
@@ -238,7 +266,7 @@ int main( int argc, const char** argv )
    //    MODEL    //
         // Кадры
 //        Mat fullFrame; /// \todo 18.05.2016 class InputMan, class Detector
-        Mat result; /// \todo 18.05.2016 class FileSaver
+//        Mat result; /// \todo 18.05.2016 class FileSaver
         /// Характеристики видео
         const long int videoLength = /*isWebcam ? 1 :*/ capture.get(CAP_PROP_FRAME_COUNT);
         /// \todo 05/12/2016 При стриминге размеры кадра определяются почему-то неправильно
@@ -344,12 +372,21 @@ int main( int argc, const char** argv )
             fourcc = capture.get(CV_CAP_PROP_FOURCC); // codecs
             fps = capture.get(CAP_PROP_FPS);
         }
-        if(recordResult && !outputVideo.open("closeUp_"+outFileTitle+".avi",fourcc,
-                                         fps, resultSize, true)){
-            cerr << "Could not open the output video ("
-                 << "closeUp_"+outFileTitle+".avi" <<") for writing"<<endl;
-            recordResult=false;
-//            return -1;
+//        int fifresult=0;
+//        fstream fifoFdRes;
+        result = new Mat(resultWidth,resultHeight,CV_8UC3);
+        std::thread* resultThread;
+        if(streamResult){
+            resultThread = new thread(streamInThread,"result",result);
+        }
+
+        if(recordResult){
+                if(!outputVideo.open("rtsp://:5252/result.sdp",fourcc,
+                                     fps, resultSize, true)){
+                    cerr << "Could not open the output video for writing"<<endl;
+                    recordResult=false;
+                    return -1;
+            }
         }
         if(recordPreview){
              if(!previewVideo.open("../results/test_"+outFileTitle+".avi",fourcc,
@@ -388,7 +425,7 @@ int main( int argc, const char** argv )
 
                 startCapTime = startIterationTime = cvGetTickCount();
 
-                if(showPreview){
+                if(showPreview || showResult){
                     char c;
                     c=waitKey(1);
                     if(!fullFrame.empty() && c!=27) {
@@ -481,15 +518,24 @@ int main( int argc, const char** argv )
                 try{
                     /// \todo 18.05.2016 FileSaver
                     if(recordResult || streamResult || showResult){
-                        resize(fullFrame(cam.getRoi()), result , resultSize, 0,0, INTER_LINEAR ); /// \todo 13.02.2017 Добавить мьютекс или семафор
+                        resize(fullFrame(cam.getRoi()), *result , resultSize, 0,0, INTER_LINEAR ); /// \todo 13.02.2017 Добавить мьютекс или семафор
                         if(recordResult){
-                            outputVideo << result;
+                            outputVideo << *result;
                         }
-                        if(streamResult && !streamPreview){
-                            stream(result);
+                        if(streamResult){
+//                            stream(result);
+//                            clog<<"Writing result>>>>>>>>>>>>>"<< endl;
+//                            Mat mat = result.clone();
+//                            for(int col=0; col< mat.cols; ++col){
+//                                for(int row=0;row,mat.rows;++row){
+//                                            cout << (uchar)(col%255);
+//                                            cout << (uchar)0;
+//                                            cout << (uchar)0;
+//                                }
+//                            }
                         }
                         if(showResult){
-                            imshow("Result",result);
+                            imshow("Result",*result);
                         }
                     }
                 }catch(Exception &mvEx){
@@ -504,7 +550,7 @@ int main( int argc, const char** argv )
                     if(showPreview)
                         pre.show();
                     if(streamPreview && !streamResult){
-                        stream(pre.getPreview());
+//                        stream(pre.getPreview());
                     }
                     // Сохранение кадра
                     if(recordPreview)
@@ -583,8 +629,10 @@ int main( int argc, const char** argv )
         if(bb!=NULL){
             delete bb;
             bb = NULL;
-        }      
-	if(tracker!=NULL){
+        }
+        if(resultThread!=NULL) delete resultThread;
+        //        fifoFdRes.close();
+        if(tracker!=NULL){
             delete tracker;
         }
         if(logFile.is_open()){
@@ -592,16 +640,17 @@ int main( int argc, const char** argv )
             clog << "The results have been written to " << "''"+outFileTitle+"''" << endl;
         }
         if(writeCropFile){ /// \todo 18.05.2016 class FileSaver
-//            fstream cropFile;
-//            cropFile.open(("../results/filter_"/*outFileTitle).c_str()*/,fstream::out);
+            //            fstream cropFile;
+            //            cropFile.open(("../results/filter_"/*outFileTitle).c_str()*/,fstream::out);
             if(cropFile.is_open()){
-//                cropFile  << pzoom.str();
+                //                cropFile  << pzoom.str();
                 cropFile.close();
             }else{
                 clog << "Error with opening the file:" << "../results/test_"+outFileTitle+".crop" << endl;
             }
         }
-
+        if(result!=NULL)delete result;
     }
+    cvDestroyAllWindows();
     return 0;
 }
