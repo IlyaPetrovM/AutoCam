@@ -7,7 +7,10 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <thread>
-
+#include <atomic>
+#include <signal.h>
+#include <stdio.h>
+#include <chrono>
 #include "opencv2/objdetect.hpp"
 #include "opencv2/highgui.hpp"
 #include "opencv2/imgproc.hpp"
@@ -20,7 +23,6 @@
 #include <opencv2/video/video.hpp>  // Video write
 #include <ctime>
 #include "pthread.h"
-#include <semaphore.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -43,39 +45,49 @@ const double FI=1.61803398; /// Золотое сечение
 long int frameCounter=0; /// \todo 18.05.2016 class InputMan
 typedef cv::Point3_<uint8_t> Pixel;
 
-void stream(Mat mat, fstream &f){
-    if(!mat.empty())
+void stream(Mat mat, FILE* f){
+    if(!mat.empty()){
+        fflush(f);
+//        fwrite(new int(0),sizeof(uchar),1,f); //red
+//        fwrite(new int(0),sizeof(uchar),1,f); //blue
+//        fwrite(new int(0),sizeof(uchar),1,f);//green
         for (Pixel &p : cv::Mat_<Pixel>(mat)) {
-            f << p.x;
-            f << p.y;
-            f << p.z;
+//            fwrite(new int(255),sizeof(p.x),1,f); //red
+            fwrite(&p.x,sizeof(uchar),1,f);
+//            fwrite(new int(0),sizeof(p.y),1,f); //blue
+//            fwrite(new int(0),sizeof(p.z),1,f);//green
+            fwrite(&p.y,sizeof(uchar),1,f);
+            fwrite(&p.z,sizeof(uchar),1,f);
         }
-    f.flush();
+    }
 }
-void streamInThread(const char *filename, Mat* mat, bool* finish = new bool(0)){
-    fstream fifoFdRes;
+void streamInThread(atomic<bool>& program_is_running, const char *filename, Mat* mat){
+    FILE* fifoFdRes;
     int fifresult=0;
     try{
-        unlink(filename);
+//        unlink(filename);
         fifresult = mkfifo(filename,O_RDWR|S_IRWXU|O_NONBLOCK);
-        fifoFdRes.open(filename,fstream::out|fstream::trunc);
-        while(!(*finish)){
+        fifoFdRes = fopen(filename,"w");
+        while(program_is_running){
             if(mat!=NULL) {
                 stream(mat->clone(),fifoFdRes);
             }
         }
+        clog << __LINE__ << endl;
     }catch(exception e){
-        cerr << e.what() <<endl;
+        cerr << "Exeption in " << __FUNCTION__ << ":" << e.what() <<endl;
     }
-    fifoFdRes.close();
-    unlink(filename);
-    clog << "thread " << filename << " finished" << endl;
+    clog << __LINE__ << endl;
+    fclose(fifoFdRes);
+    clog << __LINE__ << endl;
+//    unlink(filename);
+    clog << ">thread " << filename << " finished" << endl;
 }
 
-void captureFrame(string inputName, bool* finish = new bool(0)){
+void captureFrame(atomic<bool>& program_is_running, string inputName){
     VideoCapture capture;
     bool isWebcam=false;
-    while(!capture.isOpened()){
+    if(!capture.isOpened()){
         if( inputName.empty() || (isdigit(inputName.c_str()[0]) && inputName.c_str()[1] == '\0') )
         {
             isWebcam=true;
@@ -96,33 +108,35 @@ void captureFrame(string inputName, bool* finish = new bool(0)){
     if(capture.isOpened() )
     {
         int64 ct=0,pt=0;
-        unsigned int t=0;
         capture.set(CV_CAP_PROP_BUFFERSIZE,1024);
         clog << "fps:" << capture.get(CV_CAP_PROP_FPS) << endl;
         int fps = capture.get(CV_CAP_PROP_FPS);
         if(fps==0)fps=25;
-        int delay=0;
-        while(!(*finish)){
-            frameCounter++;
-            if(!isWebcam && 1000/fps - t/1000 > 0){
-                delay+=(1000/fps - t/1000);
-            }
+        int64 delay=0;
+        int t=0;
+        int fDur = 1000000/fps; ///< frame Duration (in microseconds 10^-6)
+        while(program_is_running){
             if(capture.grab()){
-                if(delay < 1000/fps){
+                if(delay < fDur){
                     capture.retrieve(fullFrame); /// \todo 13.02.2017 Добавить мьютекс или семафор
                 }else{
                     capture.grab();
                     delay=0;
-                    frameCounter++;
+                    clog << "frame\t" << frameCounter << "\tdropped" << endl;
+                    ++frameCounter;
                 }
+                ++frameCounter;
             }
 
             pt=ct;
             ct=cvGetTickCount();
             t=(ct-pt)/cvGetTickFrequency();
+            delay+=(fDur - t);
+            if(delay<0)delay=0;
+            cout << "frameDuration: "<< t <<" "<< fDur << "(fDur) delay:" << delay << endl;
         }
-        clog << "capture Thread finished" << endl;
     }
+    clog << ">thread Capture finished" << endl;
 }
 
 static void help()
@@ -251,15 +265,13 @@ int main( int argc, const char** argv )
         }
     }
     ///Создание нити захвата кадров
-    bool capThreadFinish=false;
-    thread captureThread(captureFrame,inputName,&capThreadFinish);
+    std::atomic<bool> running { true } ;
+    thread captureThread(captureFrame,ref(running),inputName);
     if(isWebcam) writeCropFile=false; /// \todo 18.05.2016 class FileSaver
     clog << "Video capturing has been started ..." << endl;
 
     //    MODEL    //
     // Кадры
-    //        Mat fullFrame; /// \todo 18.05.2016 class InputMan, class Detector
-    //        Mat result; /// \todo 18.05.2016 class FileSaver
     /// Характеристики видео
     const long int videoLength = /*isWebcam ? 1 :*/ capture.get(CAP_PROP_FRAME_COUNT);
     /// \todo 05/12/2016 При стриминге размеры кадра определяются почему-то неправильно
@@ -365,14 +377,53 @@ int main( int argc, const char** argv )
         fourcc = capture.get(CV_CAP_PROP_FOURCC); // codecs
         fps = capture.get(CAP_PROP_FPS);
     }
-    //        int fifresult=0;
-    //        fstream fifoFdRes;
     result = new Mat(resultWidth,resultHeight,CV_8UC3);
-    std::thread* resultThread;
-    bool resultThreadFinish=0;
-    if(streamResult){
-        resultThread = new thread(streamInThread,"result",result,&resultThreadFinish);
+    char fifotitle[] = "result";
+    pid_t pidVlc;
+    if((pidVlc=fork())==0){
+        clog << "starting Vlc with pid:" << getpid() << endl;
+        if(execlp("vlc","vlc",fifotitle,
+                  "--demux=rawvideo",
+                  "--rawvid-fps=25",
+                  "--rawvid-width=854",
+                  "--rawvid-height=480",
+                  "--rawvid-chroma=RV24",NULL
+                  )==-1){
+            switch (errno) {
+            case E2BIG:
+                cerr << "Слишком длинный список аргументов"<< endl;
+                terminate();
+                break;
+            case EACCES:
+                cerr << "- Отказ доступа."<< endl;
+                break;
+            case EMFILE:
+                cerr << "- Слишком много открытых файлов."<< endl;
+                break;
+            case ENOENT:
+                cerr << "- Маршрут доступа (PATH) или имя файла не найдены."<< endl;
+                break;
+            case ENOEXEC:
+                cerr << "- Ошибка формата EXEC."<< endl;
+                break;
+            case  ENOMEM:
+                cerr << "- Не хватает памяти."<< endl;
+            default:
+                cerr <<"errno:" << errno << endl;
+                break;
+            }
+            exit(1);
+        }
     }
+    clog << "pidVlc:" << pidVlc << endl;
+    std::this_thread::sleep_for(std::chrono::seconds(1));//ждём, пока VLC запустится
+
+    std::thread resultThread;
+    if(streamResult){
+        resultThread = thread(streamInThread,ref(running), fifotitle,result);
+    }
+
+
 
     if(recordResult){
         if(!outputVideo.open("rtsp://:5252/result.sdp",fourcc,
@@ -431,8 +482,8 @@ int main( int argc, const char** argv )
                     break;
                 case 27:
                     end=true;
-                    resultThreadFinish=true;
-                    capThreadFinish=true;
+                    while(running) running=false;
+
                     break;
                 default:
                     break;
@@ -624,17 +675,10 @@ int main( int argc, const char** argv )
         //            clog << "Time: " << timeOfIteration << " us\n";
         clog << "FrameRate: " << 0.04*1000000 / timeOfIteration<< " fps\n";
     }
-    pthread_exit(NULL);
     if(bb!=NULL){
         delete bb;
         bb = NULL;
     }
-    if(resultThread!=NULL) {
-        resultThreadFinish = 1;
-        clog << "delete resultThread;" << endl;
-        delete resultThread;
-    }
-    //        fifoFdRes.close();
     if(tracker!=NULL){
         delete tracker;
     }
@@ -654,5 +698,9 @@ int main( int argc, const char** argv )
     }
     if(result!=NULL)delete result;
     cvDestroyAllWindows();
+
+    cerr << kill(pidVlc,SIGKILL) << endl;
+    resultThread.join();
+    captureThread.join();
     return 0;
 }
