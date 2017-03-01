@@ -387,7 +387,9 @@ int main( int argc, const char** argv )
                   "--rawvid-fps=25",
                   "--rawvid-width=854",
                   "--rawvid-height=480",
-                  "--rawvid-chroma=RV24",NULL
+                  "--rawvid-chroma=RV24",
+                  "--sout '#transcode{vcodec=mp4v,acodec=mpga,vb=2000,ab=32}:rtp{sdp=rtsp://:5025/dptz.sdp}'",
+                  NULL
                   )==-1){
             switch (errno) {
             case E2BIG:
