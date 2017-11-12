@@ -79,6 +79,7 @@ void Operator::workManual()
         break;
     case 'm':
         setTypeOfWork(MANUAL);
+        std::cout << "\rOperator #" << id << " work manually" << std::endl;
         break;
     case 'n':
         setTypeOfWork(AUTO);
@@ -98,12 +99,13 @@ void Operator::workAuto()
         break;
     case 'n':
         setTypeOfWork(AUTO);
+        std::cout << "\rOperator #" << id << " work automatically" << std::endl;
         break;
     default: break;
     }
     cmd=' ';
 
-    std::clog << "\rOperator #" << id << " work automatically" << std::endl;
+    camera.update();
     // get new face coordinates in scene
     // compute ideal composition for this face in this scene
     // move the camera

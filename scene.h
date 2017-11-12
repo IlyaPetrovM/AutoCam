@@ -3,14 +3,27 @@
 #include <iostream>
 #include <stdlib.h>
 #include <string>
+#include <opencv2/videoio.hpp>
+#include <atomic>
+#include <mutex>
+using namespace std;
+using namespace cv;
 class Scene
 {
-    std::string source;
+    string path;
+    VideoCapture capture;
+    Mutex frameMtx;
+    Mat frame;
 public:
-    Scene(std::string _source);
+    Scene(string _source);
+    ~Scene();
     void update();
     std::string getSource() const;
-    void setSource(const std::string &value);
+    void setSource(const string &value);
+
+    void getFrame(Mat &_frame);
+    void setFrame(const Mat &value);
+
 };
 
 #endif // SCENE_H

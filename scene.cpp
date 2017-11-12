@@ -4,21 +4,48 @@
 
 std::string Scene::getSource() const
 {
-    return source;
+    return path;
 }
 
-void Scene::setSource(const std::string &value)
+void Scene::setSource(const string &value)
 {
-    source = value;
+    path = value;
+    if(capture.open(path)){
+        cout<<path<<" opened"<<endl;
+    }else{
+        cerr<<"Unable to open "<<path<<endl;
+        return;
+    }
 }
 
+
+void Scene::getFrame(Mat &_frame)
+{
+    frameMtx.lock();
+    _frame=frame;
+    frameMtx.unlock();
+}
+
+void Scene::setFrame(const Mat &value)
+{
+    frameMtx.lock();
+    frame = value;
+    frameMtx.unlock();
+}
 Scene::Scene(std::string _source)
-    :source(_source)
+    :path(_source)
+{
+    setSource(path);
+}
+
+Scene::~Scene()
 {
 
 }
 
 void Scene::update()
 {
-    //    std::cout << "Scene updated." << std::endl;
+    frameMtx.lock();
+    capture >> frame;
+    frameMtx.unlock();
 }

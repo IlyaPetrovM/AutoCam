@@ -3,6 +3,7 @@
 #include <iostream>
 #include <string>
 #include "scene.h"
+#include "output.h"
 using namespace std;
 class Camera
 {
@@ -12,12 +13,14 @@ class Camera
 
     int x,y,width,height;
     float z;
-    string port; //where the cam send frames
     Scene *scene;
+    Mat frame;
     float fric;
     void friction(float &vel);
+    vector<Output*> port;
 public:
-    Camera(Scene *_scene, string _port);
+    Camera(Scene *_scene);
+    ~Camera();
     void update();
     void moveUp();
     void moveDown();
@@ -30,8 +33,8 @@ public:
     int getId() const;
     float getFric() const;
     void setFric(float value);
-    string getPort() const;
-    void setPort(const string &value);
+    void addPort(Output *_port);
+    vector<Output> getPorts() const;
 };
 
 

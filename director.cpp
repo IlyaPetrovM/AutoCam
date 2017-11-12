@@ -17,11 +17,36 @@ bool Director::findDubs()
 void Director::manageOperators()
 {
     while(!stopWork){
-        scene.update();
+        vector<thread> threads;
+        threads.push_back(thread(&Scene::update,ref(scene)));
         for(int i=0;i<operators.size();i++){
-            operators[i]->work();
+            threads.push_back(thread(&Operator::work,ref(operators[i])));
         }
-        sleep_for(microseconds(1000));
+        for (auto& th : threads) th.join();
+    }
+//    scene.update();
+//    for(int i=0;i<operators.size();i++){
+//        operators[i]->work();
+//    }
+//    imshow("1234",scene.frame);
+//    waitKey(1);
+}
+
+void Director::help()
+{
+    cout << "Supported commands:\n" <<
+               "\tadd\tto add an operator with camera\n"<<
+               "\tdel N\tto delete operator #N with camera\n"<<
+               "\texit\t ends the program\n"<<
+               "\top N [m|n|w|a|s|d|q|e]\tsend command to operator N:\n\t\t m - manual control;"<<
+            " n - auto control;\n \t\twasd command letters are used for moving the camera; \n\t\tq - zoom in; e - zoom out" <<endl;
+}
+
+void Director::operatorsList()
+{
+    for (int i=0;i<operators.size();i++)
+    {
+        cout << "\tOp #" << operators[i]->getId() << endl;
     }
 }
 
@@ -31,7 +56,12 @@ Director::Director(Scene s)
       stopWork(false),
       rules(5)
 {
+    Camera* cam = new Camera(&scene);
+    string winname = "Window of cam "+to_string(cam->getId());
+//    cam->addPort(new CvWindow(winname));
+    cam->addPort(new RtspServer("rtsp://localhost:1553","codec",25,1280,720,3));
 
+    operators.push_back(new Operator(&scene,cam, new Face()));
 }
 
 Director::~Director()
@@ -47,19 +77,27 @@ void Director::work()
     thread cons(&Director::manageOperators,this);
     string cmd;
     while(!stopWork){
+//        manageOperators();
         cin>>cmd;
         if(cmd=="add"){
-            operators.push_back(new Operator(&scene,new Camera(&scene,"rtsp://localhost:8056"), new Face()));
+            Camera* cam = new Camera(&scene);
+            string winname = "Window of cam "+to_string(cam->getId());
+            cam->addPort(new CvWindow(winname));
+            operators.push_back(new Operator(&scene,cam, new Face()));
+            cout << "ok"<< endl;
         }else if(cmd=="del"){
-            cout << "Which one operator you want to fire? "<< endl;
-            for (int i=0;i<operators.size();i++){cout << "\tOp #" << operators[i]->getId() << endl;}
-
             int ch=-1;cin >> ch;
             try {
+                bool found=false;
                 for (int i=0;i<operators.size();i++) {
-                    if(operators[i]->getId()==ch){ delete operators[i]; operators.erase(operators.begin()+i);
-                        break;}
+                    if(operators[i]->getId()==ch){
+                        delete operators[i];
+                        operators.erase(operators.begin()+i);
+                        found=true;
+                        break;
+                    }
                 }
+                if(found) cout << "ok"<< endl; else cout << "no such operator" <<endl;
             } catch(exception e) {cerr<<e.what();}
         }else if(cmd=="exit"){
             stopWork=true;
@@ -75,6 +113,10 @@ void Director::work()
                     break;
                 }
             }
+            cout << "ok"<< endl;
+        }else{
+             help();
         }
     }
+    cons.join();
 }
