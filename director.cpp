@@ -1,4 +1,20 @@
 #include "director.h"
+Director::Director(Scene s)
+    : scene(s),
+      stopWork(false),
+      rules(5)
+{
+    Camera* cam = new Camera(&scene);
+    string winname = "Window of cam "+to_string(cam->getId());
+//    cam->addPort(new CvWindow(winname));
+    Mat frame;
+    scene.update();
+    scene.getFrame(frame);
+    int channels = frame.channels();
+    cam->addPort(new RtspServer("rtsp://:5025/dptz.sdp","h264",scene.getFps(),scene.getWidth(),scene.getHeight(),3));
+
+    operators.push_back(new Operator(&scene,cam, new Face()));
+}
 
 bool Director::findDubs()
 {
@@ -51,18 +67,6 @@ void Director::operatorsList()
 }
 
 
-Director::Director(Scene s)
-    : scene(s),
-      stopWork(false),
-      rules(5)
-{
-    Camera* cam = new Camera(&scene);
-    string winname = "Window of cam "+to_string(cam->getId());
-//    cam->addPort(new CvWindow(winname));
-    cam->addPort(new RtspServer("rtsp://localhost:1553","codec",25,1280,720,3));
-
-    operators.push_back(new Operator(&scene,cam, new Face()));
-}
 
 Director::~Director()
 {

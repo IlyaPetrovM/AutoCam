@@ -23,6 +23,10 @@ public:
 
     void getFrame(Mat &_frame);
     void setFrame(const Mat &value);
+    int getFps() const;
+    int getHeight() const;
+    int getWidth() const;
+    int getChannels() const;
 
 };
 
