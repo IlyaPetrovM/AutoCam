@@ -1,10 +1,11 @@
 #include "cvwindow.h"
 
-CvWindow::CvWindow(const string _winname, int _flags)
-    : winname(_winname)
+CvWindow::CvWindow(int winWidth, int winHeight, const string _winname, int _flags)
+    : Output(winWidth,winHeight), winname(_winname)
 {
     std::clog<< "CvWindow created " << winname << std::endl;
     namedWindow(winname,_flags);
+    resizeWindow(winname,winWidth,winHeight);
 }
 
 CvWindow::~CvWindow()
@@ -14,7 +15,8 @@ CvWindow::~CvWindow()
 
 void CvWindow::sendFrame(Mat &frame) const
 {
-//    static bool b=true;
-    imshow(winname,frame);
-    waitKey(1);
+    if(!frame.empty()){
+        imshow(winname,frame);
+        waitKey(1);
+    }
 }

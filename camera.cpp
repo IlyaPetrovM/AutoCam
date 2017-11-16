@@ -14,6 +14,11 @@ void Camera::update()
     friction(vx);
     friction(vz);
     friction(vz);
+
+    calcFrameSize();
+
+    scene->getFrame(frameIn);
+    cutFrame();
     sendFrame();
 }
 
@@ -33,14 +38,20 @@ void Camera::addPort(Output *_port)
     port.push_back(_port);
 }
 
-vector<Output> Camera::getPorts() const
+vector<Output*> Camera::getPorts() const
 {
-
+    return port;
 }
 
 void Camera::friction(float &vel)
 {
     if(vel>0)vel-=fric; else if(vel<0)vel+=fric;
+}
+
+void Camera::cutFrame()
+{
+    /// \todo frameOut = frameIn(Rect(x,y,width,height));
+    frameOut = frameIn.clone();
 }
 
 Camera::Camera(Scene *_scene)
@@ -56,6 +67,7 @@ Camera::~Camera()
     for(size_t i=0;i<port.size();i++){
         delete port[i];
     }
+    clog << "\tcamera #"<<id<< " deleted" <<endl;
 }
 
 void Camera::moveUp()
@@ -90,10 +102,15 @@ void Camera::zoomOut()
 
 void Camera::sendFrame()
 {
-    scene->getFrame(frame);
-    clog<<"cam "<< id<<" sends frame" << endl;
+//    clog<<"cam "<< id<<" sends frame" << endl;
     for(size_t i=0; i<port.size();i++){
-        port[i]->sendFrame(frame);
+        port[i]->sendFrame(frameOut);
     }
+}
+
+void Camera::calcFrameSize()
+{
+    ///\todo
+    /// z and width and height
 }
 

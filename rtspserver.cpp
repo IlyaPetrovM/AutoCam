@@ -1,30 +1,31 @@
 #include "rtspserver.h"
 int RtspServer::cnt=0;
-RtspServer::RtspServer(string _adr, string _codec, int _fps=25, int _frameWidth=640, int _frameHeight=480,int numOfchannels=3)
-    : adr(_adr),codec(_codec),fps(_fps),frameWidth(_frameWidth),frameHeight(_frameHeight)
+RtspServer::RtspServer(int _frameWidth, int _frameHeight, string _adr, string _codec, int _fps=25, int numOfchannels=3)
+    : Output(_frameWidth,_frameHeight), adr(_adr),codec(_codec),fps(_fps)
 {
     buflen=frameHeight*frameWidth*numOfchannels;
     frameBuf = new unsigned char[buflen];
 
     firstFrameSent=false;
     cnt++;
-    fifoname = string("videofifo_")+to_string(cnt);
+    fifoname = string("/tmp/videofifo_")+to_string(cnt);
 
 
     int success = !mkfifo(fifoname.c_str(),0666);
     if(success || errno==EEXIST){
         clog<<"RtspServer start init" << endl;
-        string vlcCmd = "cvlc --repeat "+fifoname
+        string vlcCmd = "vlc -I dummy --repeat "+fifoname
                 +" --demux=rawvideo --rawvid-fps="+to_string(fps)
                 +" --rawvid-width="+to_string(frameWidth)
                 +" --rawvid-height="+to_string(frameHeight)
-                +" --rawvid-chroma=RV"+to_string(numOfchannels*8)
-                +" --sout-transcode-threads=8 --sout-transcode-high-priority --sout '#transcode{vcodec="+codec
-               +",vb=512,fps="+to_string(fps)
+                +" --rawvid-chroma=RV"+to_string(numOfchannels*8)/*
+                +" --sout '#transcode{vcodec="+codec
+               +",vb="+to_string(8*1024)+",fps="+to_string(fps)
                +",scale=Auto,width="+to_string(frameWidth)
                +",height="+to_string(frameHeight)
-               +",acodec=none}:rtp{sdp="+adr+"}' &";
-        system(vlcCmd.c_str());
+               +",acodec=none}:rtp{sdp="+adr+"}'"*/+" &";
+        clog << "RUN:\n\t" << vlcCmd << endl;
+        clog << "return is " << system(vlcCmd.c_str()) << endl;
         this_thread::sleep_for(milliseconds(1000));
         openPipe();
     }else{
@@ -61,21 +62,29 @@ RtspServer::RtspServer(string _adr, string _codec, int _fps=25, int _frameWidth=
 RtspServer::~RtspServer()
 {
     close(fdpipe);
-//    delete fdpipe;
-    if(!unlink(fifoname.c_str())) {
-        cerr<<"Unable to unlink "<<fifoname<<"errno is "<<errno<<endl;
+
+    string killcmd="killall -s 9 vlc";
+    int ret = system(killcmd.c_str());
+    if(ret!=0){
+        cerr<<"Unable to kill vlc process with command <"+killcmd << ">"<<clog;
     }
     delete frameBuf;
+
+    if(unlink(fifoname.c_str())==-1)
+        cerr<<"Unable to unlink "<<fifoname<<" errno is "<<errno<<endl;
+    else
+        clog << "\tRtspServer:" << fifoname << " deleted" << endl;
 }
 
 void RtspServer::sendFrame(Mat &frame) const
 {
+    Log::print(INFO,string(__FUNCTION__)+" 1");
     if(!frame.empty()){
         int i=0;
         for(Pixel &p : cv::Mat_<Pixel>(frame)){
-            frameBuf[i]=p.z;i++;
             frameBuf[i]=p.x;i++;
             frameBuf[i]=p.y;i++;
+            frameBuf[i]=p.z;i++;
         }
         static ssize_t written;
         written = write(fdpipe,frameBuf,sizeof(unsigned char)*(buflen));
@@ -83,6 +92,7 @@ void RtspServer::sendFrame(Mat &frame) const
             cerr<<"\nerror with writing bytes:"<< written << " written. errno:"<<errno<<endl;
         }
     }
+    Log::print(INFO,string(__FUNCTION__)+" 2");
 }
 
 void RtspServer::openPipe()

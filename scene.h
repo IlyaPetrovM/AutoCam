@@ -6,6 +6,8 @@
 #include <opencv2/videoio.hpp>
 #include <atomic>
 #include <mutex>
+#include "log.h"
+
 using namespace std;
 using namespace cv;
 class Scene
@@ -19,7 +21,7 @@ public:
     ~Scene();
     void update();
     std::string getSource() const;
-    void setSource(const string &value);
+    int setSource(const string &value);
 
     void getFrame(Mat &_frame);
     void setFrame(const Mat &value);

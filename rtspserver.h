@@ -13,7 +13,7 @@
 #include <errno.h>
 #include <chrono>
 #include <thread>
-//#include <
+#include "log.h"
 
 using namespace cv;
 using namespace std;
@@ -29,13 +29,11 @@ class RtspServer : public Output
     int fdpipe;
     string fifoname;
     static int cnt;
-    int frameWidth;
-    int frameHeight;
     unsigned char *frameBuf;
     size_t buflen;
     bool firstFrameSent;
 public:
-    RtspServer(string _adr, string _codec, int _fps, int _frameWidth, int _frameHeight, int numOfchannels);
+    RtspServer(int _frameWidth, int _frameHeight, string _adr, string _codec, int _fps, int numOfchannels);
 
     ~RtspServer();
     void sendFrame(Mat &frame) const;

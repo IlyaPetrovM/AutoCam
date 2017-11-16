@@ -4,16 +4,22 @@ Director::Director(Scene s)
       stopWork(false),
       rules(5)
 {
+    Log::print(INFO,"Director1");
     Camera* cam = new Camera(&scene);
-    string winname = "Window of cam "+to_string(cam->getId());
-//    cam->addPort(new CvWindow(winname));
     Mat frame;
-    scene.update();
+    Log::print(INFO,"Director2");
     scene.getFrame(frame);
     int channels = frame.channels();
-    cam->addPort(new RtspServer("rtsp://:5025/dptz.sdp","h264",scene.getFps(),scene.getWidth(),scene.getHeight(),3));
-
-    operators.push_back(new Operator(&scene,cam, new Face()));
+    Output* rtsp = new RtspServer(scene.getWidth(),
+                                    scene.getHeight(),
+                                    "rtsp://:5025/dptz.sdp",
+                                    "h264",
+                                    scene.getFps(),
+                                    channels);
+    cam->addPort(rtsp);
+    Face* f = new Face();
+    Operator* op = new Operator(&scene,cam,f);
+    operators.push_back(op);
 }
 
 bool Director::findDubs()
@@ -40,12 +46,6 @@ void Director::manageOperators()
         }
         for (auto& th : threads) th.join();
     }
-//    scene.update();
-//    for(int i=0;i<operators.size();i++){
-//        operators[i]->work();
-//    }
-//    imshow("1234",scene.frame);
-//    waitKey(1);
 }
 
 void Director::help()
@@ -86,7 +86,7 @@ void Director::work()
         if(cmd=="add"){
             Camera* cam = new Camera(&scene);
             string winname = "Window of cam "+to_string(cam->getId());
-            cam->addPort(new CvWindow(winname));
+            cam->addPort(new CvWindow(scene.getHeight(),scene.getWidth(),winname));
             operators.push_back(new Operator(&scene,cam, new Face()));
             cout << "ok"<< endl;
         }else if(cmd=="del"){

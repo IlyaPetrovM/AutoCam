@@ -11,13 +11,19 @@ class Camera
     static int camCnt;
     float vx,vy,vz;
 
-    int x,y,width,height;
+    unsigned int x,y,width,height;
     float z;
+
+    unsigned int xmax,ymax,widthmax,heightmax;
     Scene *scene;
-    Mat frame;
+    Mat frameIn;
+    Mat frameOut;
     float fric;
     void friction(float &vel);
     vector<Output*> port;
+    void cutFrame();
+    void sendFrame();
+    void calcFrameSize();
 public:
     Camera(Scene *_scene);
     ~Camera();
@@ -28,13 +34,12 @@ public:
     void moveRight();
     void zoomIn();
     void zoomOut();
-    void sendFrame();
 
     int getId() const;
     float getFric() const;
     void setFric(float value);
     void addPort(Output *_port);
-    vector<Output> getPorts() const;
+    vector<Output *> getPorts() const;
 };
 
 

@@ -7,19 +7,21 @@ std::string Scene::getSource() const
     return path;
 }
 
-void Scene::setSource(const string &value)
+int Scene::setSource(const string &value)
 {
     path = value;
     if(capture.open(path)){
-        cout<<path<<", opened"<<endl;
+        update();
+        Log::print(WARN,path+" opened");
         cout << "Video params:" <<
                 "\n\tfps:"<< getFps() <<
                 "\n\t"<<getWidth()<<"x"<<getHeight()<<
                 "\n\tFOURCC:"<<capture.get(CAP_PROP_FOURCC)<<
-                "\n\tFORMAT:"<<capture.get(CAP_PROP_FORMAT)<<endl;
+                "\n\tFORMAT:"<<capture.get(CAP_PROP_FORMAT)<<
+                "\n\tMODE:"<<capture.get(CAP_PROP_MODE)<<
+                "\n\tCONVERT_RGB:"<<capture.get(CAP_PROP_CONVERT_RGB)<<endl;
     }else{
         cerr<<"Unable to open "<<path<<endl;
-        return;
     }
 }
 
@@ -70,7 +72,10 @@ Scene::~Scene()
 
 void Scene::update()
 {
+//    cout << __FUNCTION__ << endl;
+    Log::print(INFO,string(__FUNCTION__)+" 1");
     frameMtx.lock();
     capture >> frame;
     frameMtx.unlock();
+    Log::print(INFO,string(__FUNCTION__)+" 2");
 }

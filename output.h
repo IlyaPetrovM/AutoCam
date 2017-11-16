@@ -2,13 +2,19 @@
 #define OUTPUT_H
 #include <opencv2/core.hpp>
 #include <iostream>
+
 using namespace cv;
 
 class Output
 {
+protected:
+    unsigned int frameWidth;
+    unsigned int frameHeight;
 
 public:
-    Output();
+    Output(int _frameWidth, int _frameHeight);
+
+    virtual ~Output();
     virtual void sendFrame(Mat &frame) const = 0;
 };
 
