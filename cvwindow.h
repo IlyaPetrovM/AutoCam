@@ -11,7 +11,7 @@ class CvWindow : public Output
 public:
     CvWindow(int winWidth,int winHeight, const string _winname, int _flags = WINDOW_AUTOSIZE);
     ~CvWindow();
-    void sendFrame(Mat &frame) const;
+    void sendFrame(const Mat &frame);
 };
 
 #endif // CVWINDOW_H

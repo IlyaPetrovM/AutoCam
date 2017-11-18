@@ -29,7 +29,11 @@ int Scene::setSource(const string &value)
 void Scene::getFrame(Mat &_frame)
 {
     frameMtx.lock();
-    _frame=frame;
+    if (!que.empty()) {
+        _frame=que.front();
+        que.pop();
+        Log::print(INFO,string(__FUNCTION__)+" 1.2 que size:"+to_string(que.size()));
+    }
     frameMtx.unlock();
 }
 
@@ -59,8 +63,8 @@ int Scene::getChannels() const
 {
     return capture.get(CAP_PROP_FORMAT);
 }
-Scene::Scene(std::string _source)
-    :path(_source)
+Scene::Scene(std::string _source, unsigned int _queMaxLen)
+    :path(_source), queMaxLen(_queMaxLen)
 {
     setSource(path);
 }
@@ -73,9 +77,13 @@ Scene::~Scene()
 void Scene::update()
 {
 //    cout << __FUNCTION__ << endl;
-    Log::print(INFO,string(__FUNCTION__)+" 1");
-    frameMtx.lock();
-    capture >> frame;
-    frameMtx.unlock();
-    Log::print(INFO,string(__FUNCTION__)+" 2");
+//    Log::print(INFO,string(__FUNCTION__)+" 1");
+    if(que.size()<queMaxLen){
+        frameMtx.lock();
+        capture >> frame;
+        que.push(frame);
+        Log::print(INFO,string(__FUNCTION__)+" 1.2 que size:"+to_string(que.size()));
+        frameMtx.unlock();
+    }
+//    Log::print(INFO,string(__FUNCTION__)+" 2");
 }

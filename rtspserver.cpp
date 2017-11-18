@@ -1,7 +1,8 @@
 #include "rtspserver.h"
 int RtspServer::cnt=0;
-RtspServer::RtspServer(int _frameWidth, int _frameHeight, string _adr, string _codec, int _fps=25, int numOfchannels=3)
-    : Output(_frameWidth,_frameHeight), adr(_adr),codec(_codec),fps(_fps)
+
+RtspServer::RtspServer(int _frameWidth, int _frameHeight, string _adr, string _codec, int _fps=25, int numOfchannels=3, unsigned int _queLen)
+    : Output(_frameWidth,_frameHeight), adr(_adr),codec(_codec),fps(_fps), queMaxLen(_queLen)
 {
     buflen=frameHeight*frameWidth*numOfchannels;
     frameBuf = new unsigned char[buflen];
@@ -18,16 +19,19 @@ RtspServer::RtspServer(int _frameWidth, int _frameHeight, string _adr, string _c
                 +" --demux=rawvideo --rawvid-fps="+to_string(fps)
                 +" --rawvid-width="+to_string(frameWidth)
                 +" --rawvid-height="+to_string(frameHeight)
-                +" --rawvid-chroma=RV"+to_string(numOfchannels*8)/*
+                +" --rawvid-chroma=RV"+to_string(numOfchannels*8)
                 +" --sout '#transcode{vcodec="+codec
-               +",vb="+to_string(8*1024)+",fps="+to_string(fps)
+               +",vb="+to_string(1024)+",fps="+to_string(fps)
                +",scale=Auto,width="+to_string(frameWidth)
                +",height="+to_string(frameHeight)
-               +",acodec=none}:rtp{sdp="+adr+"}'"*/+" &";
+               +",acodec=none}:rtp{sdp="+adr+"}'"+" 2>logVlc.txt &";
         clog << "RUN:\n\t" << vlcCmd << endl;
         clog << "return is " << system(vlcCmd.c_str()) << endl;
         this_thread::sleep_for(milliseconds(1000));
         openPipe();
+        work=true;
+        sendFrameThread = new thread(&RtspServer::sendFrameInThread,this);
+        sendFrameThread->detach();
     }else{
         clog<<"Unable to make named pipe "<< fifoname <<":\n\t";
         switch (errno) {
@@ -61,6 +65,8 @@ RtspServer::RtspServer(int _frameWidth, int _frameHeight, string _adr, string _c
 
 RtspServer::~RtspServer()
 {
+    work=false;
+    sendFrameThread->join();
     close(fdpipe);
 
     string killcmd="killall -s 9 vlc";
@@ -76,24 +82,39 @@ RtspServer::~RtspServer()
         clog << "\tRtspServer:" << fifoname << " deleted" << endl;
 }
 
-void RtspServer::sendFrame(Mat &frame) const
+void RtspServer::sendFrame(const Mat &frame)
 {
-    Log::print(INFO,string(__FUNCTION__)+" 1");
-    if(!frame.empty()){
-        int i=0;
-        for(Pixel &p : cv::Mat_<Pixel>(frame)){
-            frameBuf[i]=p.x;i++;
-            frameBuf[i]=p.y;i++;
-            frameBuf[i]=p.z;i++;
-        }
-        static ssize_t written;
-        written = write(fdpipe,frameBuf,sizeof(unsigned char)*(buflen));
-        if (written<=0){
-            cerr<<"\nerror with writing bytes:"<< written << " written. errno:"<<errno<<endl;
-        }
+    if(que.size()<=queMaxLen){
+        que.push(frame);
+        Log::print(INFO,string(__FUNCTION__)+" que size:\t"+to_string(que.size()));
+    }else{
+        Log::print(WARN,string(__FUNCTION__)+" drop frame due to queue length");
     }
-    Log::print(INFO,string(__FUNCTION__)+" 2");
 }
+
+void RtspServer::sendFrameInThread()
+{
+    while(work){
+        Log::print(INFO,string(__FUNCTION__)+" 1");
+        if(!que.empty()){
+            int i=0;
+            for(Pixel &p : cv::Mat_<Pixel>(que.front())){
+                frameBuf[i]=p.x;i++;
+                frameBuf[i]=p.y;i++;
+                frameBuf[i]=p.z;i++;
+            }
+            static ssize_t written;
+            written = write(fdpipe,frameBuf,sizeof(unsigned char)*(buflen));
+            if (written<=0){
+                cerr<<"\nerror with writing bytes:"<< written << " written. errno:"<<errno<<endl;
+            }
+            que.pop();
+            Log::print(INFO,string(__FUNCTION__)+" que size:\t"+to_string(que.size()));
+        }
+        Log::print(INFO,string(__FUNCTION__)+" 2");
+    }
+}
+
 
 void RtspServer::openPipe()
 {

@@ -13,7 +13,7 @@ CvWindow::~CvWindow()
     destroyWindow(winname);
 }
 
-void CvWindow::sendFrame(Mat &frame) const
+void CvWindow::sendFrame(const Mat &frame)
 {
     if(!frame.empty()){
         imshow(winname,frame);

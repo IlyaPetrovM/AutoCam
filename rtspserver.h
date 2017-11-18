@@ -14,6 +14,8 @@
 #include <chrono>
 #include <thread>
 #include "log.h"
+#include <queue>
+#include <atomic>
 
 using namespace cv;
 using namespace std;
@@ -23,6 +25,8 @@ typedef cv::Point3_<unsigned char> Pixel;
 
 class RtspServer : public Output
 {
+    thread *sendFrameThread;
+    atomic<bool> work;
     string adr;
     string codec;
     int fps;
@@ -32,11 +36,14 @@ class RtspServer : public Output
     unsigned char *frameBuf;
     size_t buflen;
     bool firstFrameSent;
+    queue<Mat> que;
+    unsigned int queMaxLen;
+    void sendFrameInThread();
 public:
-    RtspServer(int _frameWidth, int _frameHeight, string _adr, string _codec, int _fps, int numOfchannels);
+    RtspServer(int _frameWidth, int _frameHeight, string _adr, string _codec, int _fps, int numOfchannels, unsigned int _queLen=25);
 
     ~RtspServer();
-    void sendFrame(Mat &frame) const;
+    void sendFrame(const Mat &frame);
     void openPipe();
 
 };

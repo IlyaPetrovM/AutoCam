@@ -8,7 +8,7 @@ using namespace std;
 int main(int argc,char** argv)
 {
     Log logger(WARN,"main()");
-    Scene s(argv[1]);
+    Scene s(argv[1],3);
     Director d(s);
     d.work();
     return 0;

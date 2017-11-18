@@ -27,6 +27,7 @@ class Director
     bool findDubs();
     bool stopWork;
     void manageOperators();
+    void updateScene();
     void help();
     void operatorsList();
     Scene scene;

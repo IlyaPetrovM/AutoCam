@@ -7,6 +7,7 @@
 #include <atomic>
 #include <mutex>
 #include "log.h"
+#include <queue>
 
 using namespace std;
 using namespace cv;
@@ -16,8 +17,10 @@ class Scene
     VideoCapture capture;
     Mutex frameMtx;
     Mat frame;
+    queue<Mat> que;
+    unsigned int queMaxLen;
 public:
-    Scene(string _source);
+    Scene(string _source, unsigned int _queMaxLen=25);
     ~Scene();
     void update();
     std::string getSource() const;

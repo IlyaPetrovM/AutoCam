@@ -13,9 +13,9 @@ Director::Director(Scene s)
     Output* rtsp = new RtspServer(scene.getWidth(),
                                     scene.getHeight(),
                                     "rtsp://:5025/dptz.sdp",
-                                    "h264",
+                                    "mp2v",
                                     scene.getFps(),
-                                    channels);
+                                    channels,2);
     cam->addPort(rtsp);
     Face* f = new Face();
     Operator* op = new Operator(&scene,cam,f);
@@ -40,13 +40,20 @@ void Director::manageOperators()
 {
     while(!stopWork){
         vector<thread> threads;
-        threads.push_back(thread(&Scene::update,ref(scene)));
         for(int i=0;i<operators.size();i++){
             threads.push_back(thread(&Operator::work,ref(operators[i])));
         }
         for (auto& th : threads) th.join();
     }
 }
+
+void Director::updateScene()
+{
+    while(!stopWork){
+        scene.update();
+    }
+}
+
 
 void Director::help()
 {
@@ -78,7 +85,8 @@ Director::~Director()
 
 void Director::work()
 {
-    thread cons(&Director::manageOperators,this);
+    thread sceneThread(&Director::updateScene,this);
+    thread operThread(&Director::manageOperators,this);
     string cmd;
     while(!stopWork){
 //        manageOperators();
@@ -122,5 +130,6 @@ void Director::work()
              help();
         }
     }
-    cons.join();
+    sceneThread.join();
+    operThread.join();
 }
