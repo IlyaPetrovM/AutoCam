@@ -10,4 +10,4 @@ link_directories( ${OpenCV_LIB_DIR} )
 include_directories(${OpenCV_INCLUDE_DIRS})
 
 add_executable(${PROJECT_NAME} ${SRC_LIST} detectingrules.cpp output.cpp cvwindow.cpp)
-target_link_libraries(${PROJECT_NAME} "-pthread" ${OpenCV_LIBS})
+target_link_libraries(${PROJECT_NAME} "-pthread" ${OpenCV_LIBS} "-lvlc")

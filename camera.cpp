@@ -17,9 +17,13 @@ void Camera::update()
 
     calcFrameSize();
 
-    scene->getFrame(frameIn);
-    cutFrame();
-    sendFrame();
+    scene->getFrame(&frameIn);
+    if(frameIn.cameOnTime()){
+        cutFrame();
+        sendFrame();
+    }else{
+        frameIn.drop();
+    }
 }
 
 
@@ -50,14 +54,25 @@ void Camera::friction(float &vel)
 
 void Camera::cutFrame()
 {
-    /// \todo frameOut = frameIn(Rect(x,y,width,height));
-    frameOut = frameIn.clone();
+    Log::print(DEBUG,string(__FUNCTION__)+"1");
+
+    static Mat tmp;
+//    tmp = frameIn.getPixels().clone();
+    resize(frameIn.getPixels(),tmp,Size(width,height)); //todo target width and height
+    frameOut.setPixels(tmp);
+    frameOut.setNum(frameIn.getNum());
+    frameOut.setDeadline_us(frameIn.getDeadline_us());
+
+    Log::print(DEBUG,string(__FUNCTION__)+"delete frameInPtr");
+
 }
 
-Camera::Camera(Scene *_scene)
+Camera::Camera(Scene *_scene, const int _targetWidth, const int _targetHeight)
     : id(camCnt),
       scene(_scene),
-      fric(0.5)
+      fric(0.5),
+      width(_targetWidth),
+      height(_targetHeight)
 {
     camCnt++;
 }
@@ -65,9 +80,9 @@ Camera::Camera(Scene *_scene)
 Camera::~Camera()
 {
     for(size_t i=0;i<port.size();i++){
+        Log::print(DEBUG,"\tcamera #"+to_string(id)+" deleting port "+to_string(i) );
         delete port[i];
     }
-    clog << "\tcamera #"<<id<< " deleted" <<endl;
 }
 
 void Camera::moveUp()
@@ -103,8 +118,9 @@ void Camera::zoomOut()
 void Camera::sendFrame()
 {
 //    clog<<"cam "<< id<<" sends frame" << endl;
+    Log::print(DEBUG,string(__FUNCTION__)+" camera");
     for(size_t i=0; i<port.size();i++){
-        port[i]->sendFrame(frameOut);
+        port[i]->sendFrame(&frameOut);
     }
 }
 

@@ -4,6 +4,8 @@
 #include <string>
 #include "scene.h"
 #include "output.h"
+#include <opencv2/imgproc.hpp>
+using namespace cv;
 using namespace std;
 class Camera
 {
@@ -16,8 +18,8 @@ class Camera
 
     unsigned int xmax,ymax,widthmax,heightmax;
     Scene *scene;
-    Mat frameIn;
-    Mat frameOut;
+    Frame frameIn;
+    Frame frameOut;
     float fric;
     void friction(float &vel);
     vector<Output*> port;
@@ -25,7 +27,7 @@ class Camera
     void sendFrame();
     void calcFrameSize();
 public:
-    Camera(Scene *_scene);
+    Camera(Scene *_scene, const int _targetWidth, const int _targetHeight);
     ~Camera();
     void update();
     void moveUp();

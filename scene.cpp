@@ -11,6 +11,7 @@ int Scene::setSource(const string &value)
 {
     path = value;
     if(capture.open(path)){
+        frameCnt=0;
         update();
         Log::print(WARN,path+" opened");
         cout << "Video params:" <<
@@ -26,21 +27,13 @@ int Scene::setSource(const string &value)
 }
 
 
-void Scene::getFrame(Mat &_frame)
+void Scene::getFrame(Frame *_frame)
 {
     frameMtx.lock();
     if (!que.empty()) {
-        _frame=que.front();
+        *_frame=que.front();
         que.pop();
-        Log::print(INFO,string(__FUNCTION__)+" 1.2 que size:"+to_string(que.size()));
     }
-    frameMtx.unlock();
-}
-
-void Scene::setFrame(const Mat &value)
-{
-    frameMtx.lock();
-    frame = value;
     frameMtx.unlock();
 }
 
@@ -63,10 +56,16 @@ int Scene::getChannels() const
 {
     return capture.get(CAP_PROP_FORMAT);
 }
+unsigned long Scene::getFrameCnt() const
+{
+    return frameCnt;
+}
+
 Scene::Scene(std::string _source, unsigned int _queMaxLen)
     :path(_source), queMaxLen(_queMaxLen)
 {
     setSource(path);
+
 }
 
 Scene::~Scene()
@@ -76,14 +75,19 @@ Scene::~Scene()
 
 void Scene::update()
 {
-//    cout << __FUNCTION__ << endl;
-//    Log::print(INFO,string(__FUNCTION__)+" 1");
-    if(que.size()<queMaxLen){
-        frameMtx.lock();
-        capture >> frame;
-        que.push(frame);
-        Log::print(INFO,string(__FUNCTION__)+" 1.2 que size:"+to_string(que.size()));
-        frameMtx.unlock();
+    frameMtx.lock();
+    if(que.size()<=queMaxLen){
+        frame.calculateDeadline(getFps());
+        Mat tempFrame;
+        capture >> tempFrame;
+        frame.setPixels(tempFrame);
+        if(frame.cameOnTime()){
+            frame.setNum(frameCnt++);
+            que.push(frame);
+            Log::print(DEBUG,string(__FUNCTION__)+" pixels in Frame:"+to_string(que.back().getDeadline_us()));
+        }else{
+            frame.drop();
+        }
     }
-//    Log::print(INFO,string(__FUNCTION__)+" 2");
+    frameMtx.unlock();
 }

@@ -16,6 +16,7 @@
 #include "log.h"
 #include <queue>
 #include <atomic>
+#include <vlc/vlc.h>
 
 using namespace cv;
 using namespace std;
@@ -25,6 +26,8 @@ typedef cv::Point3_<unsigned char> Pixel;
 
 class RtspServer : public Output
 {
+    libvlc_instance_t *vlcInstance_out;
+
     thread *sendFrameThread;
     atomic<bool> work;
     string adr;
@@ -36,14 +39,13 @@ class RtspServer : public Output
     unsigned char *frameBuf;
     size_t buflen;
     bool firstFrameSent;
-    queue<Mat> que;
     unsigned int queMaxLen;
     void sendFrameInThread();
 public:
     RtspServer(int _frameWidth, int _frameHeight, string _adr, string _codec, int _fps, int numOfchannels, unsigned int _queLen=25);
 
     ~RtspServer();
-    void sendFrame(const Mat &frame);
+    void sendFrame(Frame *frame);
     void openPipe();
 
 };

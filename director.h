@@ -32,7 +32,7 @@ class Director
     void operatorsList();
     Scene scene;
 public:
-    Director(Scene s);
+    Director(Scene s, int w, int h);
     ~Director();
     void findFaces();
     void findHiddenFaces();

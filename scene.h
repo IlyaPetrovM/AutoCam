@@ -8,6 +8,7 @@
 #include <mutex>
 #include "log.h"
 #include <queue>
+#include "frame.h"
 
 using namespace std;
 using namespace cv;
@@ -16,9 +17,10 @@ class Scene
     string path;
     VideoCapture capture;
     Mutex frameMtx;
-    Mat frame;
-    queue<Mat> que;
+    Frame frame;
+    queue<Frame> que;
     unsigned int queMaxLen;
+    unsigned long frameCnt;
 public:
     Scene(string _source, unsigned int _queMaxLen=25);
     ~Scene();
@@ -26,13 +28,13 @@ public:
     std::string getSource() const;
     int setSource(const string &value);
 
-    void getFrame(Mat &_frame);
-    void setFrame(const Mat &value);
+    void getFrame(Frame *_frame);
     int getFps() const;
     int getHeight() const;
     int getWidth() const;
     int getChannels() const;
 
+    unsigned long getFrameCnt() const;
 };
 
 #endif // SCENE_H

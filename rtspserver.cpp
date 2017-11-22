@@ -15,23 +15,25 @@ RtspServer::RtspServer(int _frameWidth, int _frameHeight, string _adr, string _c
     int success = !mkfifo(fifoname.c_str(),0666);
     if(success || errno==EEXIST){
         clog<<"RtspServer start init" << endl;
-        string vlcCmd = "vlc -I dummy --repeat "+fifoname
-                +" --demux=rawvideo --rawvid-fps="+to_string(fps)
-                +" --rawvid-width="+to_string(frameWidth)
-                +" --rawvid-height="+to_string(frameHeight)
-                +" --rawvid-chroma=RV"+to_string(numOfchannels*8)
-                +" --sout '#transcode{vcodec="+codec
-               +",vb="+to_string(1024)+",fps="+to_string(fps)
-               +",scale=Auto,width="+to_string(frameWidth)
-               +",height="+to_string(frameHeight)
-               +",acodec=none}:rtp{sdp="+adr+"}'"+" 2>logVlc.txt &";
-        clog << "RUN:\n\t" << vlcCmd << endl;
-        clog << "return is " << system(vlcCmd.c_str()) << endl;
+        string vlcCmd = "vlc "+fifoname+" -I dummy --repeat --demux=rawvideo --rawvid-fps="+
+                to_string(fps)+
+                " --rawvid-width="+to_string(frameWidth)+
+                " --rawvid-height="+to_string(frameHeight)+
+                " --rawvid-chroma=RV"+to_string(numOfchannels*8);
+
+        string sout=" --sout '#transcode{vcodec="+codec
+                +",vb="+to_string(2024)+",fps="+to_string(fps)
+                +",scale=Auto,width="+to_string(frameWidth)
+                +",height="+to_string(frameHeight)
+                +",acodec=none}:rtp{sdp="+adr+"}'"
+                +" --sout-x264-keyint=12 --sout-x264-min-keyint=2";
+
+        int ret = system((vlcCmd+sout+" &").c_str());
+        Log::print(DEBUG,to_string(ret));
         this_thread::sleep_for(milliseconds(1000));
         openPipe();
         work=true;
         sendFrameThread = new thread(&RtspServer::sendFrameInThread,this);
-        sendFrameThread->detach();
     }else{
         clog<<"Unable to make named pipe "<< fifoname <<":\n\t";
         switch (errno) {
@@ -67,6 +69,8 @@ RtspServer::~RtspServer()
 {
     work=false;
     sendFrameThread->join();
+    delete sendFrameThread;
+    Log::print(DEBUG,"join send Frame thread");
     close(fdpipe);
 
     string killcmd="killall -s 9 vlc";
@@ -82,36 +86,53 @@ RtspServer::~RtspServer()
         clog << "\tRtspServer:" << fifoname << " deleted" << endl;
 }
 
-void RtspServer::sendFrame(const Mat &frame)
+void RtspServer::sendFrame(Frame *frame)
 {
+    Log::print(DEBUG,string(__FUNCTION__));
+    queMtx.lock();
     if(que.size()<=queMaxLen){
-        que.push(frame);
-        Log::print(INFO,string(__FUNCTION__)+" que size:\t"+to_string(que.size()));
+        if(frame->cameOnTime()){
+            que.push(*frame);
+            Log::print(DEBUG,string(__FUNCTION__)+" que size:\t"+to_string(que.size()));
+        }else{
+            frame->drop();
+        }
     }else{
-        Log::print(WARN,string(__FUNCTION__)+" drop frame due to queue length");
+        frame->drop();
     }
+    queMtx.unlock();
 }
 
 void RtspServer::sendFrameInThread()
 {
+    static ssize_t written;
     while(work){
-        Log::print(INFO,string(__FUNCTION__)+" 1");
+        queMtx.lock();
         if(!que.empty()){
             int i=0;
-            for(Pixel &p : cv::Mat_<Pixel>(que.front())){
-                frameBuf[i]=p.x;i++;
-                frameBuf[i]=p.y;i++;
-                frameBuf[i]=p.z;i++;
-            }
-            static ssize_t written;
-            written = write(fdpipe,frameBuf,sizeof(unsigned char)*(buflen));
-            if (written<=0){
-                cerr<<"\nerror with writing bytes:"<< written << " written. errno:"<<errno<<endl;
+            Log::print(DEBUG,string(__FUNCTION__));
+            if(que.front().cameOnTime()){
+                for(Pixel &p : cv::Mat_<Pixel>(que.front().getPixels())){
+                    frameBuf[i]=p.x;i++;
+                    frameBuf[i]=p.y;i++;
+                    frameBuf[i]=p.z;i++;
+                }
+                if(que.front().cameOnTime()){
+                    written = write(fdpipe,frameBuf,sizeof(unsigned char)*(buflen));
+                    if (written<=0){
+                        cerr<<"\nerror with writing bytes:"<< written << " written. errno:"<<errno<<endl;
+                    }else{
+                        Log::print(DEBUG,"frame written");
+                    }
+                }else{
+                    que.front().drop();
+                }
+            }else{
+                que.front().drop();
             }
             que.pop();
-            Log::print(INFO,string(__FUNCTION__)+" que size:\t"+to_string(que.size()));
         }
-        Log::print(INFO,string(__FUNCTION__)+" 2");
+        queMtx.unlock();
     }
 }
 

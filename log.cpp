@@ -16,7 +16,7 @@ string Log::context = "";
 
 void Log::print(loglevel _level, string msg)
 {
-    if(_level<=level){
-        clog << ""<< cvGetTickCount()/cvGetTickFrequency() << "\t" <<_level<< "\t"<< msg << endl;
+    if(_level>=level){
+        clog << ""<< (unsigned long)(cvGetTickCount()/cvGetTickFrequency()) << "\t" <<_level<< "\t"<< msg << endl;
     }
 }

@@ -7,7 +7,7 @@
 using namespace std;
 using namespace std::chrono;
 using std::chrono::system_clock;
-typedef enum {NO,INFO,WARN,ERROR} loglevel;
+typedef enum {DEBUG,INFO,WARN,ERROR,NO} loglevel;
 class Log
 {
     static loglevel level;

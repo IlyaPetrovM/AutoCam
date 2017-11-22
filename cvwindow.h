@@ -9,9 +9,9 @@ class CvWindow : public Output
 {
     String winname;
 public:
-    CvWindow(int winWidth,int winHeight, const string _winname, int _flags = WINDOW_AUTOSIZE);
+    CvWindow(int winWidth,int winHeight, const string _winname, int _flags = 0);
     ~CvWindow();
-    void sendFrame(const Mat &frame);
+    void sendFrame(Frame *frame);
 };
 
 #endif // CVWINDOW_H

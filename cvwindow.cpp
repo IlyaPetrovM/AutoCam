@@ -13,10 +13,12 @@ CvWindow::~CvWindow()
     destroyWindow(winname);
 }
 
-void CvWindow::sendFrame(const Mat &frame)
+void CvWindow::sendFrame(Frame *frame)
 {
-    if(!frame.empty()){
-        imshow(winname,frame);
+    if(frame->cameOnTime() && !frame->getPixels().empty()){
+        que.push(*frame);
+        imshow(winname,que.front().getPixels());
+        que.pop();
         waitKey(1);
     }
 }
