@@ -16,6 +16,8 @@ class Frame
     unsigned long deadline_us;
     static unsigned long lastDeletedFrameNum;
     unsigned long num;
+    static bool dropFrames;
+    static int dropEvery;
 public:
     Frame();
     ~Frame();
@@ -29,6 +31,10 @@ public:
     unsigned long getDeadline_us() const;
     void setDeadline_us(unsigned long value);
     void drop(){Log::print(WARN,string("Frame ")+to_string(num)+string(" dropped"));}
+    static bool getDropFrames();
+    static void setDropFrames(bool value);
+    static int getDropEvery();
+    static void setDropEvery(int value);
 };
 
 #endif // FRAME_H
