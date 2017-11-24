@@ -28,7 +28,7 @@ public:
     std::string getSource() const;
     int setSource(const string &value);
 
-    void getFrame(Frame *_frame);
+    bool getFrame(Frame *_frame);
     int getFps() const;
     int getHeight() const;
     int getWidth() const;

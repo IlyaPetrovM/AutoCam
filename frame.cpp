@@ -10,8 +10,6 @@ void Frame::setDeadline_us(unsigned long value)
     deadline_us = value;
 }
 
-
-
 bool Frame::getDropFrames()
 {
     return dropFrames;
@@ -38,6 +36,7 @@ void Frame::setDropEvery(int value)
 
 Frame::Frame()
 {
+    num=-1;
 }
 
 unsigned long Frame::getNum() const
@@ -57,7 +56,7 @@ Mat Frame::getPixels() const
 
 void Frame::setPixels(const Mat &value)
 {
-    pixels = value;
+    pixels = value.clone();
 }
 bool Frame::dropFrames=false;
 int Frame::dropEvery=1;
@@ -75,15 +74,13 @@ Frame::~Frame()
 bool Frame::cameOnTime()
 {
     unsigned long curTime = (cvGetTickCount()/cvGetTickFrequency());
-    Log::print(DEBUG,string(" Frame ")+to_string(num)
-               +string("\tCurrent time: \t")+
-               to_string(curTime)+string(" \n\t\t\t\t\tdeadline\t")+to_string(deadline_us));
     if(dropFrames){
         if(curTime >= deadline_us){
-            if(lastDeletedFrameNum+dropEvery<num){
-                lastDeletedFrameNum=num;
+//            if(lastDeletedFrameNum+dropEvery<num){
+//                lastDeletedFrameNum=num;
                 return false;
-            }}
+//            }
+        }
         else{
             return true;
         }

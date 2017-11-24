@@ -17,7 +17,7 @@ Director::Director(Scene s, int w,int h)
                                     scene.getFps(),
                                     channels,3);
     cam->addPort(rtsp);
-    Face* f = new Face();
+    Face* f = new Face(0,0,20,20);
     Operator* op = new Operator(&scene,cam,f);
     operators.push_back(op);
 }
@@ -82,7 +82,18 @@ Director::~Director()
         delete operators[i];
     }
 }
-
+int Director::mygetch( ) {
+    struct termios oldt,
+    newt;
+    int ch;
+    tcgetattr( STDIN_FILENO, &oldt );
+    newt = oldt;
+    newt.c_lflag &= ~( ICANON | ECHO );
+    tcsetattr( STDIN_FILENO, TCSANOW, &newt );
+    ch = getchar();
+    tcsetattr( STDIN_FILENO, TCSANOW, &oldt );
+    return ch;
+}
 
 void Director::work()
 {
@@ -98,7 +109,7 @@ void Director::work()
             Camera* cam = new Camera(&scene,w,h);
             string winname = "Window of cam "+to_string(cam->getId());
             cam->addPort(new CvWindow(w,h,winname));
-            operators.push_back(new Operator(&scene,cam, new Face()));
+            operators.push_back(new Operator(&scene,cam, new Face(0,0,10,10)));
             cout << "ok"<< endl;
         }else if(cmd=="del"){
             int ch=-1;cin >> ch;
@@ -122,9 +133,14 @@ void Director::work()
             cin>>_id;
             for (int i=0;i<operators.size();i++) {
                 if(operators[i]->getId()==_id){
-                    char _cmd;
-                    cin>>_cmd;
-                    operators[i]->sendCommand(_cmd);
+                    char _cmd=' ';
+                    cout<<"Control operator "<<i<<endl;
+                    while(_cmd!=27 && _cmd!='n'){
+                        _cmd=mygetch();
+                        operators[i]->sendCommand(_cmd);
+                        cout<<"get "<<_cmd<<endl;
+                    }
+                    cout<<"Control operator "<<i<<endl;
                     break;
                 }
             }

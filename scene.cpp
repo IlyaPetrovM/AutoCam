@@ -27,14 +27,17 @@ int Scene::setSource(const string &value)
 }
 
 
-void Scene::getFrame(Frame *_frame)
+bool Scene::getFrame(Frame *_frame)
 {
+    bool wasFrame=false;
     frameMtx.lock();
     if (!que.empty()) {
         *_frame=que.front();
         que.pop();
+        wasFrame=true;
     }
     frameMtx.unlock();
+    return wasFrame;
 }
 
 int Scene::getFps() const
@@ -80,9 +83,9 @@ void Scene::update()
         frame.calculateDeadline(getFps());
         Mat tempFrame;
         capture >> tempFrame;
-        frame.setPixels(tempFrame);
-        if(frame.cameOnTime()){
-            frame.setNum(frameCnt++);
+        frame.setNum(frameCnt++);
+        if(frame.cameOnTime() && (!tempFrame.empty())){
+            frame.setPixels(tempFrame);
             que.push(frame);
             Log::print(DEBUG,string(__FUNCTION__)+" pixels in Frame:"+to_string(que.back().getDeadline_us()));
         }else{

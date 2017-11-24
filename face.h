@@ -11,6 +11,7 @@ class Face
     unsigned int height;
 public:
     Face();
+    Face(int _x,int _y,int _w,int _h);
     ~Face();
 
     int getId() const;

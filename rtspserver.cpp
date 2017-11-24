@@ -1,10 +1,10 @@
 #include "rtspserver.h"
 int RtspServer::cnt=0;
 
-RtspServer::RtspServer(int _frameWidth, int _frameHeight, string _adr, string _codec, int _fps=25, int numOfchannels=3, unsigned int _queLen)
-    : Output(_frameWidth,_frameHeight), adr(_adr),codec(_codec),fps(_fps), queMaxLen(_queLen)
+RtspServer::RtspServer(int _targetWidth, int _targetHeight, string _adr, string _codec, int _fps=25, int numOfchannels=3, unsigned int _queLen)
+    : Output(_targetWidth,_targetHeight), adr(_adr),codec(_codec),fps(_fps), queMaxLen(_queLen)
 {
-    buflen=frameHeight*frameWidth*numOfchannels;
+    buflen=targetHeight*targetWidth*numOfchannels;
     frameBuf = new unsigned char[buflen];
 
     firstFrameSent=false;
@@ -17,18 +17,18 @@ RtspServer::RtspServer(int _frameWidth, int _frameHeight, string _adr, string _c
         clog<<"RtspServer start init" << endl;
         string vlcCmd = "vlc "+fifoname+" -I dummy --repeat --demux=rawvideo --rawvid-fps="+
                 to_string(fps)+
-                " --rawvid-width="+to_string(frameWidth)+
-                " --rawvid-height="+to_string(frameHeight)+
+                " --rawvid-width="+to_string(targetWidth)+
+                " --rawvid-height="+to_string(targetHeight)+
                 " --rawvid-chroma=RV"+to_string(numOfchannels*8);
 
         string sout=" --sout '#transcode{vcodec="+codec
                 +",vb="+to_string(2024)+",fps="+to_string(fps)
-                +",scale=Auto,width="+to_string(frameWidth)
-                +",height="+to_string(frameHeight)
+                +",scale=Auto,width="+to_string(targetWidth)
+                +",height="+to_string(targetHeight)
                 +",acodec=none}:rtp{sdp="+adr+"}'"
                 +" --sout-x264-keyint=12 --sout-x264-min-keyint=2";
 
-        int ret = system((vlcCmd+sout+" &").c_str());
+        int ret = system((vlcCmd+sout+" 2>vlcLog.txt &").c_str());
         Log::print(DEBUG,to_string(ret));
         this_thread::sleep_for(milliseconds(1000));
         openPipe();
@@ -110,9 +110,12 @@ void RtspServer::sendFrameInThread()
         queMtx.lock();
         if(!que.empty()){
             int i=0;
-            Log::print(DEBUG,string(__FUNCTION__));
-            if(que.front().cameOnTime()){
-                for(Pixel &p : cv::Mat_<Pixel>(que.front().getPixels())){
+            Log::print(DEBUG,typeid(*this).name()+string(__FUNCTION__));
+            if(que.front().cameOnTime() && !que.front().getPixels().empty()){
+                static Mat tmp;
+                Log::print(DEBUG,"before resizing: target Height:"+to_string(targetWidth)+" target Width:"+to_string(targetHeight));
+                resize(que.front().getPixels(),tmp,Size(targetWidth,targetHeight)); //todo target width and height
+                for(Pixel &p : cv::Mat_<Pixel>(tmp)){
                     frameBuf[i]=p.x;i++;
                     frameBuf[i]=p.y;i++;
                     frameBuf[i]=p.z;i++;
@@ -125,9 +128,11 @@ void RtspServer::sendFrameInThread()
                         Log::print(DEBUG,"frame written");
                     }
                 }else{
+                    Log::print(DEBUG,typeid(*this).name()+to_string(__LINE__));
                     que.front().drop();
                 }
             }else{
+                Log::print(DEBUG,typeid(*this).name()+to_string(__LINE__));
                 que.front().drop();
             }
             que.pop();

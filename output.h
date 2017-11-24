@@ -5,14 +5,14 @@
 #include <queue>
 #include <mutex>
 #include "frame.h"
-
+#include <opencv2/imgproc.hpp>
 using namespace cv;
 using namespace std;
 class Output
 {
 protected:
-    unsigned int frameWidth;
-    unsigned int frameHeight;
+    unsigned int targetWidth;
+    unsigned int targetHeight;
     queue<Frame> que;
     Mutex queMtx;
 public:

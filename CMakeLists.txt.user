@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE QtCreatorProject>
-<!-- Written by QtCreator 4.4.1, 2017-11-23T02:11:34. -->
+<!-- Written by QtCreator 4.4.1, 2017-11-24T00:28:37. -->
 <qtcreator>
  <data>
   <variable>EnvironmentId</variable>
@@ -280,7 +280,7 @@
     </valuelist>
     <value type="int" key="PE.EnvironmentAspect.Base">2</value>
     <valuelist type="QVariantList" key="PE.EnvironmentAspect.Changes"/>
-    <value type="QString" key="ProjectExplorer.CustomExecutableRunConfiguration.Arguments">~/Videos/parrots/360.mp4 320 144  2&gt; log.txt</value>
+    <value type="QString" key="ProjectExplorer.CustomExecutableRunConfiguration.Arguments">~/Videos/parrots/360.mp4 640 360 0 1 2&gt; log.txt </value>
     <value type="QString" key="ProjectExplorer.CustomExecutableRunConfiguration.Executable">/home/ilya/build-autocam4-Desktop-Default/autocam4</value>
     <value type="bool" key="ProjectExplorer.CustomExecutableRunConfiguration.UseTerminal">true</value>
     <value type="QString" key="ProjectExplorer.CustomExecutableRunConfiguration.WorkingDirectory">%{buildDir}</value>

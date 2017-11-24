@@ -42,7 +42,7 @@ class RtspServer : public Output
     unsigned int queMaxLen;
     void sendFrameInThread();
 public:
-    RtspServer(int _frameWidth, int _frameHeight, string _adr, string _codec, int _fps, int numOfchannels, unsigned int _queLen=25);
+    RtspServer(int _targetWidth, int _targetHeight, string _adr, string _codec, int _fps, int numOfchannels, unsigned int _queLen=25);
 
     ~RtspServer();
     void sendFrame(Frame *frame);

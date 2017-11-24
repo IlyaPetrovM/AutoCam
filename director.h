@@ -4,6 +4,9 @@
 #include <iostream>
 #include <thread>
 #include <exception>
+#include <stdio.h>
+#include <termios.h>
+#include <unistd.h>
 
 #include "scene.h"
 #include "operator.h"
@@ -31,6 +34,7 @@ class Director
     void help();
     void operatorsList();
     Scene scene;
+    int mygetch( );
 public:
     Director(Scene s, int w, int h);
     ~Director();

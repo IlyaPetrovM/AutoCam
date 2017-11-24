@@ -5,7 +5,7 @@ CvWindow::CvWindow(int winWidth, int winHeight, const string _winname, int _flag
 {
     std::clog<< "CvWindow created " << winname << std::endl;
     namedWindow(winname,_flags);
-    resizeWindow(winname,winWidth,winHeight);
+    resizeWindow(winname,targetWidth,targetHeight);
 }
 
 CvWindow::~CvWindow()
@@ -16,8 +16,9 @@ CvWindow::~CvWindow()
 void CvWindow::sendFrame(Frame *frame)
 {
     if(frame->cameOnTime() && !frame->getPixels().empty()){
-        que.push(*frame);
-        imshow(winname,que.front().getPixels());
+        static Mat tmp;
+        resize(frame->getPixels(),tmp,Size(targetWidth,targetHeight)); //todo target width and height
+        imshow(winname,tmp);
         que.pop();
         waitKey(1);
     }

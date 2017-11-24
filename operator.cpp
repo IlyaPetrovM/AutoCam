@@ -58,6 +58,9 @@ void Operator::sendCommand(char _cmd)
 }
 void Operator::workManual()
 {
+    if(cmd!=' '){
+        std::cout << "\rOperator #" << id << " got cmd" << cmd << std::endl;
+    }
     switch (cmd) {
     case 'w':
         camera.moveUp();
@@ -71,10 +74,10 @@ void Operator::workManual()
     case 'd':
         camera.moveRight();
         break;
-    case 'q':
+    case '-':
         camera.zoomOut();
         break;
-    case 'e':
+    case '+':
         camera.zoomIn();
         break;
     case 'm':
@@ -105,8 +108,8 @@ void Operator::workAuto()
     }
     cmd=' ';
 
+    face = Face(5,5,40,40); ///\todo get new face coordinates in scene
+    ///\todo  compute ideal composition for this face in this scene
+    ///\todo  move the camera
     camera.update();
-    // get new face coordinates in scene
-    // compute ideal composition for this face in this scene
-    // move the camera
 }

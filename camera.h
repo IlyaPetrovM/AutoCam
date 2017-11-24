@@ -4,30 +4,33 @@
 #include <string>
 #include "scene.h"
 #include "output.h"
-#include <opencv2/imgproc.hpp>
+
 using namespace cv;
 using namespace std;
 class Camera
 {
     int id;
     static int camCnt;
-    float vx,vy,vz;
+    double vx,vy,vz;
+
 
     unsigned int x,y,width,height;
-    float z;
-
-    unsigned int xmax,ymax,widthmax,heightmax;
+    double z;
+    double maxZoom;
+    double minZoom;
+    unsigned int maxX,maxY,maxWidth,maxHeight;
     Scene *scene;
     Frame frameIn;
     Frame frameOut;
-    float fric;
-    void friction(float &vel);
+    double safeMargin;
+    double fric;
+    void friction(double &vel);
     vector<Output*> port;
     void cutFrame();
     void sendFrame();
     void calcFrameSize();
 public:
-    Camera(Scene *_scene, const int _targetWidth, const int _targetHeight);
+    Camera(Scene *_scene, double _safeMargin=0.1, double _friction=0.1);
     ~Camera();
     void update();
     void moveUp();
@@ -38,10 +41,12 @@ public:
     void zoomOut();
 
     int getId() const;
-    float getFric() const;
-    void setFric(float value);
+    double getFric() const;
+    void setFric(double _friction);
     void addPort(Output *_port);
     vector<Output *> getPorts() const;
+    double getSafeMargin() const;
+    void setSafeMargin(double value);
 };
 
 
