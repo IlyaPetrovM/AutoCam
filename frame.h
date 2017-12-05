@@ -30,7 +30,7 @@ public:
     unsigned long getNum() const;
     unsigned long getDeadline_us() const;
     void setDeadline_us(unsigned long value);
-    void drop(){Log::print(WARN,string("Frame ")+to_string(num)+string(" dropped")+string("\n\tCurrent time: \t")+
+    void drop(const char *func){Log::print(WARN,string(func)+string("drop Frame ")+to_string(num)+string("\n\tCurrent time: \t")+
                            to_string((cvGetTickCount()/cvGetTickFrequency()))+string(" \n\tdeadline:\t")+to_string(deadline_us)+"\n");}
     static bool getDropFrames();
     static void setDropFrames(bool value);

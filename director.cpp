@@ -5,18 +5,20 @@ Director::Director(Scene s, int w,int h)
       rules(5)
 {
     Log::print(DEBUG,"Director1");
-    Camera* cam = new Camera(&scene,w,h);
+    Camera* cam = new Camera(&scene,0.05,0.5);
     Frame frame;
     Log::print(DEBUG,"Director2");
     scene.getFrame(&frame);
     int channels = frame.getPixels().channels();
-    Output* rtsp = new RtspServer(w,
-                                    h,
-                                    "rtsp://:5025/dptz.sdp",
-                                    "mp2v",
-                                    scene.getFps(),
-                                    channels,3);
-    cam->addPort(rtsp);
+    Output* cvWin = new CvWindow(w,h,"out",CV_WINDOW_NORMAL);
+    cam->addPort(cvWin);
+//    Output* rtsp = new RtspServer(w,
+//                                    h,
+//                                    "rtsp://:5025/dptz.sdp",
+//                                    "h264",
+//                                    scene.getFps(),
+//                                    channels,3);
+//    cam->addPort(rtsp);
     Face* f = new Face(0,0,20,20);
     Operator* op = new Operator(&scene,cam,f);
     operators.push_back(op);

@@ -19,7 +19,6 @@ void CvWindow::sendFrame(Frame *frame)
         static Mat tmp;
         resize(frame->getPixels(),tmp,Size(targetWidth,targetHeight)); //todo target width and height
         imshow(winname,tmp);
-        que.pop();
-        waitKey(1);
+        waitKey(20);
     }
 }

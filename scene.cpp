@@ -89,7 +89,7 @@ void Scene::update()
             que.push(frame);
             Log::print(DEBUG,string(__FUNCTION__)+" pixels in Frame:"+to_string(que.back().getDeadline_us()));
         }else{
-            frame.drop();
+            frame.drop(__FUNCTION__);
         }
     }
     frameMtx.unlock();

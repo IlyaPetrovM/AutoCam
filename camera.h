@@ -15,6 +15,7 @@ class Camera
 
 
     unsigned int x,y,width,height;
+    unsigned int realHeight,realWidth;
     double z;
     double maxZoom;
     double minZoom;
@@ -24,6 +25,7 @@ class Camera
     Frame frameOut;
     double safeMargin;
     double fric;
+    const double eps=0.0001;
     void friction(double &vel);
     vector<Output*> port;
     void cutFrame();
@@ -47,6 +49,14 @@ public:
     vector<Output *> getPorts() const;
     double getSafeMargin() const;
     void setSafeMargin(double value);
+    unsigned int getX() const;
+    void setX(unsigned int value);
+    unsigned int getY() const;
+    void setY(unsigned int value);
+    unsigned int getWidth() const;
+    void setWidth(unsigned int value);
+    unsigned int getHeight() const;
+    void setHeight(unsigned int value);
 };
 
 

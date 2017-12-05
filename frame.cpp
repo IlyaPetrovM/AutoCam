@@ -74,17 +74,17 @@ Frame::~Frame()
 bool Frame::cameOnTime()
 {
     unsigned long curTime = (cvGetTickCount()/cvGetTickFrequency());
-    if(dropFrames){
-        if(curTime >= deadline_us){
-//            if(lastDeletedFrameNum+dropEvery<num){
-//                lastDeletedFrameNum=num;
-                return false;
-//            }
-        }
-        else{
-            return true;
-        }
-    }else{
+//    if(dropFrames){
+//        if(curTime >= deadline_us){
+////            if(lastDeletedFrameNum+dropEvery<num){
+////                lastDeletedFrameNum=num;
+//                return false;
+////            }
+//        }
+//        else{
+//            return true;
+//        }
+//    }else{
         return true;
-    }
+//    }
 }

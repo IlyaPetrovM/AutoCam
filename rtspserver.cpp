@@ -95,10 +95,10 @@ void RtspServer::sendFrame(Frame *frame)
             que.push(*frame);
             Log::print(DEBUG,string(__FUNCTION__)+" que size:\t"+to_string(que.size()));
         }else{
-            frame->drop();
+            frame->drop(__FUNCTION__);
         }
     }else{
-        frame->drop();
+        frame->drop(__FUNCTION__);
     }
     queMtx.unlock();
 }
@@ -129,11 +129,11 @@ void RtspServer::sendFrameInThread()
                     }
                 }else{
                     Log::print(DEBUG,typeid(*this).name()+to_string(__LINE__));
-                    que.front().drop();
+                    que.front().drop(__FUNCTION__);
                 }
             }else{
                 Log::print(DEBUG,typeid(*this).name()+to_string(__LINE__));
-                que.front().drop();
+                que.front().drop(__FUNCTION__);
             }
             que.pop();
         }

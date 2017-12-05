@@ -2,39 +2,51 @@
 
 Camera::Camera(Scene *_scene, double _safeMargin, double _friction)
     : id(camCnt),
-      scene(_scene)
-
+      scene(_scene),
+    realHeight(_scene->getHeight()),
+    realWidth(_scene->getWidth())
 {
     camCnt++;
+    maxZoom = 4.0;
+    minZoom = 1.0;
     setFric(_friction);
     setSafeMargin(_safeMargin);
     vz=0;
     vx=0;
     vy=0;
     z=minZoom;
-    x=maxX*2;
-    y=maxY*2;
-    width=maxWidth/2;
-    height=maxHeight/2;
+    x=maxX;
+    y=maxY;
+    width = maxWidth;
+    height = maxHeight;
 }
 
 void Camera::update()
 {
-    x+=vx;
-    y+=vy;
-    z+=(0.001*vz);
     friction(vx);
     friction(vy);
     friction(vz);
 
-//    calcFrameSize();
+
+    setX(getX() + vx);
+    setY(getY() + vy);
+
+//    if(getX()>= maxX and getY()>=maxY){
+        setX(getX() + 16.0 * vz*0.1);
+        setY(getY() + 9.0 * vz*0.1);
+//    }
+//    if(getX()+getWidth() <= maxWidth and getY()+getHeight() <= maxHeight){
+        setWidth(getWidth()- 2.0 * 16.0 * vz*0.1);
+        setHeight(getHeight() - 2.0 * 9.0 * vz*0.1);
+//    }
+
 
     bool wasFrame=scene->getFrame(&frameIn);
     if(frameIn.cameOnTime() && wasFrame){
         cutFrame();
         sendFrame();
     }else{
-        frameIn.drop();
+        frameIn.drop(__FUNCTION__);
     }
 }
 
@@ -83,8 +95,6 @@ void Camera::setSafeMargin(double value)
     else
         safeMargin = value;
 
-    maxZoom = 2.0;
-    minZoom = 1.0;
     maxX = scene->getWidth() * safeMargin;
     maxY = scene->getHeight() * safeMargin;
     maxWidth = scene->getWidth() * (1.0 - safeMargin);
@@ -92,19 +102,69 @@ void Camera::setSafeMargin(double value)
     Log::print(INFO,"Camera:: maxWidth: "+to_string(maxWidth)+" maxHeight: "+to_string(maxHeight));
 }
 
+unsigned int Camera::getX() const
+{
+    return x;
+}
+
+void Camera::setX(unsigned int value)
+{
+    if((maxX < value and x>value) xor (value+getWidth() < maxWidth and x<value))
+        x = value;
+}
+
+unsigned int Camera::getY() const
+{
+
+        return y;
+}
+
+void Camera::setY(unsigned int value)
+{
+    if((maxY < value and y>value) xor (value+getHeight() < maxWidth and y<value))
+        y = value;
+}
+
+unsigned int Camera::getWidth() const
+{
+    return width;
+}
+
+void Camera::setWidth(unsigned int value)
+{
+    if((realWidth*0.25 < value and getWidth()>value) xor (value+getX() < maxWidth and getWidth()<value))
+        width = value;
+}
+
+unsigned int Camera::getHeight() const
+{
+    return height;
+}
+
+void Camera::setHeight(unsigned int value)
+{
+    if((realHeight*0.25 < value and getHeight()>value) xor (value+getY() < maxHeight and getHeight()<value))
+        height = value;
+}
+
 void Camera::friction(double &vel)
 {
-    if(vel>0.0)vel-=fric;
+    if(vel > fric)
+        vel-=fric;
     else
-        if(vel<0.0)vel+=fric;
+        if(vel < -fric)
+            vel+=fric;
+    else
+        if(fabs(vel-fric)<fric+eps)
+            vel=0.0;
 }
 
 void Camera::calcFrameSize()
 {
-    height = ((double)height)*(z-1.0);
-    width = ((double)width)*(z-1.0);
-//    x = ((double)x)+z;
-//    y = ((double)y)+z;
+    height = height - 2.0 * 9.0 * vz;
+    width = width - 2.0 * 16.0 * vz;
+    x = x + 16.0 * vz;
+    y = y + 9.0 * vz;
 }
 void Camera::cutFrame()
 {
@@ -129,55 +189,37 @@ void Camera::moveUp()
 
 {
     cout<<__FUNCTION__<<endl;
-    if(y > maxY)
-        vy++;
-    else
-        vy=0.0;
+    vy-=1.0;
 }
 
 void Camera::moveDown()
 {
     cout<<__FUNCTION__<<endl;
-    if(y+height < maxHeight)
-        vy--;
-    else
-        vy=0.0;
+    vy+=1.0;
 }
 
 void Camera::moveLeft()
 {
     cout<<__FUNCTION__<<endl;
-    if(x > maxX)
-        vx--;
-    else
-        vx=0;
+    vx-=1.0;
 }
 
 void Camera::moveRight()
 {
     cout<<__FUNCTION__<<endl;
-    if(x+width < maxWidth)
-        vx++;
-    else
-        vx=0;
+    vx+=1.0;
 }
 
 void Camera::zoomIn()
 {
     cout<<__FUNCTION__<<endl;
-    if(z<maxZoom)
-        vz++;
-    else
-        vz=0;
+    vz+=1.0;
 }
 
 void Camera::zoomOut()
 {
     cout<<__FUNCTION__<<endl;
-    if(z>minZoom)
-        vz--;
-    else
-        vz=0;
+    vz-=1.0;
 }
 
 void Camera::sendFrame()
